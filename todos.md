@@ -9,9 +9,9 @@ Step 1: Authentication & User Management (Backend)
    - Specific Details:
      - Use bcrypt for hashing passwords.
      - Validate unique email addresses and strong password criteria.
-2. [] Login Endpoint (JWT Authentication):
+2. [x] Login Endpoint (JWT Authentication):
    - Implement login API to authenticate users and generate JWT tokens.
-   - Implement middleware for token validation for protected routes.
+   - Implement quard for token validation for protected routes.
    - Specific Details:
      - Store JWT token in cookies or return in the response body for frontend to store.
 3. [] Password Reset Endpoint:
@@ -43,7 +43,7 @@ Step 2: Book Management (Backend)
    - Implement authentication for admin users (JWT token).
    - Create role-based access to ensure only admins can add/update books.
    - Specific Details:
-     - Use middleware to check for admin role before granting access to certain endpoints.
+     - Use guard to check for admin role before granting access to certain endpoints.
 
 Step 3: Cart and Checkout System (Backend)
 
@@ -99,7 +99,7 @@ Step 6: Admin Features & Security (Backend)
    - Implement role-based access control (RBAC) for admins.
    - Allow only users with admin roles to access certain APIs (like book management).
    - Specific Details:
-     - Use middleware to protect sensitive admin routes.
+     - Use guard to protect sensitive admin routes.
 2. [] Generate Reports for Admins:
    - Create endpoints for generating sales reports (e.g., total sales, bestselling books).
    - Allow admins to download reports as CSV files.

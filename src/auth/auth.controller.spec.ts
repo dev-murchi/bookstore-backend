@@ -3,7 +3,9 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 const mockAuthService = {
   register: jest.fn(),
+  login: jest.fn(),
 };
+
 describe('AuthController', () => {
   let controller: AuthController;
 
