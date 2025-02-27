@@ -2,7 +2,7 @@
 
 Step 1: Authentication & User Management (Backend)
 
-1. [] User Registration Endpoint:
+1. [x] User Registration Endpoint:
    - Implement the API endpoint to handle user registration.
    - Ensure password hashing and validate input data (e.g., email format).
    - Store new user in the database.
