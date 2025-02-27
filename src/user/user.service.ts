@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
@@ -43,7 +39,7 @@ export class UserService {
   async findOne(id: number) {
     const user = this.users.find((user) => id === user.id);
     if (!user) {
-      throw new NotFoundException('User is not exist');
+      return null;
     }
     return user;
   }
@@ -51,7 +47,7 @@ export class UserService {
   async findBy(email: string) {
     const user = this.users.find((user) => email === user.email);
     if (!user) {
-      throw new NotFoundException('User is not exist');
+      return null;
     }
     return user;
   }

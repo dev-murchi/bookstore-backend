@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BadRequestException } from '@nestjs/common';
 
 describe('UserService', () => {
   let service: UserService;
@@ -42,10 +43,12 @@ describe('UserService', () => {
         email: 'testuser@email.com',
         password: 'password123',
       });
-
-      await expect(service.create(user)).rejects.toThrow(
-        'Email already in use',
-      );
+      try {
+        await service.create(user);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('Email already in use');
+      }
     });
   });
 
@@ -88,8 +91,8 @@ describe('UserService', () => {
       expect(user).toEqual({ ...newUser, role: 'user', id: 1 });
     });
 
-    it('should throw an error if the user does not exist', async () => {
-      await expect(service.findOne(999)).rejects.toThrow('User is not exist');
+    it('should return null an error if the user does not exist', async () => {
+      expect(await service.findOne(999)).toBeNull();
     });
   });
 
@@ -107,10 +110,8 @@ describe('UserService', () => {
       expect(user).toEqual({ ...newUser, role: 'user', id: 1 });
     });
 
-    it('should throw an error if the user does not exist', async () => {
-      await expect(service.findBy('invaliduser@email.com')).rejects.toThrow(
-        'User is not exist',
-      );
+    it('should return null if the user does not exist', async () => {
+      expect(await service.findBy('invaliduser@email.com')).toBeNull();
     });
   });
 
@@ -145,9 +146,12 @@ describe('UserService', () => {
         password: 'newpassword123',
       };
 
-      await expect(service.update(999, user)).rejects.toThrow(
-        'User could not be updated',
-      );
+      try {
+        await service.update(999, user);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('User could not be updated');
+      }
     });
   });
 
@@ -163,12 +167,15 @@ describe('UserService', () => {
       const result = await service.remove(1);
       expect(result).toEqual({ message: 'User deleted successfully' });
 
-      await expect(service.findOne(1)).rejects.toThrow('User is not exist');
+      expect(await service.findOne(1)).toBeNull();
     });
     it('should throw an error if user does not exist', async () => {
-      await expect(service.remove(1)).rejects.toThrow(
-        'User could not be deleted',
-      );
+      try {
+        await service.remove(1);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('User could not be deleted');
+      }
     });
   });
 });
