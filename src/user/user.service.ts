@@ -1,43 +1,57 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class UserService {
-  private users = [];
-  constructor() {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
     // check user is exist or not
-    const user = this.users.find((user) => createUserDto.email === user.email);
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email: createUserDto.email,
+      },
+    });
 
     if (user) {
       throw new BadRequestException('Email already in use');
     }
 
-    // hash password
-    const hashedPassword = createUserDto.password;
-
-    const id = this.users.length + 1;
     // create new user
-    const newUser = {
-      name: createUserDto.name,
-      email: createUserDto.email,
-      password: hashedPassword,
-      role: 'user',
-      id,
-    };
-
-    this.users.push(newUser);
+    await this.prisma.user.create({
+      data: {
+        name: createUserDto.name,
+        email: createUserDto.email,
+        password: createUserDto.password,
+        role: {
+          connectOrCreate: {
+            where: {
+              role_name: 'user',
+            },
+            create: {
+              role_name: 'user',
+            },
+          },
+        },
+        is_active: true,
+      },
+    });
 
     return { message: 'User registered successfully' };
   }
 
   async findAll() {
-    return this.users;
+    const users = await this.prisma.user.findMany();
+
+    if (!users) return [];
+    return users;
   }
 
   async findOne(id: number) {
-    const user = this.users.find((user) => id === user.id);
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
     if (!user) {
       return null;
     }
@@ -45,7 +59,9 @@ export class UserService {
   }
 
   async findBy(email: string) {
-    const user = this.users.find((user) => email === user.email);
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (!user) {
       return null;
     }
@@ -53,35 +69,25 @@ export class UserService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    // check user existence
-    const userIndex = this.users.findIndex((user) => id === user.id);
-
-    if (userIndex < 0) {
+    try {
+      await this.prisma.user.update({
+        where: { id },
+        data: updateUserDto,
+      });
+      return { message: 'User updated successfully' };
+    } catch (error) {
       throw new BadRequestException('User could not be updated');
     }
-
-    // update user
-    this.users[userIndex].email =
-      updateUserDto.email || this.users[userIndex].email;
-
-    this.users[userIndex].password =
-      updateUserDto.password || this.users[userIndex].password;
-
-    this.users[userIndex].name =
-      updateUserDto.name || this.users[userIndex].name;
-
-    return { message: 'User updated successfully' };
   }
 
   async remove(id: number) {
-    // check user existence
-    const userIndex = this.users.findIndex((user) => id === user.id);
-
-    if (userIndex < 0) {
+    try {
+      await this.prisma.user.delete({
+        where: { id },
+      });
+      return { message: 'User deleted successfully' };
+    } catch (error) {
       throw new BadRequestException('User could not be deleted');
     }
-    // delete user
-    this.users.splice(userIndex, 1);
-    return { message: 'User deleted successfully' };
   }
 }
