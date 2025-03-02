@@ -4,21 +4,43 @@ import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
+import { MailService } from '../mail/mail.service';
+
+jest.mock('uuid', () => ({
+  v4: jest.fn(),
+}));
 
 const mockUserService = {
   create: jest.fn(),
   findBy: jest.fn(),
+  update: jest.fn(),
 };
 
 const mockJwtService = {
   signAsync: jest.fn(),
 };
 
+const mockPrismaService = {
+  password_reset_tokens: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+  },
+};
+
+const mockMailService = {
+  sendResetPasswordMail: jest.fn(),
+};
+
 describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
   let jwtService: JwtService;
+  let prismaService: PrismaService;
+  let mailService: MailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,12 +54,22 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: MailService,
+          useValue: mockMailService,
+        },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
     jwtService = module.get<JwtService>(JwtService);
+    prismaService = module.get<PrismaService>(PrismaService);
+    mailService = module.get<MailService>(MailService);
   });
 
   afterEach(() => {
@@ -172,5 +204,239 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ accessToken: 'accesstoken' });
     });
+  });
+
+  describe('forgotPassword', () => {
+    it('should return a message when user is not found, without creating a token', async () => {
+      mockUserService.findBy.mockReturnValueOnce(null);
+      const result = await service.forgotPassword('testuser@email.com');
+      expect(result).toEqual({
+        message: 'Please check your email for reset password link.',
+      });
+
+      expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
+      expect(prismaService.password_reset_tokens.create).not.toHaveBeenCalled();
+    });
+    it('should return a reset password URL if the user is found and token is saved', async () => {
+      mockUserService.findBy.mockReturnValueOnce({
+        id: 1,
+        name: 'test user',
+        email: 'testuser@email.com',
+        password: 'password123',
+        roleid: 1,
+        is_active: true,
+      });
+      mockPrismaService.password_reset_tokens.create.mockReturnValueOnce({
+        token_id: 1,
+        userid: 1,
+        token: 'mocktoken',
+        exprires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
+      });
+      (uuidv4 as jest.Mock).mockReturnValueOnce('mockToken');
+      const result = await service.forgotPassword('testuser@email.com');
+
+      expect(result).toEqual({
+        message: 'Please check your email for reset password link.',
+      });
+
+      expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
+      expect(prismaService.password_reset_tokens.create).toHaveBeenCalledWith({
+        data: {
+          user: { connect: { id: 1 } },
+          token: 'mockToken',
+          expires_at: expect.any(Date),
+        },
+      });
+      expect(mailService.sendResetPasswordMail).toHaveBeenCalledWith(
+        'testuser@email.com',
+        'test user',
+        'http://localhost/reset-password?token=mockToken',
+      );
+    });
+    it('should handle unexpected errors gracefully in the userService', async () => {
+      mockUserService.findBy.mockRejectedValue(new Error('Service failure'));
+
+      await expect(
+        service.forgotPassword('testuser@email.com'),
+      ).rejects.toThrow('Something went wrong');
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should throw an error if the token is invalid', async () => {
+      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
+        null,
+      );
+
+      try {
+        await service.resetPassword({
+          email: 'testuser@email.com',
+          token: 'invalid-token',
+          newPassword: 'newpassword',
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('Invalid token');
+        expect(
+          prismaService.password_reset_tokens.findUnique,
+        ).toHaveBeenCalledWith({
+          where: {
+            token: 'invalid-token',
+          },
+        });
+      }
+    });
+
+    it('should throw an error if the token has expired', async () => {
+      const mockPasswordResetData = {
+        token_id: 1,
+        userid: 1,
+        token: 'token',
+        expires_at: new Date(Date.now() - 60 * 1000), // token expired 1 minute ago
+      };
+      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
+        mockPasswordResetData,
+      );
+      mockPrismaService.password_reset_tokens.delete.mockReturnValueOnce(
+        mockPasswordResetData,
+      );
+
+      try {
+        await service.resetPassword({
+          email: 'testuse@email.com',
+          token: 'token',
+          newPassword: 'newpassword',
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('Invalid token');
+        expect(
+          prismaService.password_reset_tokens.findUnique,
+        ).toHaveBeenCalledWith({
+          where: { token: 'token' },
+        });
+
+        expect(prismaService.password_reset_tokens.delete).toHaveBeenCalledWith(
+          {
+            where: { token: 'token' },
+          },
+        );
+      }
+    });
+
+    it('should throw an error if the email does not match the token', async () => {
+      const mockPasswordResetData = {
+        token_id: 1,
+        userid: 1,
+        token: 'token',
+        expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
+      };
+      mockPrismaService.password_reset_tokens.findUnique.mockReturnValue(
+        mockPasswordResetData,
+      );
+
+      mockUserService.findBy.mockReturnValueOnce(null).mockReturnValueOnce({
+        name: 'second user',
+        id: 2,
+        email: 'seconduser@email.com',
+        password: 'oldpassword',
+        roleid: 1,
+        is_active: true,
+      });
+
+      try {
+        await service.resetPassword({
+          email: 'unknownuser@email.com',
+          token: 'token',
+          newPassword: 'newpassword',
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('Invalid email');
+      }
+
+      try {
+        await service.resetPassword({
+          email: 'seconduser@email.com',
+          token: 'token',
+          newPassword: 'newpassword',
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('Invalid email');
+      }
+
+      mockPrismaService.password_reset_tokens.findUnique.mockClear();
+    });
+
+    it('should throw an error if the new password is the same as the old password', async () => {
+      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
+        token_id: 1,
+        userid: 1,
+        token: 'token',
+        expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
+      });
+
+      mockUserService.findBy.mockReturnValueOnce({
+        name: 'test user',
+        id: 1,
+        email: 'testuser@email.com',
+        password: 'oldpassword',
+        roleid: 1,
+        is_active: true,
+      });
+
+      jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(true as never);
+
+      try {
+        await service.resetPassword({
+          email: 'testuser@email.com',
+          token: 'token',
+          newPassword: 'oldpassword',
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe(
+          'New password must be different from the current password. Please try again.',
+        );
+      }
+    });
+  });
+
+  it('should reset the password successfully', async () => {
+    mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
+      token_id: 1,
+      userid: 1,
+      token: 'token',
+      expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
+    });
+
+    mockUserService.findBy.mockReturnValueOnce({
+      name: 'test user',
+      id: 1,
+      email: 'testuser@email.com',
+      password: 'oldpassword',
+      roleid: 1,
+      is_active: true,
+    });
+
+    jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(false as never);
+    jest.spyOn(bcrypt, 'hash').mockResolvedValueOnce('hashedPassword' as never);
+
+    const result = await service.resetPassword({
+      email: 'testuser@email.com',
+      token: 'token',
+      newPassword: 'newpassword',
+    });
+
+    expect(userService.update).toHaveBeenCalledWith(1, {
+      password: 'hashedPassword',
+    });
+
+    expect(prismaService.password_reset_tokens.delete).toHaveBeenCalledWith({
+      where: { token: 'token' },
+    });
+
+    expect(result).toEqual({ message: 'Password reset successfully' });
   });
 });

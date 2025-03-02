@@ -15,10 +15,10 @@ Step 1: Authentication & User Management (Backend)
    - Specific Details:
      - Store JWT token in cookies or return in the response body for frontend to store.
 3. [] Password Reset Endpoint:
-   - Create an endpoint that generates a password reset token and sends it to the user’s email.
+   - Create an endpoint that generates a disposable password reset token and sends it to the user’s email.
    - Implement token validation when the user clicks the reset link.
    - Specific Details:
-     - Token expiration (e.g., 1 hour).
+     - Token expiration (e.g., 10 mins).
      - Send a temporary link to the user’s email to reset the password.
 4. [] User Profile Management Endpoint:
    - Create an API endpoint to get and update the user’s profile (name, email).

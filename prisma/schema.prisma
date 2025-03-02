@@ -29,4 +29,14 @@ model User {
   role  Roles @relation(fields: [roleid], references: [id])
   roleid Int
   is_active Boolean
+
+  password_reset_tokens password_reset_tokens[]
+}
+
+model password_reset_tokens {
+  token_id    Int     @default(autoincrement()) @id
+  user  User @relation(fields: [userid], references: [id])
+  userid Int
+  token String  @unique
+  expires_at  DateTime  @db.Timestamptz(6)
 }
