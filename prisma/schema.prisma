@@ -15,28 +15,55 @@ datasource db {
 
 
 model Roles {
-  id    Int     @default(autoincrement()) @id
+  id        Int     @default(autoincrement()) @id
   role_name String  @unique
 
   User User[]
 }
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  name  String
-  email String @unique
+  id        Int     @default(autoincrement()) @id
+  name      String
+  email     String @unique
   password  String
-  role  Roles @relation(fields: [roleid], references: [id])
-  roleid Int
+  role      Roles @relation(fields: [roleid], references: [id])
+  roleid    Int
   is_active Boolean
 
   password_reset_tokens password_reset_tokens[]
+
+  books books[]
 }
 
 model password_reset_tokens {
   token_id    Int     @default(autoincrement()) @id
-  user  User @relation(fields: [userid], references: [id])
-  userid Int
-  token String  @unique
+  user        User @relation(fields: [userid], references: [id])
+  userid      Int
+  token       String  @unique
   expires_at  DateTime  @db.Timestamptz(6)
+}
+
+model category {
+  id            Int     @default(autoincrement()) @id
+  category_name String  @unique
+
+  books books[]
+}
+
+model books {
+  id            Int      @id @default(autoincrement())
+  title         String 
+  author        User  @relation(fields: [authorid], references: [id])
+  authorid      Int
+  category      category  @relation(fields: [categoryid], references: [id])
+  categoryid    Int
+  isbn          String   @unique
+  price         Decimal  @db.Decimal(10, 2)
+  description   String? 
+  stock_quantity Int     @default(0)
+  rating        Int      @default(0)
+  image_url     String? 
+  is_active     Boolean  @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
 }
