@@ -1,34 +1,34 @@
-import { JwtService } from '@nestjs/jwt';
-import { AuthGuard } from './auth.guard';
-import { ConfigService } from '@nestjs/config';
-import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { TestingModule, Test } from '@nestjs/testing';
+import { AuthGuard } from './auth.guard';
+import { UserService } from '../../user/user.service';
+
+const mockUserService = {
+  findOne: jest.fn(),
+};
+
+const mockJwtService = {
+  verifyAsync: jest.fn(),
+  sign: jest.fn(),
+};
+
+const mockConfigService = {
+  get: jest.fn().mockReturnValue('secret-key'),
+};
 
 describe('AuthGuard', () => {
   let authGuard: AuthGuard;
   let jwtService: JwtService;
 
   beforeEach(async () => {
-    const mockJwtService = {
-      verifyAsync: jest.fn(),
-      sign: jest.fn(),
-    };
-
-    const mockConfigService = {
-      get: jest.fn().mockReturnValue('secret-key'),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthGuard,
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: UserService, useValue: mockUserService },
       ],
     }).compile();
 
@@ -93,16 +93,32 @@ describe('AuthGuard', () => {
 
   it('should attach the decoded user to the request object and allow the request when a valid token is provided', async () => {
     const validToken = 'valid_token';
-    const mockDecoded = { id: 1, role: 'user' };
+    const mockDecoded = { id: 1, roleid: 1 };
     const mockRequest = { headers: { authorization: `Bearer ${validToken}` } };
 
     jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
+
+    mockUserService.findOne.mockResolvedValueOnce({
+      name: 'test user',
+      id: 1,
+      email: 'testuser@email.com',
+      password: 'password',
+      roleid: 1,
+      is_active: true,
+    });
 
     const result = await authGuard.canActivate({
       switchToHttp: () => ({ getRequest: () => mockRequest }),
     } as any);
 
-    expect(mockRequest['user']).toEqual(mockDecoded);
+    expect(mockRequest['user']).toEqual({
+      name: 'test user',
+      id: 1,
+      email: 'testuser@email.com',
+      password: 'password',
+      roleid: 1,
+      is_active: true,
+    });
     expect(result).toBe(true);
   });
 
