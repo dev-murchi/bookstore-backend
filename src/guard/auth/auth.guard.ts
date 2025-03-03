@@ -35,8 +35,18 @@ export class AuthGuard implements CanActivate {
       if (!user) throw new UnauthorizedException('User is not exist');
 
       // attach user to the request object
-      request['user'] = user;
+      request.user = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        password: user.password,
+        role: {
+          id: user.role.id,
+          name: user.role.role_name,
+        },
+      };
     } catch (error) {
+      // console.log(error);
       throw new UnauthorizedException('Unauthorized');
     }
     return true;

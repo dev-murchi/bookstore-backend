@@ -1,20 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 
 const mockUserService = {
   findOne: jest.fn(),
 };
 
-const mockJwtService = {
-  verifyAsync: jest.fn(),
-};
-
-const mockConfigService = {
-  get: jest.fn().mockReturnValue('mocked-jwt-secret'),
-};
+jest.mock('../guard/auth/auth.guard', () => {
+  return {
+    AuthGuard: jest.fn().mockImplementation(() => ({
+      canActivate: jest.fn().mockResolvedValue(true),
+    })),
+  };
+});
 
 describe('UserController', () => {
   let controller: UserController;
@@ -22,11 +20,7 @@ describe('UserController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [
-        { provide: UserService, useValue: mockUserService },
-        { provide: JwtService, useValue: mockJwtService },
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
+      providers: [{ provide: UserService, useValue: mockUserService }],
     }).compile();
 
     controller = module.get<UserController>(UserController);

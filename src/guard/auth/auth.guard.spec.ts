@@ -93,7 +93,7 @@ describe('AuthGuard', () => {
 
   it('should attach the decoded user to the request object and allow the request when a valid token is provided', async () => {
     const validToken = 'valid_token';
-    const mockDecoded = { id: 1, roleid: 1 };
+    const mockDecoded = { id: 1, role: 'user' };
     const mockRequest = { headers: { authorization: `Bearer ${validToken}` } };
 
     jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
@@ -103,7 +103,10 @@ describe('AuthGuard', () => {
       id: 1,
       email: 'testuser@email.com',
       password: 'password',
-      roleid: 1,
+      role: {
+        id: 1,
+        role_name: 'user',
+      },
       is_active: true,
     });
 
@@ -116,8 +119,10 @@ describe('AuthGuard', () => {
       id: 1,
       email: 'testuser@email.com',
       password: 'password',
-      roleid: 1,
-      is_active: true,
+      role: {
+        id: 1,
+        name: 'user',
+      },
     });
     expect(result).toBe(true);
   });

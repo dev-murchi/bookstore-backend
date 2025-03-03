@@ -51,6 +51,19 @@ export class UserService {
   async findOne(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+        role: {
+          select: {
+            id: true,
+            role_name: true,
+          },
+        },
+        is_active: true,
+      },
     });
     if (!user) {
       return null;
@@ -61,6 +74,19 @@ export class UserService {
   async findBy(email: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+        role: {
+          select: {
+            id: true,
+            role_name: true,
+          },
+        },
+        is_active: true,
+      },
     });
     if (!user) {
       return null;

@@ -13,6 +13,7 @@ import { AuthGuard } from '../guard/auth/auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
+import { UserDto } from './dto/user.dto';
 const roundsOfHashing = 10;
 
 @Controller('user')
@@ -22,9 +23,14 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Get('profile')
   async profile(@Req() request: Request) {
-    const { name, email } = await this.userService.findOne(request.user['id']);
+    const user: UserDto = {
+      id: request.user['id'],
+      name: request.user['name'],
+      email: request.user['email'],
+      role: request.user['role']['name'],
+    };
 
-    return { name, email };
+    return user;
   }
 
   @UseGuards(AuthGuard)
@@ -37,9 +43,7 @@ export class UserController {
 
     if (!oldPassword) throw new BadRequestException('Password is required.');
 
-    const user = await this.userService.findOne(request.user['id']);
-
-    if (!(await bcrypt.compare(oldPassword, user.password)))
+    if (!(await bcrypt.compare(oldPassword, request.user['password'])))
       throw new BadRequestException('Invalid password.');
 
     if (oldPassword === newPassword)

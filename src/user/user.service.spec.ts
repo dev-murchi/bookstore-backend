@@ -79,7 +79,10 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
 
@@ -106,7 +109,10 @@ describe('UserService', () => {
           name: 'test user',
           email: 'testuser@email.com',
           password: 'password123',
-          roleid: 1,
+          role: {
+            id: 1,
+            role_name: 'user',
+          },
           is_active: true,
         },
       ]);
@@ -117,7 +123,10 @@ describe('UserService', () => {
           name: 'test user',
           email: 'testuser@email.com',
           password: 'password123',
-          roleid: 1,
+          role: {
+            id: 1,
+            role_name: 'user',
+          },
           is_active: true,
         },
       ]);
@@ -131,7 +140,10 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
 
@@ -141,6 +153,19 @@ describe('UserService', () => {
         where: {
           id: 1,
         },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
+          },
+          is_active: true,
+        },
       });
 
       expect(user).toEqual({
@@ -148,7 +173,10 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
     });
@@ -166,7 +194,10 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
 
@@ -176,6 +207,19 @@ describe('UserService', () => {
         where: {
           email: 'testuser@email.com',
         },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
+          },
+          is_active: true,
+        },
       });
 
       expect(user).toEqual({
@@ -183,7 +227,10 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
     });
@@ -207,7 +254,10 @@ describe('UserService', () => {
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
 
@@ -252,7 +302,10 @@ describe('UserService', () => {
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
-        roleid: 1,
+        role: {
+          id: 1,
+          role_name: 'user',
+        },
         is_active: true,
       });
 
