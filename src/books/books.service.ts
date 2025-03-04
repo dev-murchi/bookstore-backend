@@ -66,7 +66,7 @@ export class BooksService {
       },
     });
     if (!books) return [];
-    return { data: books };
+    return books;
   }
 
   async findOne(id: number) {
@@ -91,11 +91,11 @@ export class BooksService {
       },
     });
 
-    if (!book) return { data: null };
-    return { data: book };
+    if (!book) return null;
+    return book;
   }
 
-  async update(id: number, updateBookDto: UpdateBookDto) {
+  async update(id: number, updateBookDto: UpdateBookDto, authorId: number) {
     try {
       const data: Prisma.booksUpdateInput = {};
 
@@ -115,8 +115,11 @@ export class BooksService {
 
       if (updateBookDto.imageUrl) data.image_url = updateBookDto.imageUrl;
 
+      if (Object.keys(data).length === 0)
+        return { message: 'No changes to update' };
+
       await this.prisma.books.update({
-        where: { id },
+        where: { id, authorid: authorId },
         data: data,
       });
       return { message: 'Book informations updated successfully' };
