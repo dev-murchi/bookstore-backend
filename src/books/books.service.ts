@@ -13,7 +13,8 @@ export class BooksService {
       where: { isbn: createBookDto.isbn },
     });
 
-    if (book) throw new Error('The book with same ISBN is already exist');
+    if (book)
+      throw new BadRequestException('The book with same ISBN is already exist');
 
     // save the book
     const savedBook = await this.prisma.books.create({
@@ -65,7 +66,7 @@ export class BooksService {
       },
     });
     if (!books) return [];
-    return books;
+    return { data: books };
   }
 
   async findOne(id: number) {
@@ -90,8 +91,8 @@ export class BooksService {
       },
     });
 
-    if (!book) return null;
-    return book;
+    if (!book) return { data: null };
+    return { data: book };
   }
 
   async update(id: number, updateBookDto: UpdateBookDto) {

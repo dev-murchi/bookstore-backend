@@ -17,12 +17,15 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { Request } from 'express';
 import { AuthGuard } from '../guard/auth/auth.guard';
+import { RoleGuard } from '../guard/role/role.guard';
+import { Role } from '../decorator/role/role.decorator';
 
 @Controller('books')
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoleGuard)
+  @Role('author')
   @Post()
   async create(@Req() request: Request, @Body() createBookDto: CreateBookDto) {
     // check user validity
@@ -49,27 +52,21 @@ export class BooksController {
     return book;
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoleGuard)
+  @Role('author')
   @Patch(':id')
   async update(
     @Req() request: Request,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateBookDto: UpdateBookDto,
   ) {
-    if (request.user['role']['name'] !== 'author')
-      throw new UnauthorizedException(
-        'Only author can perform this opearation',
-      );
     return await this.booksService.update(id, updateBookDto);
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoleGuard)
+  @Role('author')
   @Delete(':id')
   async remove(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {
-    if (request.user['role']['name'] !== 'author')
-      throw new UnauthorizedException(
-        'Only author can perform this opearation',
-      );
     return await this.booksService.remove(id);
   }
 }

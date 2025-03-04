@@ -28,7 +28,7 @@ Step 1: Authentication & User Management (Backend)
 
 Step 2: Book Management (Backend)
 
-1. [] Create CRUD Operations for Books:
+1. [x] Create CRUD Operations for Books:
    - Create API endpoints for creating, updating, reading, and deleting books.
    - Implement validation for book fields (e.g., title, price, description).
    - Specific Details:
@@ -39,11 +39,11 @@ Step 2: Book Management (Backend)
    - Specific Details:
      - Pagination for search results.
      - Provide sorting options (price, rating).
-3. [] Admin Authentication & Authorization:
-   - Implement authentication for admin users (JWT token).
-   - Create role-based access to ensure only admins can add/update books.
+3. [x] Author Authentication & Authorization:
+   - Implement authentication for author users (JWT token).
+   - Create role-based access to ensure only authors can add/update/delete books.
    - Specific Details:
-     - Use guard to check for admin role before granting access to certain endpoints.
+     - Use guard to check for author role before granting access to certain endpoints.
 
 Step 3: Cart and Checkout System (Backend)
 
