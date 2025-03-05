@@ -4,6 +4,8 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
+export type SortType = 'asc' | 'desc';
+
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
@@ -11,6 +13,7 @@ export class BooksService {
     // check book is exist or not
     const book = await this.prisma.books.findUnique({
       where: { isbn: createBookDto.isbn },
+      select: { id: true },
     });
 
     if (book)
@@ -137,5 +140,102 @@ export class BooksService {
     } catch (error) {
       throw new BadRequestException('Book could not be deleted');
     }
+  }
+
+  async search(searchQuery: string) {
+    return await this.prisma.books.findMany({
+      where: {
+        OR: [
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          { author: { name: { contains: searchQuery, mode: 'insensitive' } } },
+          { isbn: { contains: searchQuery, mode: 'insensitive' } },
+          {
+            category: {
+              category_name: { contains: searchQuery, mode: 'insensitive' },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: { select: { category_name: true } },
+        isbn: true,
+        price: true,
+        description: true,
+        stock_quantity: true,
+        rating: true,
+        image_url: true,
+      },
+    });
+  }
+
+  async filter(filterParams: {
+    minPrice?: number;
+    maxPrice?: number;
+    rating?: number;
+    stock?: boolean;
+    orderBy: SortType;
+  }) {
+    let price = {};
+    let rating = {};
+    let stock_quantity = {};
+
+    // minimum price
+    if (filterParams.minPrice >= 0) {
+      price = { ...price, gte: filterParams.minPrice };
+    }
+
+    // maximum price
+    if (filterParams.maxPrice >= 0) {
+      price = { ...price, lte: filterParams.maxPrice };
+    }
+
+    // minimum rating
+    if (filterParams.rating >= 0) {
+      rating = { ...rating, gte: filterParams.rating };
+    }
+
+    const orderBy = filterParams.orderBy;
+
+    if (undefined !== filterParams.stock) {
+      stock_quantity = filterParams.stock
+        ? { ...stock_quantity, gt: 0 }
+        : { ...stock_quantity, equals: 0 };
+    }
+
+    const conditions: Prisma.booksWhereInput = {
+      price,
+      rating,
+      stock_quantity,
+    };
+
+    return await this.prisma.books.findMany({
+      where: conditions,
+      select: {
+        id: true,
+        title: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: { select: { category_name: true } },
+        isbn: true,
+        price: true,
+        description: true,
+        stock_quantity: true,
+        rating: true,
+        image_url: true,
+      },
+      orderBy: [{ price: orderBy }, { rating: orderBy }],
+    });
   }
 }

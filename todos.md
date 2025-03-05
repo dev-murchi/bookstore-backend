@@ -33,7 +33,7 @@ Step 2: Book Management (Backend)
    - Implement validation for book fields (e.g., title, price, description).
    - Specific Details:
      - Ensure all book data is sanitized before storage.
-2. [] Book Search & Filter Endpoint:
+2. [x] Book Search & Filter Endpoint:
    - Implement an endpoint to allow searching by title, author, category, and ISBN.
    - Add filtering for price range, rating, and stock availability.
    - Specific Details:

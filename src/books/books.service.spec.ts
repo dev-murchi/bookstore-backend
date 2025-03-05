@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BooksService } from './books.service';
+import { BooksService, SortType } from './books.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -32,6 +32,10 @@ describe('BooksService', () => {
     prisma = module.get<PrismaService>(PrismaService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -41,18 +45,6 @@ describe('BooksService', () => {
       const isbn = '9780743273565';
       mockPrismaService.books.findUnique.mockResolvedValueOnce({
         id: 1,
-        title: 'The Old Book',
-        authorid: 2,
-        categoryid: 3,
-        isbn: isbn,
-        price: 10.99,
-        description: 'Old book description',
-        stock_quantity: 100,
-        rating: 4.7,
-        image_url: 'image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       });
 
       const userId = 1;
@@ -125,8 +117,8 @@ describe('BooksService', () => {
       const book = {
         id: 1,
         title: 'The Test Book',
-        authorid: 1,
-        categoryid: 1,
+        author: { id: 1, name: 'test user' },
+        category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
@@ -153,8 +145,8 @@ describe('BooksService', () => {
       const book = {
         id: bookId,
         title: 'The Test Book',
-        authorid: 1,
-        categoryid: 1,
+        author: { id: 1, name: 'test user' },
+        category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
@@ -194,23 +186,6 @@ describe('BooksService', () => {
       const bookId = 1;
       const authorId = 1;
 
-      const book = {
-        id: bookId,
-        title: updateBookDto.title,
-        authorid: authorId,
-        categoryid: updateBookDto.categoryId,
-        isbn: updateBookDto.isbn,
-        price: updateBookDto.price,
-        description: updateBookDto.description,
-        stock_quantity: updateBookDto.stockQuantity,
-        rating: 5,
-        image_url: updateBookDto.imageUrl,
-        is_active: updateBookDto.isActive,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
-
       const result = await service.update(bookId, updateBookDto, authorId);
 
       expect(result).toEqual({
@@ -246,23 +221,6 @@ describe('BooksService', () => {
 
       const bookId = 1;
       const authorId = 1;
-
-      const book = {
-        id: bookId,
-        title: 'Book Title',
-        authorid: authorId,
-        categoryid: 1,
-        isbn: '1234567890123',
-        price: updateBookDto.price,
-        description: 'Book description',
-        stock_quantity: updateBookDto.stockQuantity,
-        rating: 5,
-        image_url: 'image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
 
       const result = await service.update(bookId, updateBookDto, authorId);
 
@@ -334,6 +292,412 @@ describe('BooksService', () => {
       mockPrismaService.books.delete.mockResolvedValueOnce(book);
       const result = await service.remove(bookId);
       expect(result).toEqual({ message: 'Book deleted successfully' });
+    });
+  });
+
+  describe('search', () => {
+    it('should return books matching the search query in title', async () => {
+      const bookId = 1;
+      const book = {
+        id: bookId,
+        title: 'The Test Title Book',
+        author: { id: 1, name: 'test user' },
+        category: { category_name: 'test-category' },
+        isbn: '9780743273565',
+        price: 1,
+        description: 'Test book description.',
+        stock_quantity: 1,
+        rating: 5,
+        image_url: 'testbook-image-url',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+
+      const result = await service.search('title');
+
+      expect(result).toEqual([book]);
+      expect(prisma.books.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { title: { contains: 'title', mode: 'insensitive' } },
+            { author: { name: { contains: 'title', mode: 'insensitive' } } },
+            { isbn: { contains: 'title', mode: 'insensitive' } },
+            {
+              category: {
+                category_name: { contains: 'title', mode: 'insensitive' },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
+        },
+      });
+
+      expect(mockPrismaService.books.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return books matching the search query in author', async () => {
+      const bookId = 1;
+      const book = {
+        id: bookId,
+        title: 'The Test Book',
+        author: { id: 1, name: 'test author user' },
+        category: { category_name: 'test-category' },
+        isbn: '9780743273565',
+        price: 1,
+        description: 'Test book description.',
+        stock_quantity: 1,
+        rating: 5,
+        image_url: 'testbook-image-url',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+
+      const result = await service.search('author');
+
+      expect(result).toEqual([book]);
+    });
+
+    it('should return books matching the search query in isbn', async () => {
+      const bookId = 1;
+      const book = {
+        id: bookId,
+        title: 'The Test Book',
+        author: { id: 1, name: 'test user' },
+        category: { category_name: 'test-category' },
+        isbn: '9780743273565',
+        price: 1,
+        description: 'Test book description.',
+        stock_quantity: 1,
+        rating: 5,
+        image_url: 'testbook-image-url',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+
+      const result = await service.search('9780743273565');
+
+      expect(result).toEqual([book]);
+    });
+
+    it('should return books matching the search query in category', async () => {
+      const bookId = 1;
+      const book = {
+        id: bookId,
+        title: 'The Test Book',
+        author: { id: 1, name: 'test user' },
+        category: { category_name: 'test-category' },
+        isbn: '9780743273565',
+        price: 1,
+        description: 'Test book description.',
+        stock_quantity: 1,
+        rating: 5,
+        image_url: 'testbook-image-url',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+
+      const result = await service.search('test-category');
+
+      expect(result).toEqual([book]);
+    });
+
+    it('should return an empty array when no books match the search query', async () => {
+      mockPrismaService.books.findMany.mockResolvedValueOnce([]);
+      const result = await service.search('nonexistent book');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('filter', () => {
+    it('should return filtered books by price, rating, and stock availability', async () => {
+      const filterParams = {
+        minPrice: 10,
+        maxPrice: 100,
+        rating: 4,
+        stock: true,
+        orderBy: 'asc' as SortType,
+      };
+
+      const books = [
+        {
+          id: 1,
+          title: 'Book One',
+          author: { id: 1, name: 'User One' },
+          category: { category_name: 'category one' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book one',
+          stock_quantity: 10,
+          rating: 4.1,
+          image_url: 'book-one.image.url',
+        },
+        {
+          id: 2,
+          title: 'Book Two',
+          author: { id: 2, name: 'User Two' },
+          category: { category_name: 'category two' },
+          isbn: '0987654321',
+          price: 11,
+          description: 'Description of book two',
+          stock_quantity: 20,
+          rating: 5,
+          image_url: 'book-two.image.url',
+        },
+        {
+          id: 3,
+          title: 'Book Three',
+          author: { id: 1, name: 'User Three' },
+          category: { category_name: 'category three' },
+          isbn: '0123456789',
+          price: 99,
+          description: 'Description of book three',
+          stock_quantity: 30,
+          rating: 4.5,
+          image_url: 'book-three.image.url',
+        },
+      ];
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+
+      const result = await service.filter(filterParams);
+      expect(result).toEqual(books);
+      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+        where: {
+          price: { gte: 10, lte: 100 },
+          rating: { gte: 4 },
+          stock_quantity: { gt: 0 },
+        },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true } },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
+        },
+        orderBy: [{ price: 'asc' }, { rating: 'asc' }],
+      });
+    });
+    it('should only return books that are in stock', async () => {
+      const filterParams = {
+        stock: true,
+        orderBy: 'asc' as SortType,
+      };
+
+      const books = [
+        {
+          id: 1,
+          title: 'Book One',
+          author: { id: 1, name: 'User One' },
+          category: { category_name: 'category one' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book one',
+          stock_quantity: 4,
+          rating: 4.1,
+          image_url: 'book-one.image.url',
+        },
+      ];
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+
+      const result = await service.filter(filterParams);
+      expect(result).toEqual(books);
+      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+        where: {
+          price: {},
+          rating: {},
+          stock_quantity: { gt: 0 },
+        },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true } },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
+        },
+        orderBy: [{ price: 'asc' }, { rating: 'asc' }],
+      });
+    });
+    it('should only return books that are out of stock in desc order', async () => {
+      const filterParams = {
+        stock: false,
+        orderBy: 'desc' as SortType,
+      };
+
+      const books = [
+        {
+          id: 5,
+          title: 'Book Five',
+          author: { id: 5, name: 'User five' },
+          category: { category_name: 'category five' },
+          isbn: '0123456789',
+          price: 99,
+          description: 'Description of book five',
+          stock_quantity: 0,
+          rating: 4.5,
+          image_url: 'book-five.image.url',
+        },
+        {
+          id: 7,
+          title: 'Book Seven',
+          author: { id: 7, name: 'User Seven' },
+          category: { category_name: 'category seven' },
+          isbn: '0987654321',
+          price: 11,
+          description: 'Description of book seven',
+          stock_quantity: 0,
+          rating: 5,
+          image_url: 'book-seven.image.url',
+        },
+        {
+          id: 6,
+          title: 'Book Six',
+          author: { id: 6, name: 'User Six' },
+          category: { category_name: 'category six' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book six',
+          stock_quantity: 0,
+          rating: 4.1,
+          image_url: 'book-six.image.url',
+        },
+      ];
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+
+      const result = await service.filter(filterParams);
+      expect(result).toEqual(books);
+      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+        where: {
+          price: {},
+          rating: {},
+          stock_quantity: { equals: 0 },
+        },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true } },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
+        },
+        orderBy: [{ price: 'desc' }, { rating: 'desc' }],
+      });
+    });
+    it('should return books filtered by min and max price', async () => {
+      const filterParams = {
+        minPrice: 20,
+        maxPrice: 50,
+        orderBy: 'asc' as SortType,
+      };
+
+      const books = [
+        {
+          id: 1,
+          title: 'Book One',
+          author: { id: 1, name: 'User One' },
+          category: { category_name: 'category one' },
+          isbn: '0123456789',
+          price: 35,
+          description: 'Description of book one',
+          stock_quantity: 10,
+          rating: 4.1,
+          image_url: 'book-one.image.url',
+        },
+
+        {
+          id: 2,
+          title: 'Book Two',
+          author: { id: 2, name: 'User Two' },
+          category: { category_name: 'category two' },
+          isbn: '0123456789',
+          price: 35,
+          description: 'Description of book two',
+          stock_quantity: 0,
+          rating: 4.1,
+          image_url: 'book-two.image.url',
+        },
+      ];
+
+      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+
+      const result = await service.filter(filterParams);
+      expect(result).toEqual(books);
+      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+        where: {
+          price: { gte: 20, lte: 50 },
+          rating: {},
+          stock_quantity: {},
+        },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true } },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
+        },
+        orderBy: [{ price: 'asc' }, { rating: 'asc' }],
+      });
+    });
+    it('should return an empty array when no books match the filter conditions', async () => {
+      const filterParams = {
+        minPrice: 500,
+        maxPrice: 1000,
+        orderBy: 'asc' as SortType,
+      };
+      mockPrismaService.books.findMany.mockResolvedValue([]);
+
+      const result = await service.filter(filterParams);
+
+      expect(result).toEqual([]);
     });
   });
 });
