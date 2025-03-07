@@ -44,7 +44,6 @@ export class BooksController {
 
   @Get('search')
   async search(@Query('search') query: string) {
-    console.log({ query });
     if (!query) return { data: [] };
     return { data: await this.booksService.search(query) };
   }

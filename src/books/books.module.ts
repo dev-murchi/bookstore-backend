@@ -3,10 +3,9 @@ import { BooksService } from './books.service';
 import { BooksController } from './books.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
-import { UserModule } from 'src/user/user.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, UserModule],
+  imports: [PrismaModule, JwtModule],
   controllers: [BooksController],
   providers: [BooksService],
 })

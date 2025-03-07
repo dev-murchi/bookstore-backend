@@ -28,6 +28,7 @@ model User {
   password  String
   role      Roles @relation(fields: [roleid], references: [id])
   roleid    Int
+  cart      cart?
   is_active Boolean
 
   password_reset_tokens password_reset_tokens[]
@@ -66,4 +67,23 @@ model books {
   is_active     Boolean  @default(false)
   created_at    DateTime @default(now())
   updated_at    DateTime @default(now()) @updatedAt
+
+  cart_items cart_items[]
+}
+
+model cart {
+  id        Int          @id @default(autoincrement())
+  user      User         @relation(fields: [userid], references: [id])
+  userid    Int          @unique
+  cart_items cart_items[]
+}
+
+model cart_items {
+  id       Int    @id @default(autoincrement())
+  cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 
+  cartid   Int
+  book     books  @relation(fields: [bookid], references: [id])
+  bookid   Int
+  quantity Int
+  @@unique([cartid, bookid])
 }

@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TestingModule, Test } from '@nestjs/testing';
 import { AuthGuard } from './auth.guard';
-import { UserService } from '../../user/user.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
-const mockUserService = {
-  findOne: jest.fn(),
+const mockPrismaService = {
+  user: {
+    findUnique: jest.fn(),
+  },
 };
 
 const mockJwtService = {
@@ -28,7 +30,7 @@ describe('AuthGuard', () => {
         AuthGuard,
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: UserService, useValue: mockUserService },
+        { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 
@@ -98,7 +100,7 @@ describe('AuthGuard', () => {
 
     jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
 
-    mockUserService.findOne.mockResolvedValueOnce({
+    mockPrismaService.user.findUnique.mockResolvedValueOnce({
       name: 'test user',
       id: 1,
       email: 'testuser@email.com',
@@ -109,6 +111,7 @@ describe('AuthGuard', () => {
       },
       is_active: true,
     });
+    // mockUserService.findOne.mockResolvedValueOnce({});
 
     const result = await authGuard.canActivate({
       switchToHttp: () => ({ getRequest: () => mockRequest }),
@@ -123,6 +126,7 @@ describe('AuthGuard', () => {
         id: 1,
         name: 'user',
       },
+      cartId: null,
     });
     expect(result).toBe(true);
   });

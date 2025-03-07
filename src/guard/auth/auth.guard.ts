@@ -7,14 +7,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { UserService } from '../../user/user.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly userService: UserService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -30,7 +30,22 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, { secret });
 
       // get user
-      const user = await this.userService.findOne(payload.id);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
+          },
+          cart: { select: { id: true } },
+        },
+      });
 
       if (!user) throw new UnauthorizedException('User is not exist');
 
@@ -44,6 +59,7 @@ export class AuthGuard implements CanActivate {
           id: user.role.id,
           name: user.role.role_name,
         },
+        cartId: user.cart ? user.cart.id : null,
       };
     } catch (error) {
       throw new UnauthorizedException('Unauthorized');
