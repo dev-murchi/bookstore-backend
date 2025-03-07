@@ -47,7 +47,7 @@ Step 2: Book Management (Backend)
 
 Step 3: Cart and Checkout System (Backend)
 
-1. [] Cart API:
+1. [x] Cart API:
    - Create API endpoints to manage cart operations (add/remove/update items).
    - Track user sessions for the cart (create cart, update cart based on user).
    - Specific Details:
