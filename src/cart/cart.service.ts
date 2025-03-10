@@ -6,11 +6,11 @@ import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
 @Injectable()
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
-  async createCart(userId: number) {
-    const cart = await this.prisma.cart.upsert({
-      where: { userid: userId },
-      update: {},
-      create: { user: { connect: { id: userId } } },
+  async createCart(userId: number | null) {
+    const cart = await this.prisma.cart.create({
+      data: {
+        userid: userId,
+      },
     });
 
     return { cartId: cart.id };
@@ -55,121 +55,81 @@ export class CartService {
     };
   }
 
-  async addItem(cartId: number, data: CartItemDto) {
-    const item = await this.prisma.cart_items.create({
+  async addItem(data: CartItemDto) {
+    await this.prisma.cart_items.create({
       data: {
-        cart: { connect: { id: cartId } },
+        cart: { connect: { id: data.cartId } },
         book: { connect: { id: data.bookId } },
         quantity: data.quantity,
       },
     });
 
     return {
-      cartId,
-      bookId: item.bookid,
-      quatity: item.quantity,
+      message: 'Item successfully added.',
     };
   }
 
-  async updateItem(cartId: number, data: CartItemDto) {
+  async updateItem(data: CartItemDto) {
     const item = await this.prisma.cart_items.update({
       where: {
         cartid_bookid: {
           bookid: data.bookId,
-          cartid: cartId,
+          cartid: data.cartId,
         },
       },
       data: { quantity: data.quantity },
     });
 
     return {
-      cartId: cartId,
-      bookId: item.bookid,
-      quantity: item.quantity,
+      message: 'Item successfully updated.',
     };
   }
 
-  async removeItem(cartId: number, data: DeleteCartItemDto) {
-    const item = await this.prisma.cart_items.delete({
+  async removeItem(data: DeleteCartItemDto) {
+    // try {
+    await this.prisma.cart_items.delete({
       where: {
         cartid_bookid: {
-          cartid: cartId,
+          cartid: data.cartId,
           bookid: data.bookId,
         },
       },
     });
 
     return {
-      cartId: cartId,
-      bookId: item.bookid,
-      quantity: 0,
+      message: 'Item successfully deleted.',
     };
+    // } catch (error) {
+    //   throw new Error('Item could not deleted.');
+    // }
   }
 
-  async removeItems(cartId: number, data: DeleteCartItemDto[]) {
-    const items = data.map((item) => {
-      return this.prisma.cart_items.delete({
-        where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: item.bookId,
-          },
-        },
-      });
-    });
-
-    return (await this.prisma.$transaction(items)).map((i) => ({
-      cartId: cartId,
-      bookId: i.bookid,
-      quantity: 0,
-    }));
-  }
-
-  async upsertItem(cartId: number, data: CartItemDto) {
-    const item = await this.prisma.cart_items.upsert({
+  async upsertItem(data: CartItemDto) {
+    await this.prisma.cart_items.upsert({
       where: {
         cartid_bookid: {
-          cartid: cartId,
+          cartid: data.cartId,
           bookid: data.bookId,
         },
       },
       update: { quantity: data.quantity },
       create: {
-        cart: { connect: { id: cartId } },
+        cart: { connect: { id: data.cartId } },
         book: { connect: { id: data.bookId } },
         quantity: data.quantity,
       },
     });
 
     return {
-      cartId,
-      bookId: item.bookid,
-      quatity: item.quantity,
+      message: 'Item successfully updated.',
     };
   }
 
-  async upsertItems(cartId: number, data: CartItemDto[]) {
-    const items = data.map((item) => {
-      return this.prisma.cart_items.upsert({
-        where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: item.bookId,
-          },
-        },
-        update: { quantity: item.quantity },
-        create: {
-          cart: { connect: { id: cartId } },
-          book: { connect: { id: item.bookId } },
-          quantity: item.quantity,
-        },
-      });
+  async attachUser(userId: number, cartId: number) {
+    await this.prisma.cart.update({
+      where: { id: cartId },
+      data: { user: { connect: { id: userId } } },
     });
-
-    return (await this.prisma.$transaction(items)).map((i) => ({
-      cartId: cartId,
-      bookId: i.bookid,
-      quantity: i.quantity,
-    }));
+    return { message: 'User is attached to the cart.' };
   }
 }

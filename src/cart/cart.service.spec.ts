@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartService } from './cart.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
 
 const mockPrismaService = {
   cart: {
-    upsert: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
     findUnique: jest.fn(),
   },
   cart_items: {
@@ -39,7 +39,7 @@ describe('CartService', () => {
     it('should create a cart if user with userId is exist', async () => {
       const cartId = 1;
       const userId = 2;
-      mockPrismaService.cart.upsert.mockResolvedValueOnce({
+      mockPrismaService.cart.create.mockResolvedValueOnce({
         id: cartId,
         userid: userId,
       });
@@ -47,15 +47,6 @@ describe('CartService', () => {
       const result = await service.createCart(userId);
       expect(result).toEqual({ cartId: cartId });
     });
-    //   mockPrismaService.cart.upsert.mockRejectedValueOnce('DB Error');
-    //   try {
-    //     const userId = 1;
-    //     await service.createCart(userId);
-    //   } catch (error) {
-    //     expect(error).toBeInstanceOf(BadRequestException);
-    //     expect(error.message).toBe('Invalid user.');
-    //   }
-    // });
   });
 
   describe('findCart', () => {
@@ -128,107 +119,73 @@ describe('CartService', () => {
 
   describe('addItem', () => {
     it('should add a new item to the cart', async () => {
-      const cartId = 1;
-      const data = { bookId: 1, quantity: 2 };
+      const data = { cartId: 1, bookId: 1, quantity: 2 };
       const newItem = { bookid: 1, quantity: 2 };
       mockPrismaService.cart_items.create.mockResolvedValue(newItem);
 
-      const result = await service.addItem(cartId, data);
+      const result = await service.addItem(data);
 
       expect(result).toEqual({
-        cartId,
-        bookId: 1,
-        quatity: 2,
+        message: 'Item successfully added.',
       });
     });
   });
 
   describe('updateItem', () => {
     it('should update the quantity of an item in the cart', async () => {
-      const cartId = 1;
-      const data = { bookId: 1, quantity: 3 };
+      const data = { cartId: 1, bookId: 1, quantity: 3 };
       const updatedItem = { bookid: 1, quantity: 3 };
       mockPrismaService.cart_items.update.mockResolvedValue(updatedItem);
 
-      const result = await service.updateItem(cartId, data);
+      const result = await service.updateItem(data);
 
       expect(result).toEqual({
-        cartId,
-        bookId: 1,
-        quantity: 3,
+        message: 'Item successfully updated.',
       });
     });
   });
 
   describe('removeItem', () => {
     it('should remove an item from the cart', async () => {
-      const cartId = 1;
-      const data = { bookId: 1 };
+      const data = { cartId: 1, bookId: 1 };
       const deletedItem = { bookid: 1 };
       mockPrismaService.cart_items.delete.mockResolvedValue(deletedItem);
 
-      const result = await service.removeItem(cartId, data);
+      const result = await service.removeItem(data);
 
       expect(result).toEqual({
-        cartId,
-        bookId: 1,
-        quantity: 0,
+        message: 'Item successfully deleted.',
       });
-    });
-  });
-
-  describe('removeItems', () => {
-    it('should remove multiple items from the cart', async () => {
-      const cartId = 1;
-      const data = [{ bookId: 1 }, { bookId: 2 }];
-      const deletedItems = [{ bookid: 1 }, { bookid: 2 }];
-      mockPrismaService.$transaction.mockResolvedValue(deletedItems);
-
-      const result = await service.removeItems(cartId, data);
-
-      expect(result).toEqual([
-        { cartId, bookId: 1, quantity: 0 },
-        { cartId, bookId: 2, quantity: 0 },
-      ]);
     });
   });
 
   describe('upsertItem', () => {
     it('should upsert an item in the cart (create or update)', async () => {
-      const cartId = 1;
-      const data = { bookId: 1, quantity: 5 };
+      const data = { cartId: 1, bookId: 1, quantity: 5 };
       const upsertedItem = { bookid: 1, quantity: 5 };
       mockPrismaService.cart_items.upsert.mockResolvedValue(upsertedItem);
 
-      const result = await service.upsertItem(cartId, data);
+      const result = await service.upsertItem(data);
 
       expect(result).toEqual({
-        cartId,
+        cartId: 1,
         bookId: 1,
         quatity: 5,
       });
     });
   });
 
-  describe('upsertItems', () => {
-    it('should upsert multiple items in the cart (create or update)', async () => {
+  describe('attachUser', () => {
+    it('should attach the user to the cart', async () => {
+      const userId = 1;
       const cartId = 1;
-      const data = [
-        { bookId: 1, quantity: 5 },
-        { bookId: 2, quantity: 3 },
-      ];
-      const upsertedItems = [
-        { bookid: 1, quantity: 5 },
-        { bookid: 2, quantity: 3 },
-      ];
-      mockPrismaService.$transaction.mockResolvedValue(upsertedItems);
+      mockPrismaService.cart.update.mockResolvedValue({ id: 1, userid: 1 });
 
-      const result = await service.upsertItems(cartId, data);
+      const result = await service.attachUser(userId, cartId);
 
-      expect(result).toEqual([
-        { cartId, bookId: 1, quantity: 5 },
-        { cartId, bookId: 2, quantity: 3 },
-      ]);
+      expect(result).toEqual({
+        message: 'User is attached to the cart.',
+      });
     });
   });
 });

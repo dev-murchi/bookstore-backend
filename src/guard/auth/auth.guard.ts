@@ -43,7 +43,6 @@ export class AuthGuard implements CanActivate {
               role_name: true,
             },
           },
-          cart: { select: { id: true } },
         },
       });
 
@@ -59,7 +58,6 @@ export class AuthGuard implements CanActivate {
           id: user.role.id,
           name: user.role.role_name,
         },
-        cartId: user.cart ? user.cart.id : null,
       };
     } catch (error) {
       throw new UnauthorizedException('Unauthorized');

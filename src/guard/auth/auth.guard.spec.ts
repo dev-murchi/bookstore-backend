@@ -126,7 +126,6 @@ describe('AuthGuard', () => {
         id: 1,
         name: 'user',
       },
-      cartId: null,
     });
     expect(result).toBe(true);
   });

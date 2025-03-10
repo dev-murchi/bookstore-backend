@@ -73,8 +73,8 @@ model books {
 
 model cart {
   id        Int          @id @default(autoincrement())
-  user      User         @relation(fields: [userid], references: [id])
-  userid    Int          @unique
+  user      User? @relation(fields: [userid], references: [id])
+  userid Int? @unique
   cart_items cart_items[]
 }
 
