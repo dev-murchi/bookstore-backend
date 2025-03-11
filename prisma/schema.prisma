@@ -34,6 +34,7 @@ model User {
   password_reset_tokens password_reset_tokens[]
 
   books books[]
+  order orders[]
 }
 
 model password_reset_tokens {
@@ -69,6 +70,7 @@ model books {
   updated_at    DateTime @default(now()) @updatedAt
 
   cart_items cart_items[]
+  order_items order_items[]
 }
 
 model cart {
@@ -80,10 +82,57 @@ model cart {
 
 model cart_items {
   id       Int    @id @default(autoincrement())
-  cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 
   cartid   Int
-  book     books  @relation(fields: [bookid], references: [id])
   bookid   Int
   quantity Int
+  cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 
+  book     books  @relation(fields: [bookid], references: [id])
+  
   @@unique([cartid, bookid])
+}
+
+model orders {
+  id  Int @id @default(autoincrement())
+  userid Int?
+  totalPrice  Float @default(0)
+  shipping_details  shipping?
+  status  String  @default("pending")
+  user  User? @relation(fields: [userid], references: [id])
+
+  order_items order_items[]
+}
+
+model order_items {
+  id  Int @id @default(autoincrement())
+  orderid Int
+  bookid Int
+  quantity  Int
+  price Float @default(0)
+
+  order orders @relation(fields: [orderid], references: [id])
+  book  books @relation(fields: [bookid], references: [id])
+}
+
+model address {
+  id              Int       @id @default(autoincrement()) 
+  country         String  
+  state           String? 
+  city            String
+  streetAddress   String
+  postalCode      String
+
+  shipping_address shipping[]
+}
+
+model shipping {
+  id Int  @id @default(autoincrement())
+  first_name       String   
+  last_name        String   
+  email           String  
+  phone           String? 
+  orderid Int @unique
+  addressid Int
+
+  order orders @relation(fields: [orderid], references: [id])
+  address address @relation(fields: [addressid], references: [id])
 }

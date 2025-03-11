@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 const mockPrismaService = {
   cart: {
     create: jest.fn(),
+    upsert: jest.fn(),
     update: jest.fn(),
     findUnique: jest.fn(),
   },
@@ -39,7 +40,7 @@ describe('CartService', () => {
     it('should create a cart if user with userId is exist', async () => {
       const cartId = 1;
       const userId = 2;
-      mockPrismaService.cart.create.mockResolvedValueOnce({
+      mockPrismaService.cart.upsert.mockResolvedValueOnce({
         id: cartId,
         userid: userId,
       });
@@ -135,9 +136,10 @@ describe('CartService', () => {
     it('should update the quantity of an item in the cart', async () => {
       const data = { cartId: 1, bookId: 1, quantity: 3 };
       const updatedItem = { bookid: 1, quantity: 3 };
+      const userId = 1;
       mockPrismaService.cart_items.update.mockResolvedValue(updatedItem);
 
-      const result = await service.updateItem(data);
+      const result = await service.updateItem(userId, data);
 
       expect(result).toEqual({
         message: 'Item successfully updated.',
@@ -149,9 +151,10 @@ describe('CartService', () => {
     it('should remove an item from the cart', async () => {
       const data = { cartId: 1, bookId: 1 };
       const deletedItem = { bookid: 1 };
+      const userId = 1;
       mockPrismaService.cart_items.delete.mockResolvedValue(deletedItem);
 
-      const result = await service.removeItem(data);
+      const result = await service.removeItem(userId, data);
 
       expect(result).toEqual({
         message: 'Item successfully deleted.',
@@ -163,15 +166,12 @@ describe('CartService', () => {
     it('should upsert an item in the cart (create or update)', async () => {
       const data = { cartId: 1, bookId: 1, quantity: 5 };
       const upsertedItem = { bookid: 1, quantity: 5 };
+      const userId = 1;
       mockPrismaService.cart_items.upsert.mockResolvedValue(upsertedItem);
 
-      const result = await service.upsertItem(data);
+      const result = await service.upsertItem(userId, data);
 
-      expect(result).toEqual({
-        cartId: 1,
-        bookId: 1,
-        quatity: 5,
-      });
+      expect(result).toEqual({ message: 'Item successfully updated.' });
     });
   });
 
@@ -181,7 +181,7 @@ describe('CartService', () => {
       const cartId = 1;
       mockPrismaService.cart.update.mockResolvedValue({ id: 1, userid: 1 });
 
-      const result = await service.attachUser(userId, cartId);
+      const result = await service.claim(userId, cartId);
 
       expect(result).toEqual({
         message: 'User is attached to the cart.',

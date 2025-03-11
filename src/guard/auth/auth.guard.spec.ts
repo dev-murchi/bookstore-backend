@@ -156,4 +156,22 @@ describe('AuthGuard', () => {
       expect(err.message).toBe('No token provided');
     }
   });
+  it('should throw UnauthorizedException if the user is not existed', async () => {
+    const validToken = 'valid_token';
+    const mockDecoded = { id: 1, role: 'user' };
+    const mockRequest = { headers: { authorization: `Bearer ${validToken}` } };
+
+    jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
+
+    mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+
+    try {
+      await authGuard.canActivate({
+        switchToHttp: () => ({ getRequest: () => mockRequest }),
+      } as any);
+    } catch (err) {
+      expect(err).toBeInstanceOf(UnauthorizedException);
+      expect(err.message).toBe('Unauthorized');
+    }
+  });
 });
