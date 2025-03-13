@@ -3,6 +3,9 @@ import { CartService } from './cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const mockPrismaService = {
+  books: {
+    findUnique: jest.fn(),
+  },
   cart: {
     create: jest.fn(),
     upsert: jest.fn(),
@@ -136,7 +139,10 @@ describe('CartService', () => {
     it('should update the quantity of an item in the cart', async () => {
       const data = { cartId: 1, bookId: 1, quantity: 3 };
       const updatedItem = { bookid: 1, quantity: 3 };
+      const book = { id: 1, stock_quantity: 10 };
       const userId = 1;
+
+      mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
       mockPrismaService.cart_items.update.mockResolvedValue(updatedItem);
 
       const result = await service.updateItem(userId, data);
@@ -166,7 +172,11 @@ describe('CartService', () => {
     it('should upsert an item in the cart (create or update)', async () => {
       const data = { cartId: 1, bookId: 1, quantity: 5 };
       const upsertedItem = { bookid: 1, quantity: 5 };
+      const book = { id: 1, stock_quantity: 10 };
       const userId = 1;
+
+      mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
+
       mockPrismaService.cart_items.upsert.mockResolvedValue(upsertedItem);
 
       const result = await service.upsertItem(userId, data);

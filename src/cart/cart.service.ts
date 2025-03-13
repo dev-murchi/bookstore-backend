@@ -86,6 +86,20 @@ export class CartService {
 
   async updateItem(userId: number | null, data: CartItemDto) {
     try {
+      // check book stock
+      const book = await this.prisma.books.findUnique({
+        where: { id: data.bookId },
+        select: {
+          id: true,
+          stock_quantity: true,
+        },
+      });
+
+      if (!book) throw new Error('Not found');
+      if (book.stock_quantity < data.quantity) {
+        throw new Error('Not enough stock');
+      }
+
       // user can only update items from its own cart
       const item = await this.prisma.cart_items.update({
         where: {
@@ -102,6 +116,13 @@ export class CartService {
         message: 'Item successfully updated.',
       };
     } catch (error) {
+      if (error.message === 'Not found') {
+        throw new Error(`Book ID #${data.bookId} is not exist.`);
+      }
+
+      if (error.message === 'Not enough stock') {
+        throw new Error(`Not enough stock for book ID: ${data.bookId}`);
+      }
       throw Error(
         'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
       );
@@ -133,6 +154,20 @@ export class CartService {
 
   async upsertItem(userId: number | null, data: CartItemDto) {
     try {
+      // check book stock
+      const book = await this.prisma.books.findUnique({
+        where: { id: data.bookId },
+        select: {
+          id: true,
+          stock_quantity: true,
+        },
+      });
+
+      if (!book) throw new Error('Not found');
+      if (book.stock_quantity < data.quantity) {
+        throw new Error('Not enough stock');
+      }
+
       // user can update/create items for its own cart
       await this.prisma.cart_items.upsert({
         where: {
@@ -154,6 +189,13 @@ export class CartService {
         message: 'Item successfully updated.',
       };
     } catch (error) {
+      if (error.message === 'Not found') {
+        throw new Error(`Book ID #${data.bookId} is not exist.`);
+      }
+
+      if (error.message === 'Not enough stock') {
+        throw new Error(`Not enough stock for book ID: ${data.bookId}`);
+      }
       throw Error(
         'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
       );
