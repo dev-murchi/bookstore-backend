@@ -37,16 +37,16 @@ export class UserController {
   @Put('profile')
   async updateProfile(
     @Req() request: Request,
-    @Body() updateUserProfileDto: Partial<UpdateProfileDto>,
+    @Body() updateUserProfileDto: UpdateProfileDto,
   ) {
-    const { name, email, oldPassword, newPassword } = updateUserProfileDto;
+    const { name, email, password, newPassword } = updateUserProfileDto;
 
-    if (!oldPassword) throw new BadRequestException('Password is required.');
+    if (!password) throw new BadRequestException('Password is required.');
 
-    if (!(await bcrypt.compare(oldPassword, request.user['password'])))
+    if (!(await bcrypt.compare(password, request.user['password'])))
       throw new BadRequestException('Invalid password.');
 
-    if (oldPassword === newPassword)
+    if (password === newPassword)
       throw new BadRequestException('Choose a different password.');
 
     const updateData = new UpdateUserDto();
