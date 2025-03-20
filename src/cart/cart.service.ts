@@ -204,18 +204,17 @@ export class CartService {
 
   async claim(userId: number, cartId: number) {
     try {
-      if (userId) {
-        const oldCart = await this.prisma.cart.findUnique({
-          where: { userid: userId },
-          select: {
-            cart_items: true,
-          },
-        });
+      const oldCart = await this.prisma.cart.findUnique({
+        where: { userid: userId },
+        select: {
+          cart_items: true,
+        },
+      });
 
-        if (oldCart && oldCart.cart_items.length > 0) {
-          throw new Error('User cart is not empty');
-        }
+      if (oldCart) {
+        throw new Error('Cart is exist');
       }
+
       // user can only claim the cart created by the guest
       await this.prisma.cart.update({
         where: { id: cartId, AND: [{ userid: null }] },
@@ -224,10 +223,8 @@ export class CartService {
 
       return { message: 'User is attached to the cart.' };
     } catch (error) {
-      if (error.message === 'User cart is not empty') {
-        throw new Error(
-          'Your cart is not empty. Please clear it before claiming the new cart.',
-        );
+      if (error.message === 'Cart is exist') {
+        throw new Error('User alredy has a cart.');
       }
       throw new Error('User can only claim the cart created by the guest.');
     }
