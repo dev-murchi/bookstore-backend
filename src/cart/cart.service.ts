@@ -35,6 +35,7 @@ export class CartService {
       select: {
         userid: true,
         cart_items: {
+          orderBy: { bookid: 'asc' },
           select: {
             quantity: true,
             book: {

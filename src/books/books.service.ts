@@ -50,6 +50,7 @@ export class BooksService {
 
   async findAll() {
     const books = await this.prisma.books.findMany({
+      orderBy: { id: 'asc' },
       select: {
         id: true,
         title: true,
