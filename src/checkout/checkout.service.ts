@@ -41,7 +41,7 @@ export class CheckoutService {
             throw new Error(`Not enough stock for book ID: ${item.book.id}`);
           }
           // Calculate the total price for each item and accumulate it
-          totalPrice += item.book.price.toNumber() * item.quantity;
+          totalPrice += parseFloat(totalPrice.toFixed(2)) * item.quantity;
         }
 
         totalPrice = parseFloat(totalPrice.toFixed(2));
@@ -51,7 +51,7 @@ export class CheckoutService {
           data: {
             totalPrice,
             status: 'pending',
-            userid: userId ? userId : null,
+            userid: userId,
             order_items: {
               createMany: {
                 data: cartItems.map((item) => ({
@@ -105,9 +105,14 @@ export class CheckoutService {
           order: {
             id: order.id,
             user: order.user,
-            items: order.order_items,
+            items: order.order_items.map((item) => ({
+              quantity: 2,
+              bookId: item.book.id,
+              price: parseFloat(item.book.price.toFixed(2)),
+              bookTitle: item.book.title,
+            })),
             status: order.status,
-            totalPrice: order.totalPrice,
+            totalPrice: parseFloat(order.totalPrice.toFixed(2)),
           },
           message: 'Checkout successfull.',
         };
