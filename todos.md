@@ -52,7 +52,7 @@ Step 3: Cart and Checkout System (Backend)
    - Track user sessions for the cart (create cart, update cart based on user).
    - Specific Details:
      - Store cart data temporarily in the session or in the database for persistence.
-2. [] Order Creation Endpoint:
+2. [x] Order Creation Endpoint:
    - Implement the order creation endpoint to capture user details, cart items, and payment.
    - Calculate the total price, including taxes and discounts.
    - Specific Details:

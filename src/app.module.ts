@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { BooksModule } from './books/books.module';
 import { CartModule } from './cart/cart.module';
 import { CheckoutModule } from './checkout/checkout.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CheckoutModule } from './checkout/checkout.module';
     BooksModule,
     CartModule,
     CheckoutModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

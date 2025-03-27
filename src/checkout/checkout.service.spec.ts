@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CheckoutService } from './checkout.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { PaymentService } from '../payment/payment.service';
 
 const mockPrismaService = {
   $transaction: jest
@@ -22,6 +23,10 @@ const mockPrismaService = {
   },
 };
 
+const mockPaymentService = {
+  createCheckoutSession: jest.fn(),
+};
+
 const userId = 1;
 
 describe('CheckoutService', () => {
@@ -32,6 +37,7 @@ describe('CheckoutService', () => {
       providers: [
         CheckoutService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: PaymentService, useValue: mockPaymentService },
       ],
     }).compile();
 
@@ -88,6 +94,7 @@ describe('CheckoutService', () => {
     );
   });
   it('should create an order ', async () => {
+    const sessionUrl = 'https://checkout.stripe.com/test-session-url';
     mockPrismaService.cart.findUnique.mockReturnValueOnce({
       cart_items: [
         {
@@ -124,6 +131,11 @@ describe('CheckoutService', () => {
 
     mockPrismaService.cart.delete.mockReturnValueOnce({ id: 1 });
 
+    mockPaymentService.createCheckoutSession.mockResolvedValueOnce({
+      expires: '',
+      url: sessionUrl,
+    });
+
     const result = await service.checkout(userId, { cartId: 1 });
     expect(result).toEqual({
       order: {
@@ -145,6 +157,8 @@ describe('CheckoutService', () => {
         totalPrice: 21.98,
       },
       message: 'Checkout successfull.',
+      expires: '',
+      url: sessionUrl,
     });
   });
 });

@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class CheckoutService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly paymentService: PaymentService,
+  ) {}
   async checkout(userId: number | null, data: CreateCheckoutDto) {
     try {
       return await this.prisma.$transaction(async (pr) => {
@@ -16,11 +20,18 @@ export class CheckoutService {
                 book: {
                   select: {
                     id: true,
+                    title: true,
                     price: true,
                     stock_quantity: true,
                   },
                 },
                 quantity: true,
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                email: true,
               },
             },
           },
@@ -100,6 +111,37 @@ export class CheckoutService {
         // remove the cart session
         await pr.cart.delete({ where: { id: data.cartId } });
 
+        // create payment checkout session
+        const session = await this.paymentService.createCheckoutSession({
+          mode: 'payment',
+          payment_method_types: ['card'],
+          shipping_address_collection: {
+            allowed_countries: ['TR', 'GB', 'US', 'JP'],
+          },
+          metadata: {
+            orderId: order.id,
+          },
+          payment_intent_data: {
+            metadata: {
+              orderId: order.id,
+            },
+          },
+          customer_email: cart.user ? cart.user.email : undefined,
+          line_items: cartItems.map((item) => ({
+            price_data: {
+              product_data: {
+                name: item.book.title,
+              },
+              unit_amount: parseFloat(item.book.price.toFixed(2)) * 100,
+              currency: 'usd',
+            },
+            quantity: item.quantity,
+          })),
+          success_url: 'http://localhost:8080/success',
+          cancel_url: 'http://localhost:8080/cancel',
+          expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+        });
+
         // return relevant data
         return {
           order: {
@@ -115,6 +157,8 @@ export class CheckoutService {
             totalPrice: parseFloat(order.totalPrice.toFixed(2)),
           },
           message: 'Checkout successfull.',
+          expires: session.expires,
+          url: session.url,
         };
       });
     } catch (error) {
