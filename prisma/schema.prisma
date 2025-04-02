@@ -100,6 +100,7 @@ model orders {
   user  User? @relation(fields: [userid], references: [id])
 
   order_items order_items[]
+  payment payment?
 }
 
 model order_items {
@@ -135,4 +136,16 @@ model shipping {
 
   order orders @relation(fields: [orderid], references: [id])
   address address @relation(fields: [addressid], references: [id])
+}
+
+model payment {
+  id Int  @id @default(autoincrement())
+  orderid Int @unique
+  transaction_id String @unique
+  status String
+  method  String
+  amount Float
+  payment_date  DateTime?
+
+  order  orders @relation(fields: [orderid], references: [id])
 }
