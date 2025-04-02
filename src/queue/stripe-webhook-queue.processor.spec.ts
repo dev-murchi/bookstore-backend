@@ -2,15 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { PrismaService } from '../prisma/prisma.service';
-const eventTypes = {
-  paymentFailed: 'payment_intent.payment_failed',
-  paymentSuccessful: 'checkout.session.completed',
-  paymentCancelled: 'checkout.session.expired',
-};
 
 const mockPrismaService = {
+  $transaction: jest
+    .fn()
+    .mockImplementation((callback) => callback(mockPrismaService)),
   payment: {
     upsert: jest.fn(),
+  },
+  orders: {
+    update: jest.fn(),
+  },
+  books: {
+    update: jest.fn(),
+  },
+  shipping: {
+    create: jest.fn(),
   },
 };
 
@@ -30,6 +37,10 @@ describe('StripeWebhookProcessor', () => {
     job = { data: { eventType: '', eventData: {} } } as Job;
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should be defined', () => {
     expect(processor).toBeDefined();
   });
@@ -38,16 +49,20 @@ describe('StripeWebhookProcessor', () => {
     it('should upsert payment with correct data', async () => {
       const data = {
         id: 'pi_123',
-        metadata: { orderId: 'order_123' },
-        last_payment_error: { message: 'Your card has insufficient funds.' },
+        object: 'payment_intent',
         amount: 1000,
+        last_payment_error: {
+          message: 'Your card has insufficient funds.',
+        },
+        metadata: { orderId: 123 },
+        status: 'requires_payment_method',
       };
 
       mockPrismaService.payment.upsert.mockResolvedValueOnce({
         id: 1,
-        orderid: 'order_123',
+        orderid: 123,
         transaction_id: 'pi_123',
-        status: 'requires payment method',
+        status: 'failed',
         method: 'card',
         amount: 1000,
         payment_date: null,
@@ -59,18 +74,17 @@ describe('StripeWebhookProcessor', () => {
 
       expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
         where: {
-          transaction_id: 'pi_123',
-          AND: [{ orderid: 'order_123' }],
+          orderid: 123,
         },
         create: {
           transaction_id: 'pi_123',
-          order: { connect: { id: 'order_123' } },
-          status: 'requires payment method',
+          order: { connect: { id: 123 } },
+          status: 'failed',
           method: 'card',
           amount: 1000,
         },
         update: {
-          status: 'requires payment method',
+          status: 'failed',
         },
       });
 
@@ -83,17 +97,196 @@ describe('StripeWebhookProcessor', () => {
     it('should throw errors gracefully', async () => {
       const data = {
         id: 'pi_123',
-        metadata: { orderId: 'order_123' },
+        metadata: { orderId: 123 },
         last_payment_error: { message: 'Payment failed' },
         amount: 1000,
       };
 
       mockPrismaService.payment.upsert.mockRejectedValueOnce(
-        new Error('Prisma error'),
+        new Error('DB error in paymentFailed'),
       );
 
       await expect((processor as any).paymentFailed(data)).rejects.toThrow(
-        new Error('Prisma error'),
+        new Error('DB error in paymentFailed'),
+      );
+    });
+  });
+
+  describe('paymentExpired', () => {
+    it('should update order status as "expired" and update stock count of order items', async () => {
+      const data = {
+        id: 'cs_123',
+        object: 'checkout.session',
+        metadata: { orderId: 123 },
+        amount_total: 1000,
+        currency: 'usd',
+        payment_status: 'unpaid',
+        status: 'expired',
+      };
+      const orderItems = [
+        {
+          id: 1,
+          quantity: 1,
+          bookid: 1,
+        },
+        {
+          id: 2,
+          quantity: 2,
+          bookid: 2,
+        },
+      ];
+
+      mockPrismaService.orders.update.mockResolvedValueOnce({
+        id: 123,
+        order_items: orderItems,
+      });
+      const consoleSpy = jest.spyOn(console, 'log');
+
+      await (processor as any).paymentExpired(data);
+
+      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
+        where: {
+          id: 123,
+        },
+        data: {
+          status: 'expired',
+        },
+        select: {
+          id: true,
+          order_items: {
+            select: {
+              id: true,
+              quantity: true,
+              bookid: true,
+            },
+          },
+          payment: {
+            select: { id: true },
+          },
+        },
+      });
+
+      for (const item of orderItems) {
+        expect(mockPrismaService.books.update).toHaveBeenCalledWith({
+          where: { id: item.bookid },
+          data: { stock_quantity: { increment: item.quantity } },
+          select: { id: true, stock_quantity: true },
+        });
+      }
+
+      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
+        where: { orderid: 123 },
+        update: { status: 'unpaid' },
+        create: {
+          order: { connect: { id: 123 } },
+          status: 'unpaid',
+          method: 'card',
+          amount: 1000,
+        },
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is expired.');
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw errors gracefully', async () => {
+      const data = {
+        id: 'cs_123',
+        metadata: { orderId: 123 },
+        amount_total: 1000,
+        payment_status: 'unpaid',
+        status: 'expired',
+      };
+
+      mockPrismaService.orders.update.mockRejectedValueOnce(
+        new Error('DB error in paymentExpired'),
+      );
+
+      await expect((processor as any).paymentExpired(data)).rejects.toThrow(
+        new Error('DB error in paymentExpired'),
+      );
+    });
+  });
+
+  describe('paymentSuccessful', () => {
+    it('should update order status as "complete" and create new shipping instance', async () => {
+      const data = {
+        id: 'cs_123',
+        metadata: { orderId: 123 },
+        payment_intent: 'pi_123',
+        amount_total: 1000,
+        payment_status: 'paid',
+        status: 'complete',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
+      };
+      const consoleSpy = jest.spyOn(console, 'log');
+      await (processor as any).paymentSuccessful(data);
+
+      // update order status
+      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
+        where: { id: 123 },
+        data: {
+          status: 'complete',
+        },
+      });
+
+      // create shipping
+      expect(mockPrismaService.shipping.create).toHaveBeenCalledWith({
+        data: {
+          email: 'user@email.com',
+          order: { connect: { id: 123 } },
+          address: {
+            create: {
+              country: 'Test Country',
+              state: 'Test State',
+              city: 'Test City',
+              streetAddress: 'address line 1 - address line 2',
+              postalCode: 'POSTAL_CODE',
+            },
+          },
+        },
+      });
+      // upsert payment
+      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
+        where: { orderid: 123 },
+        update: { status: 'paid' },
+        create: {
+          order: { connect: { id: 123 } },
+          transaction_id: 'pi_123',
+          status: 'paid',
+          method: 'card',
+          amount: 1000,
+        },
+      });
+      expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is completed.');
+      consoleSpy.mockRestore();
+    });
+
+    it('should throw errors gracefully', async () => {
+      const data = {
+        id: 'cs_123',
+        metadata: { orderId: 123 },
+        amount_total: 1000,
+        payment_status: 'paid',
+        status: 'complete',
+      };
+
+      mockPrismaService.orders.update.mockRejectedValueOnce(
+        new Error('DB error in paymentSuccessful'),
+      );
+
+      await expect((processor as any).paymentExpired(data)).rejects.toThrow(
+        new Error('DB error in paymentSuccessful'),
       );
     });
   });
@@ -110,17 +303,17 @@ describe('StripeWebhookProcessor', () => {
             last_payment_error: {
               message: 'Your card has insufficient funds.',
             },
-            metadata: { orderId: 'order_123' },
-            status: 'requires payment method',
+            metadata: { orderId: 123 },
+            status: 'requires_payment_method',
           },
         },
       } as any;
 
       mockPrismaService.payment.upsert.mockResolvedValueOnce({
         id: 1,
-        orderid: 'order_123',
+        orderid: 123,
         transaction_id: 'pi_123',
-        status: 'requires payment method',
+        status: 'failed',
         method: 'card',
         amount: 1000,
         payment_date: null,
@@ -136,8 +329,106 @@ describe('StripeWebhookProcessor', () => {
         last_payment_error: {
           message: 'Your card has insufficient funds.',
         },
-        metadata: { orderId: 'order_123' },
-        status: 'requires payment method',
+        metadata: { orderId: 123 },
+        status: 'requires_payment_method',
+      });
+    });
+
+    it('should handle checkout.session.expired event', async () => {
+      // job
+      const job = {
+        data: {
+          eventType: 'checkout.session.expired',
+          eventData: {
+            id: 'cs_123',
+            object: 'checkout.session',
+            amount_total: 1000,
+            metadata: { orderId: 123 },
+            payment_status: 'unpaid',
+            status: 'expired',
+          },
+        },
+      } as any;
+      // order
+      mockPrismaService.orders.update.mockResolvedValueOnce({
+        id: 123,
+        order_items: [],
+      });
+      // books
+      mockPrismaService.books.update.mockResolvedValueOnce({});
+      //payment
+      mockPrismaService.payment.upsert.mockResolvedValueOnce({});
+
+      const spy = jest.spyOn(processor as any, 'paymentExpired');
+      await processor.process(job);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({
+        id: 'cs_123',
+        object: 'checkout.session',
+        amount_total: 1000,
+        metadata: { orderId: 123 },
+        payment_status: 'unpaid',
+        status: 'expired',
+      });
+    });
+
+    it('should handle checkout.session.completed event', async () => {
+      // job
+      const job = {
+        data: {
+          eventType: 'checkout.session.completed',
+          eventData: {
+            id: 'cs_123',
+            metadata: { orderId: 123 },
+            payment_intent: 'pi_123',
+            amount_total: 1000,
+            payment_status: 'paid',
+            status: 'complete',
+            customer_details: {
+              address: {
+                city: 'Test City',
+                country: 'Test Country',
+                line1: 'address line 1',
+                line2: 'address line 2',
+                postal_code: 'POSTAL_CODE',
+                state: 'Test State',
+              },
+              email: 'user@email.com',
+            },
+          },
+        },
+      } as any;
+      // order
+      mockPrismaService.orders.update.mockResolvedValueOnce({
+        id: 123,
+        order_items: [],
+      });
+      // shipping
+      mockPrismaService.shipping.create.mockResolvedValueOnce({});
+      //payment
+      mockPrismaService.payment.upsert.mockResolvedValueOnce({});
+
+      const spy = jest.spyOn(processor as any, 'paymentSuccessful');
+      await processor.process(job);
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith({
+        id: 'cs_123',
+        metadata: { orderId: 123 },
+        payment_intent: 'pi_123',
+        amount_total: 1000,
+        payment_status: 'paid',
+        status: 'complete',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
       });
     });
 

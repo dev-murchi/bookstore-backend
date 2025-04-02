@@ -57,7 +57,7 @@ Step 3: Cart and Checkout System (Backend)
    - Calculate the total price, including taxes and discounts.
    - Specific Details:
      - Associate the order with the logged-in user and update inventory levels.
-3. [] Payment Gateway Integration:
+3. [x] Payment Gateway Integration:
    - Integrate a payment gateway (Stripe/PayPal) for handling payments.
    - Implement API logic to verify payment status (successful/failed).
    - Specific Details:
