@@ -3,10 +3,11 @@ import { CheckoutService } from './checkout.service';
 import { CheckoutController } from './checkout.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { PaymentService } from 'src/payment/payment.service';
+import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
+  imports: [PaymentModule],
   controllers: [CheckoutController],
-  providers: [CheckoutService, PrismaService, JwtService, PaymentService],
+  providers: [CheckoutService, PrismaService, JwtService],
 })
 export class CheckoutModule {}

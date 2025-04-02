@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 const mockStripeCheckoutSessionsCreateFunc = jest.fn();
+const mockStripWebhooksConstructEventAsync = jest.fn();
+const mockQueueAdd = jest.fn();
 
 jest.mock('stripe', () => {
   return {
@@ -13,6 +15,9 @@ jest.mock('stripe', () => {
         sessions: {
           create: mockStripeCheckoutSessionsCreateFunc,
         },
+      },
+      webhooks: {
+        constructEventAsync: mockStripWebhooksConstructEventAsync,
       },
     })),
   };
@@ -33,6 +38,7 @@ describe('PaymentService', () => {
       providers: [
         PaymentService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: 'StripeWebhookQueue', useValue: { add: mockQueueAdd } },
       ],
     }).compile();
 
@@ -80,6 +86,55 @@ describe('PaymentService', () => {
       expect(result).toEqual({
         url: 'https://checkout.stripe.com/test-session-url',
         expires: 1672531199,
+      });
+    });
+  });
+
+  describe('handleStripeWebhook', () => {
+    it('should throw an error if the Stripe webhook secret is not configured', async () => {
+      service['stripeWebhookKey'] = ''; // Simulate missing key
+      const payload = Buffer.from('test_payload');
+      const signature = 'test_signature';
+      await expect(
+        service.handleStripeWebhook(payload, signature),
+      ).rejects.toThrow('Stripe Webhook secret not configured.');
+    });
+
+    it('should throw an error if the Stripe webhook signature is invalid', async () => {
+      const payload = Buffer.from('test_payload');
+      const signature = 'test_signature';
+      mockStripWebhooksConstructEventAsync.mockRejectedValueOnce(
+        new Error('Invalid signature'),
+      );
+
+      await expect(
+        service.handleStripeWebhook(payload, signature),
+      ).rejects.toThrow('Webhook Error: Invalid signature');
+    });
+
+    it('should handle a valid stripe webhook event', async () => {
+      const payload = Buffer.from('test_payload');
+      const signature = 'test_signature';
+      const mockEvent = {
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'test_event_id',
+          },
+        },
+      };
+      mockStripWebhooksConstructEventAsync.mockResolvedValueOnce(mockEvent);
+
+      await service.handleStripeWebhook(payload, signature);
+
+      expect(mockStripWebhooksConstructEventAsync).toHaveBeenCalledWith(
+        payload,
+        signature,
+        'test-webhook-key',
+      );
+      expect(mockQueueAdd).toHaveBeenCalledWith('process-event', {
+        eventType: mockEvent.type,
+        eventData: mockEvent.data.object,
       });
     });
   });
