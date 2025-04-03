@@ -102,19 +102,52 @@ Technical Team of BookStore`;
     return html.trim();
   }
 
-  async sendResetPasswordMail(email: string, username: string, link: string) {
+  async sendMail(email: string, subject: string, text: string, html: string) {
     try {
       const info = await this.transporter.sendMail({
         from: this.mailAddress,
         to: email,
-        subject: 'Reset your password',
-        text: this.resetPasswordText(link),
-        html: this.resetPasswordHtml(link),
+        subject,
+        text,
+        html,
       });
 
       return info;
     } catch (error) {
-      throw new Error('Failed to send password reset email');
+      throw new Error('Failed to send the email');
+    }
+  }
+
+  async sendResetPasswordMail(email: string, username: string, link: string) {
+    await this.sendMail(
+      email,
+      'Reset your password',
+      this.resetPasswordText(link),
+      this.resetPasswordHtml(link),
+    );
+  }
+
+  async sendOrderStatusUpdateMail(
+    email: string,
+    orderId: number,
+    status: string,
+  ) {
+    if (status === 'shipped') {
+      await this.sendMail(
+        email,
+        `Your Books are on Their Way! Order #${orderId}`,
+        'book are shipped',
+        '<p>books are shipped</p>',
+      );
+    } else if (status === 'delivered') {
+      await this.sendMail(
+        email,
+        `Your Book Order #${orderId} Has Arrived!`,
+        'book are delivered',
+        '<p>books are delivered</p>',
+      );
+    } else {
+      throw new Error('Invalid order status');
     }
   }
 }
