@@ -65,7 +65,7 @@ Step 3: Cart and Checkout System (Backend)
 
 Step 4: Order Management & Payment Processing (Backend)
 
-1. [] Order Status Update Endpoint:
+1. [x] Order Status Update Endpoint:
    - Create an endpoint to update the status of orders (pending, shipped, delivered).
    - Specific Details:
      - Notify users of status changes via email.

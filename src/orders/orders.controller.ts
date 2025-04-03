@@ -1,0 +1,15 @@
+import { Body, Controller, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { OrdersService } from './orders.service';
+import { OrderStatusDto } from './dto/order-status.dto';
+
+@Controller('orders')
+export class OrdersController {
+  constructor(private readonly service: OrdersService) {}
+  @Post(':id/status')
+  async updateOrderStatus(
+    @Param('id', ParseIntPipe) orderId: number,
+    @Body() orderStatusDto: OrderStatusDto,
+  ) {
+    return await this.service.updateStatus(orderId, orderStatusDto.status);
+  }
+}
