@@ -109,46 +109,50 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentSuccessful(data: any) {
-    await this.prisma.$transaction(async (pr) => {
-      await pr.orders.update({
-        where: { id: parseInt(data.metadata.orderId) },
-        data: {
-          status: 'complete',
-        },
-      });
+    try {
+      await this.prisma.$transaction(async (pr) => {
+        await pr.orders.update({
+          where: { id: parseInt(data.metadata.orderId) },
+          data: {
+            status: 'complete',
+          },
+        });
 
-      await pr.shipping.create({
-        data: {
-          email: data.customer_details.email,
-          order: { connect: { id: parseInt(data.metadata.orderId) } },
-          address: {
-            create: {
-              country: data.customer_details.address.country,
-              state: data.customer_details.address.state,
-              city: data.customer_details.address.city,
-              streetAddress: `${data.customer_details.address.line1} - ${data.customer_details.address.line2}`,
-              postalCode: data.customer_details.address.postal_code,
+        await pr.shipping.create({
+          data: {
+            email: data.customer_details.email,
+            order: { connect: { id: parseInt(data.metadata.orderId) } },
+            address: {
+              create: {
+                country: data.customer_details.address.country,
+                state: data.customer_details.address.state,
+                city: data.customer_details.address.city,
+                streetAddress: `${data.customer_details.address.line1} - ${data.customer_details.address.line2}`,
+                postalCode: data.customer_details.address.postal_code,
+              },
             },
           },
-        },
-      });
+        });
 
-      await pr.payment.upsert({
-        where: {
-          orderid: parseInt(data.metadata.orderId),
-        },
-        update: {
-          status: 'paid',
-        },
-        create: {
-          order: { connect: { id: parseInt(data.metadata.orderId) } },
-          transaction_id: data.payment_intent,
-          status: 'paid',
-          method: 'card',
-          amount: data.amount_total,
-        },
+        await pr.payment.upsert({
+          where: {
+            orderid: parseInt(data.metadata.orderId),
+          },
+          update: {
+            status: 'paid',
+          },
+          create: {
+            order: { connect: { id: parseInt(data.metadata.orderId) } },
+            transaction_id: data.payment_intent,
+            status: 'paid',
+            method: 'card',
+            amount: data.amount_total,
+          },
+        });
       });
-    });
+    } catch (error) {
+      throw error;
+    }
 
     console.log(`Order #[${data.metadata.orderId}] is completed.`);
   }
