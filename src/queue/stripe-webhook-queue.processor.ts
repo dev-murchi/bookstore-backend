@@ -1,10 +1,14 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 @Processor('stripe-webhook-queue')
 export class StripeWebhookProcessor extends WorkerHost {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
+  ) {
     super();
   }
   async process(job: Job): Promise<any> {
@@ -101,6 +105,15 @@ export class StripeWebhookProcessor extends WorkerHost {
             amount: data.amount_total,
           },
         });
+
+        // send email to user
+        await this.mailService.sendMail(
+          data.customer_details.email,
+          `Your Book Order #${data.metadata.orderId} Has Expired`,
+          `Your order #${data.metadata.orderId} has expired.`,
+          `<p>Your order #${data.metadata.orderId} has expired.</p>`,
+        );
+
         console.log(`Order #[${data.metadata.orderId}] is expired.`);
       });
     } catch (error) {
@@ -149,6 +162,14 @@ export class StripeWebhookProcessor extends WorkerHost {
             amount: data.amount_total,
           },
         });
+
+        // send email to user
+        await this.mailService.sendMail(
+          data.customer_details.email,
+          `Your Book Order #${data.metadata.orderId} Confirmed!`,
+          `Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..`,
+          `<p>Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..</p>`,
+        );
       });
     } catch (error) {
       throw error;

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 
 const mockPrismaService = {
   $transaction: jest
@@ -21,6 +22,10 @@ const mockPrismaService = {
   },
 };
 
+const mockMailService = {
+  sendMail: jest.fn(),
+};
+
 describe('StripeWebhookProcessor', () => {
   let processor: StripeWebhookProcessor;
   let job: Job;
@@ -30,6 +35,7 @@ describe('StripeWebhookProcessor', () => {
       providers: [
         StripeWebhookProcessor,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
 
@@ -122,6 +128,17 @@ describe('StripeWebhookProcessor', () => {
         currency: 'usd',
         payment_status: 'unpaid',
         status: 'expired',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
       };
       const orderItems = [
         {
@@ -185,6 +202,13 @@ describe('StripeWebhookProcessor', () => {
         },
       });
 
+      expect(mockMailService.sendMail).toHaveBeenCalledWith(
+        'user@email.com',
+        'Your Book Order #123 Has Expired',
+        'Your order #123 has expired.',
+        '<p>Your order #123 has expired.</p>',
+      );
+
       expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is expired.');
       consoleSpy.mockRestore();
     });
@@ -196,6 +220,17 @@ describe('StripeWebhookProcessor', () => {
         amount_total: 1000,
         payment_status: 'unpaid',
         status: 'expired',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
       };
 
       mockPrismaService.orders.update.mockRejectedValueOnce(
@@ -268,6 +303,14 @@ describe('StripeWebhookProcessor', () => {
           amount: 1000,
         },
       });
+
+      // send mail
+      expect(mockMailService.sendMail).toHaveBeenCalledWith(
+        'user@email.com',
+        'Your Book Order #123 Confirmed!',
+        "Your order #123 is confirmed. We'll email you tracking info soon..",
+        "<p>Your order #123 is confirmed. We'll email you tracking info soon..</p>",
+      );
       expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is completed.');
       consoleSpy.mockRestore();
     });
@@ -285,7 +328,7 @@ describe('StripeWebhookProcessor', () => {
         new Error('DB error in paymentSuccessful'),
       );
 
-      await expect((processor as any).paymentExpired(data)).rejects.toThrow(
+      await expect((processor as any).paymentSuccessful(data)).rejects.toThrow(
         new Error('DB error in paymentSuccessful'),
       );
     });
@@ -346,6 +389,17 @@ describe('StripeWebhookProcessor', () => {
             metadata: { orderId: 123 },
             payment_status: 'unpaid',
             status: 'expired',
+            customer_details: {
+              address: {
+                city: 'Test City',
+                country: 'Test Country',
+                line1: 'address line 1',
+                line2: 'address line 2',
+                postal_code: 'POSTAL_CODE',
+                state: 'Test State',
+              },
+              email: 'user@email.com',
+            },
           },
         },
       } as any;
@@ -369,6 +423,17 @@ describe('StripeWebhookProcessor', () => {
         metadata: { orderId: 123 },
         payment_status: 'unpaid',
         status: 'expired',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
       });
     });
 
