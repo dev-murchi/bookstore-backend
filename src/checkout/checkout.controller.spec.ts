@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CheckoutController } from './checkout.controller';
 import { CheckoutService } from './checkout.service';
-import { AuthGuard } from '../guard/auth/auth.guard';
+import { AuthGuard } from '../common/guards/auth/auth.guard';
 
 const mockCheckoutService = {
   checkout: jest.fn(),

@@ -15,7 +15,7 @@ import { CartService } from './cart.service';
 import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
 import { CartItemDto } from './dto/cart-item.dto';
 import { Request } from 'express';
-import { AuthGuard } from '../guard/auth/auth.guard';
+import { AuthGuard } from '../common/guards/auth/auth.guard';
 
 @Controller('cart')
 @UseGuards(AuthGuard)

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
-import { AuthGuard } from '../guard/auth/auth.guard';
+import { AuthGuard } from '../common/guards/auth/auth.guard';
 
 const mockCartService = {
   createCart: jest.fn(),

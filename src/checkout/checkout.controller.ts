@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { AuthGuard } from '../guard/auth/auth.guard';
+import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { Request } from 'express';
 
 @Controller('checkout')

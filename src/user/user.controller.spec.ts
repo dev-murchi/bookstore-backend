@@ -6,7 +6,7 @@ const mockUserService = {
   findOne: jest.fn(),
 };
 
-jest.mock('../guard/auth/auth.guard', () => {
+jest.mock('../common/guards/auth/auth.guard', () => {
   return {
     AuthGuard: jest.fn().mockImplementation(() => ({
       canActivate: jest.fn().mockResolvedValue(true),

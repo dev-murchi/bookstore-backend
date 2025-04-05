@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
-import { AuthGuard } from '../guard/auth/auth.guard';
+import { AuthGuard } from '../common/guards/auth/auth.guard';
 
 const mockBookService = {
   create: jest.fn(),
