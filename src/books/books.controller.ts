@@ -18,7 +18,7 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { Request } from 'express';
 import { AuthGuard } from '../guard/auth/auth.guard';
 import { RoleGuard } from '../guard/role/role.guard';
-import { Role } from '../decorator/role/role.decorator';
+import { Role } from '../common/decorator/role/role.decorator';
 
 @Controller('books')
 export class BooksController {
