@@ -69,12 +69,12 @@ Step 4: Order Management & Payment Processing (Backend)
    - Create an endpoint to update the status of orders (pending, shipped, delivered).
    - Specific Details:
      - Notify users of status changes via email.
-2. [] Payment Verification:
+2. [x] Payment Verification:
    - Implement payment verification to check for successful payments.
    - Integrate with the payment gateway’s API to validate the transaction.
    - Specific Details:
      - Handle failures (e.g., payment declined) and notify the user.
-3. [] Inventory Update After Order:
+3. [x] Inventory Update After Order:
    - Automatically reduce stock in inventory based on the order items.
    - Prevent over-selling by ensuring the stock level is checked before order finalization.
    - Specific Details:
@@ -82,7 +82,7 @@ Step 4: Order Management & Payment Processing (Backend)
 
 Step 5: Review & Rating System (Backend)
 
-1. [] Review Creation Endpoint:
+1. [x] Review Creation Endpoint:
    - Create an endpoint to submit reviews with ratings and text.
    - Ensure each user can only submit one review per book.
    - Specific Details:

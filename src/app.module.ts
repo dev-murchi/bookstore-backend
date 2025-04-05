@@ -11,6 +11,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { PaymentModule } from './payment/payment.module';
 import { QueueModule } from './queue/queue.module';
 import { OrdersModule } from './orders/orders.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { OrdersModule } from './orders/orders.module';
     PaymentModule,
     QueueModule,
     OrdersModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

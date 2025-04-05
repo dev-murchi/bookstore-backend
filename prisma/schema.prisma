@@ -35,6 +35,7 @@ model User {
 
   books books[]
   order orders[]
+  reviews reviews[]
 }
 
 model password_reset_tokens {
@@ -71,6 +72,7 @@ model books {
 
   cart_items cart_items[]
   order_items order_items[]
+  reviews reviews[]
 }
 
 model cart {
@@ -146,4 +148,16 @@ model payment {
   payment_date  DateTime?
 
   order  orders @relation(fields: [orderid], references: [id])
+}
+
+model reviews {
+  id  Int @id @default(autoincrement())
+  rating Float
+  data String
+  bookid  Int
+  userid Int
+
+  user  User @relation(fields: [userid], references: [id])
+  book books @relation(fields: [bookid], references: [id])
+  @@unique([bookid, userid])
 }
