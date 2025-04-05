@@ -1,14 +1,23 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  ParseIntPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
 
 @Controller('reviews')
-@UseGuards(AuthGuard)
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
   @Post()
+  @UseGuards(AuthGuard)
   async create(
     @Body() createReviewDTO: CreateReviewDTO,
     @Req() request: Request,
@@ -17,5 +26,10 @@ export class ReviewsController {
       request.user['id'],
       createReviewDTO,
     );
+  }
+
+  @Get()
+  async findAll(@Query('book', ParseIntPipe) bookId: number) {
+    return await this.reviewsService.findReviewsForBook(bookId);
   }
 }

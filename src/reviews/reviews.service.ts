@@ -31,4 +31,60 @@ export class ReviewsService {
       throw new Error('Review creation failed.');
     }
   }
+
+  async findReviewsForBook(
+    bookId: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
+    try {
+      // calculate offset for pagination
+      const offset = (page - 1) * limit;
+
+      // fetch all reviews for the book
+      const reviews = await this.prisma.reviews.findMany({
+        where: { book: { id: bookId } },
+        select: { rating: true, data: true },
+        take: limit,
+        skip: offset,
+      });
+
+      // calculate average rating
+      const averageRating = (
+        await this.prisma.reviews.aggregate({
+          where: {
+            book: { id: bookId },
+          },
+          _avg: {
+            rating: true,
+          },
+        })
+      )._avg.rating;
+
+      // fetch review count
+      const totalReviewCount = await this.prisma.reviews.count({
+        where: { book: { id: bookId } },
+      });
+
+      // calculate total pages
+      const totalPages = Math.ceil(totalReviewCount / limit);
+
+      return {
+        data: {
+          reviews,
+          rating: averageRating ? averageRating.toFixed(1) : '0',
+        },
+        meta: {
+          bookId,
+          totalReviewCount,
+          page,
+          limit,
+          totalPages,
+        },
+      };
+    } catch (error) {
+      console.error(error);
+      throw new Error('Reviews could not fetched.');
+    }
+  }
 }

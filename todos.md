@@ -87,7 +87,7 @@ Step 5: Review & Rating System (Backend)
    - Ensure each user can only submit one review per book.
    - Specific Details:
      - Store review data and associate it with the correct book and user.
-2. [] Fetch Reviews Endpoint:
+2. [x] Fetch Reviews Endpoint:
    - Create API to fetch reviews for a specific book.
    - Calculate average rating for the book and return it in the response.
    - Specific Details:

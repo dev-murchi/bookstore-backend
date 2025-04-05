@@ -7,6 +7,9 @@ import { Prisma } from '@prisma/client';
 const mockPrismaService = {
   reviews: {
     create: jest.fn(),
+    findMany: jest.fn(),
+    aggregate: jest.fn(),
+    count: jest.fn(),
   },
 };
 describe('ReviewsService', () => {
@@ -84,7 +87,7 @@ describe('ReviewsService', () => {
           code: 'P2025',
         } as any,
       );
-      mockPrismaService.reviews.create.mockRejectedValue(prismaError);
+      mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
         `Book #${createReviewDTO.bookId} or is not found`,
@@ -103,9 +106,203 @@ describe('ReviewsService', () => {
       const error = new Error('Unknown database error');
       mockPrismaService.reviews.create.mockRejectedValueOnce(error);
 
-      await expect(
-        service.create(userId, createReviewDTO),
-      ).rejects.toThrowError('Review creation failed.');
+      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
+        'Review creation failed.',
+      );
+    });
+  });
+
+  describe('findReviewsForBook', () => {
+    const bookId = 1;
+    const defaultPage = 1;
+    const defaultLimit = 10;
+
+    it('should successfully fetch paginated reviews with default parameters and calculate metadata', async () => {
+      const mockReviews = [
+        { rating: 5, data: 'Excellent book!' },
+        { rating: 4, data: 'Good read.' },
+      ];
+      const mockAggregateResult = { _avg: { rating: 4.5 } };
+      const mockTotalReviewCount = 25;
+
+      mockPrismaService.reviews.findMany.mockResolvedValue(mockReviews);
+      mockPrismaService.reviews.aggregate.mockResolvedValue(
+        mockAggregateResult,
+      );
+      mockPrismaService.reviews.count.mockResolvedValue(mockTotalReviewCount);
+
+      const result = await service.findReviewsForBook(bookId);
+
+      expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        select: { rating: true, data: true },
+        take: defaultLimit,
+        skip: 0,
+      });
+      expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        _avg: { rating: true },
+      });
+      expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+      });
+      expect(result).toEqual({
+        data: { reviews: mockReviews, rating: '4.5' },
+        meta: {
+          bookId,
+          totalReviewCount: mockTotalReviewCount,
+          page: defaultPage,
+          limit: defaultLimit,
+          totalPages: Math.ceil(mockTotalReviewCount / defaultLimit),
+        },
+      });
+    });
+
+    it('should successfully fetch paginated reviews with provided page and limit', async () => {
+      const pageNumber = 2;
+      const limitNumber = 5;
+      const mockReviews = [
+        { rating: 3, data: 'Okay book.' },
+        { rating: 4, data: 'Enjoyed it.' },
+        { rating: 5, data: 'Great!' },
+      ];
+      const mockAggregateResult = { _avg: { rating: 4 } };
+      const mockTotalReviewCount = 22;
+      const offset = (pageNumber - 1) * limitNumber;
+
+      mockPrismaService.reviews.findMany.mockResolvedValue(mockReviews);
+      mockPrismaService.reviews.aggregate.mockResolvedValue(
+        mockAggregateResult,
+      );
+      mockPrismaService.reviews.count.mockResolvedValue(mockTotalReviewCount);
+
+      const result = await service.findReviewsForBook(
+        bookId,
+        pageNumber,
+        limitNumber,
+      );
+
+      expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        select: { rating: true, data: true },
+        take: limitNumber,
+        skip: offset,
+      });
+      expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        _avg: { rating: true },
+      });
+      expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+      });
+      expect(result).toEqual({
+        data: { reviews: mockReviews, rating: '4.0' },
+        meta: {
+          bookId,
+          totalReviewCount: mockTotalReviewCount,
+          page: pageNumber,
+          limit: limitNumber,
+          totalPages: Math.ceil(mockTotalReviewCount / limitNumber),
+        },
+      });
+    });
+
+    it('should return empty reviews and average as NaN if no reviews are found, but still return meta', async () => {
+      mockPrismaService.reviews.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.reviews.aggregate.mockResolvedValueOnce({
+        _avg: { rating: null },
+      });
+      mockPrismaService.reviews.count.mockResolvedValueOnce(0);
+
+      const result = await service.findReviewsForBook(bookId);
+
+      expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        select: { rating: true, data: true },
+        take: defaultLimit,
+        skip: 0,
+      });
+      expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        _avg: { rating: true },
+      });
+      expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+      });
+      expect(result).toEqual({
+        data: { reviews: [], rating: '0' },
+        meta: {
+          bookId,
+          totalReviewCount: 0,
+          page: defaultPage,
+          limit: defaultLimit,
+          totalPages: 0,
+        },
+      });
+    });
+
+    it('should return empty reviews for given page and calculate average rating if there are reviews in other pages', async () => {
+      mockPrismaService.reviews.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.reviews.aggregate.mockResolvedValueOnce({
+        _avg: { rating: 3.5 },
+      });
+      mockPrismaService.reviews.count.mockResolvedValueOnce(2);
+
+      const result = await service.findReviewsForBook(bookId);
+
+      expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        select: { rating: true, data: true },
+        take: defaultLimit,
+        skip: 0,
+      });
+      expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+        _avg: { rating: true },
+      });
+      expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
+        where: { book: { id: bookId } },
+      });
+      expect(result).toEqual({
+        data: { reviews: [], rating: '3.5' },
+        meta: {
+          bookId,
+          totalReviewCount: 2,
+          page: defaultPage,
+          limit: defaultLimit,
+          totalPages: 1,
+        },
+      });
+    });
+
+    it('should throw error if there is an error fetching reviews', async () => {
+      const error = new Error('Database error');
+      mockPrismaService.reviews.findMany.mockRejectedValueOnce(error);
+
+      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
+        'Reviews could not fetched.',
+      );
+    });
+
+    it('should throw error if there is an error during average rating calculation', async () => {
+      const reviews = [{ rating: 5, data: 'Great book!' }];
+      mockPrismaService.reviews.findMany.mockResolvedValueOnce(reviews);
+      mockPrismaService.reviews.aggregate.mockRejectedValueOnce(
+        new Error('Aggregation error'),
+      );
+
+      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
+        'Reviews could not fetched.',
+      );
+    });
+
+    it('should throw error if there is an error if count fails', async () => {
+      const error = new Error('Database error');
+      mockPrismaService.reviews.count.mockRejectedValueOnce(error);
+
+      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
+        'Reviews could not fetched.',
+      );
     });
   });
 });
