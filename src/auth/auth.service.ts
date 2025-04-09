@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
+import { RoleEnum } from '../common/role.enum';
 
 const roundsOfHashing = 10;
 
@@ -28,11 +29,7 @@ export class AuthService {
   ) {}
 
   async register(user: CreateUserDto) {
-    const hashedPassword = await bcrypt.hash(user.password, roundsOfHashing);
-    return await this.userService.create({
-      ...user,
-      password: hashedPassword,
-    });
+    return await this.userService.create(user, RoleEnum.User);
   }
 
   async login({ email, password }: LoginDto) {

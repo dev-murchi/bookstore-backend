@@ -2,11 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoleEnum } from '../common/role.enum';
+import * as bcrypt from 'bcrypt';
+const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto, role: RoleEnum) {
     // check user is exist or not
     const user = await this.prisma.user.findUnique({
       where: {
@@ -18,19 +21,25 @@ export class UserService {
       throw new BadRequestException('Email already in use');
     }
 
+    // hash password
+    const hashedPassword = await bcrypt.hash(
+      createUserDto.password,
+      roundsOfHashing,
+    );
+
     // create new user
     await this.prisma.user.create({
       data: {
         name: createUserDto.name,
         email: createUserDto.email,
-        password: createUserDto.password,
+        password: hashedPassword,
         role: {
           connectOrCreate: {
             where: {
-              role_name: 'user',
+              role_name: role,
             },
             create: {
-              role_name: 'user',
+              role_name: role,
             },
           },
         },

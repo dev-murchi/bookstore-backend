@@ -4,6 +4,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RoleEnum } from '../common/role.enum';
+import * as bcrypt from 'bcrypt';
+
+jest.spyOn(bcrypt, 'hash').mockImplementation((pass, salt) => 'hashedPassword');
 
 const mockPrismaService = {
   user: {
@@ -44,13 +48,13 @@ describe('UserService', () => {
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.create(user);
+      const result = await service.create(user, RoleEnum.User);
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           name: 'test user',
           email: 'testuser@email.com',
-          password: 'password123',
+          password: 'hashedPassword',
           role: {
             connectOrCreate: {
               where: {
@@ -64,6 +68,7 @@ describe('UserService', () => {
           is_active: true,
         },
       });
+      expect(bcrypt.hash).toHaveBeenCalledWith(user.password, 10);
 
       expect(result).toEqual({ message: 'User registered successfully' });
     });
@@ -87,7 +92,7 @@ describe('UserService', () => {
       });
 
       try {
-        await service.create(user);
+        await service.create(user, RoleEnum.User);
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         expect(error.message).toBe('Email already in use');

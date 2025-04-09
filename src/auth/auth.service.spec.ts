@@ -8,6 +8,7 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 import { MailService } from '../mail/mail.service';
+import { RoleEnum } from '../common/role.enum';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(),
@@ -88,37 +89,15 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      const hashedPassword = 'hashedPassword';
-
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue(hashedPassword as never);
-
-      mockUserService.create.mockResolvedValue({
+      mockUserService.create.mockResolvedValueOnce({
         message: 'User registered successfully',
       });
 
       const result = await service.register(user);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith(user.password, 10);
-      expect(userService.create).toHaveBeenCalledWith({
-        ...user,
-        password: hashedPassword,
-      });
+      expect(userService.create).toHaveBeenCalledWith(user, RoleEnum.User);
 
       expect(result).toEqual({ message: 'User registered successfully' });
-    });
-
-    it('should handle error when bcrypt.hash fails', async () => {
-      const user: CreateUserDto = {
-        name: 'test user',
-        email: 'test email',
-        password: 'password123',
-      };
-
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockRejectedValue(new Error('Hashing failed') as never);
-
-      await expect(service.register(user)).rejects.toThrow('Hashing failed');
     });
 
     it('should handle error when userService.create fails', async () => {
@@ -128,13 +107,9 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      const hashedPassword = 'hashedPassword';
-
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue(hashedPassword as never);
-
-      jest
-        .spyOn(userService, 'create')
-        .mockRejectedValueOnce(new Error('User creation failed') as never);
+      mockUserService.create.mockRejectedValueOnce(
+        new Error('User creation failed'),
+      );
 
       await expect(service.register(user)).rejects.toThrow(
         'User creation failed',
