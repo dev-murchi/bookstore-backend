@@ -63,6 +63,7 @@ export class UserService {
           },
         },
         is_active: true,
+        cart: true,
       },
     });
     if (!user) {

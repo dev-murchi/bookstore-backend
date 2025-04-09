@@ -38,14 +38,9 @@ export class CartController {
   }
 
   @Post(':id/claim')
+  @UseGuards(AuthGuard)
   async claim(@Param('id', ParseIntPipe) id: number, @Req() request: Request) {
     try {
-      if (!request.user) {
-        throw new UnauthorizedException(
-          'User must be authenticated to claim the cart',
-        );
-      }
-
       return await this.cartService.claim(request.user['id'], id);
     } catch (error) {
       throw new BadRequestException(error.message);

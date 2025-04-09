@@ -145,6 +145,7 @@ describe('UserService', () => {
           role_name: 'user',
         },
         is_active: true,
+        cart: null,
       });
 
       const user = await service.findOne(1);
@@ -165,6 +166,7 @@ describe('UserService', () => {
             },
           },
           is_active: true,
+          cart: true,
         },
       });
 
@@ -178,6 +180,7 @@ describe('UserService', () => {
           role_name: 'user',
         },
         is_active: true,
+        cart: null,
       });
     });
 
