@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from '../../decorator/role/role.decorator';
+import { Roles } from '../../decorator/role/role.decorator';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -16,12 +16,13 @@ export class RoleGuard implements CanActivate {
     if (!request.user)
       throw new UnauthorizedException('Authentication failed.');
 
-    const role = this.reflector.getAllAndOverride(Role, [
+    const roles = this.reflector.getAllAndMerge(Roles, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (role !== request.user['role']['name'])
+    console.log({ user: request.user, roles });
+    if (!roles.includes(request.user['role']['name']))
       throw new UnauthorizedException('Unauthorized user.');
     return true;
   }

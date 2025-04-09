@@ -18,7 +18,7 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { Request } from 'express';
 import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { RoleGuard } from '../common/guards/role/role.guard';
-import { Role } from '../common/decorator/role/role.decorator';
+import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 
 @Controller('books')
@@ -26,7 +26,7 @@ export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
   @UseGuards(AuthGuard, RoleGuard)
-  @Role(RoleEnum.Admin)
+  @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Post()
   async create(@Req() request: Request, @Body() createBookDto: CreateBookDto) {
     try {
@@ -74,7 +74,7 @@ export class BooksController {
   }
 
   @UseGuards(AuthGuard, RoleGuard)
-  @Role(RoleEnum.Admin)
+  @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Patch(':id')
   async update(
     @Req() request: Request,
@@ -91,7 +91,7 @@ export class BooksController {
   }
 
   @UseGuards(AuthGuard, RoleGuard)
-  @Role(RoleEnum.Admin)
+  @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Delete(':id')
   async remove(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {
     return { data: await this.booksService.remove(id) };

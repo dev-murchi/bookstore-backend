@@ -9,7 +9,7 @@ import {
 import { OrdersService } from './orders.service';
 import { OrderStatusDto } from './dto/order-status.dto';
 import { RoleGuard } from '../common/guards/role/role.guard';
-import { Role } from '../common/decorator/role/role.decorator';
+import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { AuthGuard } from '../common/guards/auth/auth.guard';
 
@@ -18,7 +18,7 @@ export class OrdersController {
   constructor(private readonly service: OrdersService) {}
   @Post(':id/status')
   @UseGuards(AuthGuard, RoleGuard)
-  @Role(RoleEnum.Admin)
+  @Roles([RoleEnum.Admin])
   async updateOrderStatus(
     @Param('id', ParseIntPipe) orderId: number,
     @Body() orderStatusDto: OrderStatusDto,
