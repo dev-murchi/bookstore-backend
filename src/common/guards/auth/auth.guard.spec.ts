@@ -53,7 +53,7 @@ describe('AuthGuard', () => {
       } as any);
     } catch (err) {
       expect(err).toBeInstanceOf(UnauthorizedException);
-      expect(err.message).toBe('No token provided');
+      expect(err.message).toBe('Please provide a token in correct format.');
     }
   });
 
@@ -87,7 +87,7 @@ describe('AuthGuard', () => {
       } as any);
     } catch (err) {
       expect(err).toBeInstanceOf(UnauthorizedException);
-      expect(err.message).toBe('No token provided');
+      expect(err.message).toBe('Please provide a token in correct format.');
     }
   });
 
@@ -139,7 +139,7 @@ describe('AuthGuard', () => {
       } as any);
     } catch (err) {
       expect(err).toBeInstanceOf(UnauthorizedException);
-      expect(err.message).toBe('No token provided');
+      expect(err.message).toBe('Please provide a token in correct format.');
     }
   });
   it('should throw UnauthorizedException if an empty token is provided', async () => {
@@ -152,7 +152,7 @@ describe('AuthGuard', () => {
       } as any);
     } catch (err) {
       expect(err).toBeInstanceOf(UnauthorizedException);
-      expect(err.message).toBe('No token provided');
+      expect(err.message).toBe('Please provide a token in correct format.');
     }
   });
   it('should throw UnauthorizedException if the user is not existed', async () => {

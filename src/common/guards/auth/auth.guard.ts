@@ -22,35 +22,36 @@ export class AuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
     const secret = this.configService.get<string>('JWT_SECRET');
 
-    if (token) {
-      try {
-        const payload = await this.jwtService.verifyAsync(token, { secret });
+    if (!token)
+      throw new UnauthorizedException(
+        'Please provide a token in correct format.',
+      );
 
-        // get user
-        const user = await this.userService.findOne(payload.id);
+    try {
+      const payload = await this.jwtService.verifyAsync(token, { secret });
 
-        if (!user) throw new UnauthorizedException('User is not exist');
+      // get user
+      const user = await this.userService.findOne(payload.id);
 
-        // attach user to the request object
-        request.user = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          password: user.password,
-          role: {
-            id: user.role.id,
-            name: user.role.role_name,
-          },
-          cartId: user.cart ? user.cart.id : null,
-        };
-      } catch (error) {
-        throw new UnauthorizedException('Unauthorized');
-      }
-    } else {
-      request.user = null; // continue as guest
+      if (!user) throw new UnauthorizedException('User is not exist');
+
+      // attach user to the request object
+      request.user = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        password: user.password,
+        role: {
+          id: user.role.id,
+          name: user.role.role_name,
+        },
+        cartId: user.cart ? user.cart.id : null,
+      };
+
+      return true;
+    } catch (error) {
+      throw new UnauthorizedException('Unauthorized');
     }
-
-    return true;
   }
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
