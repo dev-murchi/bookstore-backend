@@ -28,8 +28,8 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async register(user: CreateUserDto) {
-    return await this.userService.create(user, RoleEnum.User);
+  async register(user: CreateUserDto, role: RoleEnum) {
+    return await this.userService.create(user, role);
   }
 
   async login({ email, password }: LoginDto) {

@@ -93,7 +93,7 @@ describe('AuthService', () => {
         message: 'User registered successfully',
       });
 
-      const result = await service.register(user);
+      const result = await service.register(user, RoleEnum.User);
 
       expect(userService.create).toHaveBeenCalledWith(user, RoleEnum.User);
 
@@ -111,7 +111,7 @@ describe('AuthService', () => {
         new Error('User creation failed'),
       );
 
-      await expect(service.register(user)).rejects.toThrow(
+      await expect(service.register(user, RoleEnum.User)).rejects.toThrow(
         'User creation failed',
       );
     });
