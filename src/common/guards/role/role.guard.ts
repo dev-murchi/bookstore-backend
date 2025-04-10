@@ -21,7 +21,6 @@ export class RoleGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    console.log({ user: request.user, roles });
     if (!roles.includes(request.user['role']['name']))
       throw new UnauthorizedException('Unauthorized user.');
     return true;

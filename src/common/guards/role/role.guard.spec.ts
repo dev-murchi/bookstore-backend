@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { UnauthorizedException } from '@nestjs/common';
 
 const mockReflector = {
-  getAllAndOverride: jest.fn(),
+  getAllAndMerge: jest.fn(),
 };
 describe('RoleGuard', () => {
   let roleGuard: RoleGuard;
@@ -40,7 +40,7 @@ describe('RoleGuard', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(UnauthorizedException);
       expect(error.message).toBe('Authentication failed.');
-      expect(reflector.getAllAndOverride).toHaveBeenCalledTimes(0);
+      expect(reflector.getAllAndMerge).toHaveBeenCalledTimes(0);
     }
   });
 
@@ -66,7 +66,7 @@ describe('RoleGuard', () => {
       getClass: () => {},
     };
 
-    mockReflector.getAllAndOverride.mockReturnValueOnce('testrole');
+    mockReflector.getAllAndMerge.mockReturnValueOnce(['testrole']);
 
     try {
       roleGuard.canActivate(context as any);
@@ -98,7 +98,7 @@ describe('RoleGuard', () => {
       getClass: () => {},
     };
 
-    mockReflector.getAllAndOverride.mockReturnValueOnce('user');
+    mockReflector.getAllAndMerge.mockReturnValueOnce(['user']);
 
     const result = roleGuard.canActivate(context as any);
 
