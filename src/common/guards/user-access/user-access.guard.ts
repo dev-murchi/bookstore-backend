@@ -7,13 +7,13 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { RoleEnum } from '../../../common/role.enum';
-import { Roles } from '../../../common/decorator/role/role.decorator';
+import { Roles } from '../../decorator/role/role.decorator';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { UserService } from '../../../user/user.service';
+import { RoleEnum } from '../../role.enum';
 
 @Injectable()
-export class CartGuard implements CanActivate {
+export class UserAccessGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private configService: ConfigService,
@@ -22,43 +22,37 @@ export class CartGuard implements CanActivate {
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      // get allowed roles
+      // get all roles required for this route
       const roles = this.reflector.getAllAndMerge(Roles, [
         context.getHandler(),
         context.getClass(),
       ]);
 
-      console.log({ roles });
-
-      // fetch authorization token
       const request = context.switchToHttp().getRequest();
       const token = this.extractTokenFromHeader(request);
 
-      console.log({ token });
-
+      // if no token is provided, assume the user is a guest
       if (!token) {
-        // guest user
-        // check the guest user is allowed or not
-        if (!roles.includes(RoleEnum.GuestUser))
-          throw new Error('guest user is not allowed');
-
-        request.user = null; // guset user
-
-        return true;
+        // allow access only if GuestUser is explicitly allowed
+        if (roles.includes(RoleEnum.GuestUser)) {
+          return true;
+        }
+        // otherwise, deny access
+        throw new Error('Unauthorized access.');
       }
 
-      // get payload from token
+      // if token is provided, we need to verify and authenticate the user
+
       const secret = this.configService.get<string>('JWT_SECRET');
       const payload = await this.jwtService.verifyAsync(token, { secret });
 
-      // fetch the user
       const user = await this.userService.findOne(payload.id);
 
-      if (!user) throw new Error('user not exist');
+      if (!user) throw Error('User authentication failed.');
 
       const userRole = user.role.role_name as RoleEnum;
 
-      if (!roles.includes(userRole)) throw new Error('user not allowed');
+      if (!roles.includes(userRole)) throw new Error('Access denied.');
 
       request.user = {
         id: user.id,
@@ -72,22 +66,32 @@ export class CartGuard implements CanActivate {
       console.error(error);
 
       if (error instanceof TokenExpiredError) {
-        throw new UnauthorizedException('Token Expired');
+        throw new UnauthorizedException(
+          'Token has expired. Please log in again.',
+        );
       }
 
-      if (error.message === 'guest user is not allowed') {
-        throw new UnauthorizedException('Guest is not allowed');
+      if (error.message === 'Unauthorized access.') {
+        throw new UnauthorizedException(
+          'You are not authorized to perform this operation.',
+        );
       }
 
-      if (error.message === 'user not exist') {
-        throw new UnauthorizedException('User is not exist');
+      if (error.message === 'User authentication failed.') {
+        throw new UnauthorizedException(
+          'User authentication failed. Please log in again.',
+        );
       }
 
-      if (error.message === 'user not allowed') {
-        throw new UnauthorizedException('User is not allowed');
+      if (error.message === 'Access denied.') {
+        throw new UnauthorizedException(
+          'You do not have permission to access this resource.',
+        );
       }
 
-      throw new UnauthorizedException('Unauthorized cart operation');
+      throw new UnauthorizedException(
+        'Unauthorized operation. Please check your credentials and try again.',
+      );
     }
   }
 

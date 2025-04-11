@@ -16,10 +16,10 @@ import { CartItemDto } from './dto/cart-item.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
-import { CartGuard } from '../common/guards/cart/cart.guard';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 @Controller('cart')
-@UseGuards(CartGuard)
+@UseGuards(UserAccessGuard)
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
@@ -39,12 +39,20 @@ export class CartController {
     try {
       const cart = await this.cartService.findCart(id);
 
-      // admin cant fetch all cart record
+      // guest user access
+      if (!request.user) {
+        if (cart.userId !== null) {
+          throw new Error('Unable to access this cart.');
+        }
+        return cart;
+      }
+
+      // admin access
       if (request.user['role'] === RoleEnum.Admin) return cart;
 
-      // user can only access his/her own cart
+      // authenticated user access
       if (cart.userId != request.user['id'])
-        throw new Error('Cart is not exist.');
+        throw new Error('Unable to access this cart.');
 
       return cart;
     } catch (error) {

@@ -12,9 +12,8 @@ import { LoginDto } from '../user/dto/login.dto';
 import { PasswordResetRequestDto } from '../user/dto/password-reset-request.dto';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
-import { RoleGuard } from '../common/guards/role/role.guard';
 import { Roles } from '../common/decorator/role/role.decorator';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 @Controller('/api/v1/auth')
 export class AuthController {
@@ -26,7 +25,7 @@ export class AuthController {
   }
 
   @Post('create-author')
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
   async createAuthor(@Body() user: CreateUserDto) {
     return await this.authService.register(user, RoleEnum.Author);

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 const mockOrderService = {
   updateStatus: jest.fn(),
@@ -15,7 +15,7 @@ describe('OrdersController', () => {
       controllers: [OrdersController],
       providers: [{ provide: OrdersService, useValue: mockOrderService }],
     })
-      .overrideGuard(AuthGuard)
+      .overrideGuard(UserAccessGuard)
       .useValue({
         canActivate: jest.fn(),
       })

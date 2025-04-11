@@ -16,16 +16,15 @@ import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 import { Request } from 'express';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
-import { RoleGuard } from '../common/guards/role/role.guard';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 @Controller('books')
 export class BooksController {
   constructor(private readonly booksService: BooksService) {}
 
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Post()
   async create(@Req() request: Request, @Body() createBookDto: CreateBookDto) {
@@ -73,7 +72,7 @@ export class BooksController {
     return { data: await this.booksService.findOne(id) };
   }
 
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Patch(':id')
   async update(
@@ -90,7 +89,7 @@ export class BooksController {
     };
   }
 
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Delete(':id')
   async remove(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {

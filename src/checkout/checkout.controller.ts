@@ -8,15 +8,18 @@ import {
 } from '@nestjs/common';
 import { CheckoutService } from './checkout.service';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { Request } from 'express';
+import { Roles } from '../common/decorator/role/role.decorator';
+import { RoleEnum } from '../common/role.enum';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 @Controller('checkout')
-@UseGuards(AuthGuard)
+@UseGuards(UserAccessGuard)
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}
 
   @Post()
+  @Roles([RoleEnum.User, RoleEnum.GuestUser])
   async checkout(
     @Req() request: Request,
     @Body() createCheckoutDto: CreateCheckoutDto,

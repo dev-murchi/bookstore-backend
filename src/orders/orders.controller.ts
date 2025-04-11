@@ -8,16 +8,15 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrderStatusDto } from './dto/order-status.dto';
-import { RoleGuard } from '../common/guards/role/role.guard';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly service: OrdersService) {}
   @Post(':id/status')
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
   async updateOrderStatus(
     @Param('id', ParseIntPipe) orderId: number,

@@ -8,16 +8,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { RoleEnum } from '../common/role.enum';
+import { Roles } from '../common/decorator/role/role.decorator';
 
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
   @Post()
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.User])
   async create(
     @Body() createReviewDTO: CreateReviewDTO,
     @Req() request: Request,

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
-import { CartGuard } from '../common/guards/cart/cart.guard';
+import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 const mockCartService = {
   createCart: jest.fn(),
@@ -20,7 +20,7 @@ describe('CartController', () => {
       controllers: [CartController],
       providers: [{ provide: CartService, useValue: mockCartService }],
     })
-      .overrideGuard(CartGuard)
+      .overrideGuard(UserAccessGuard)
       .useValue({
         canActivate: jest.fn(),
       })

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CartGuard } from './cart.guard';
+import { UserAccessGuard } from './user-access.guard';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../../../user/user.service';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { RoleEnum } from '../../../common/role.enum';
+import { RoleEnum } from '../../role.enum';
 const mockReflector = {
   getAllAndMerge: jest.fn(),
 };
@@ -37,13 +37,13 @@ const mockExecutionContext: Partial<ExecutionContext> = {
   getClass: jest.fn(),
 };
 
-describe('CartGuard', () => {
-  let cartGuard: CartGuard;
+describe('UserAccessGuard', () => {
+  let userAccessGuard: UserAccessGuard;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CartGuard,
+        UserAccessGuard,
         { provide: Reflector, useValue: mockReflector },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: JwtService, useValue: mockJwtService },
@@ -51,7 +51,7 @@ describe('CartGuard', () => {
       ],
     }).compile();
 
-    cartGuard = module.get<CartGuard>(CartGuard);
+    userAccessGuard = module.get<UserAccessGuard>(UserAccessGuard);
   });
 
   afterEach(() => {
@@ -59,7 +59,7 @@ describe('CartGuard', () => {
   });
 
   it('should be defined', () => {
-    expect(cartGuard).toBeDefined();
+    expect(userAccessGuard).toBeDefined();
   });
 
   it('should throw if guest user is not allowed and no token is present', async () => {
@@ -71,8 +71,12 @@ describe('CartGuard', () => {
       getRequest: () => mockRequest,
     });
     await expect(
-      cartGuard.canActivate(mockExecutionContext as ExecutionContext),
-    ).rejects.toThrow(new UnauthorizedException('Guest is not allowed'));
+      userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
+    ).rejects.toThrow(
+      new UnauthorizedException(
+        'You are not authorized to perform this operation.',
+      ),
+    );
   });
 
   it('should allow guest user if role includes GuestUser and no token is present', async () => {
@@ -84,11 +88,11 @@ describe('CartGuard', () => {
       getRequest: () => mockRequest,
     });
 
-    const result = await cartGuard.canActivate(
+    const result = await userAccessGuard.canActivate(
       mockExecutionContext as ExecutionContext,
     );
     expect(result).toBe(true);
-    expect(mockRequest.user).toBeNull();
+    expect(mockRequest.user).toBeFalsy();
   });
 
   it('should validate token, fetch user and allow if user role matches', async () => {
@@ -108,7 +112,7 @@ describe('CartGuard', () => {
       cart: { id: 10 },
     });
 
-    const result = await cartGuard.canActivate(
+    const result = await userAccessGuard.canActivate(
       mockExecutionContext as ExecutionContext,
     );
     expect(result).toBe(true);
@@ -133,8 +137,12 @@ describe('CartGuard', () => {
     (mockUserService.findOne as jest.Mock).mockResolvedValue(null);
 
     await expect(
-      cartGuard.canActivate(mockExecutionContext as ExecutionContext),
-    ).rejects.toThrow(new UnauthorizedException('User is not exist'));
+      userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
+    ).rejects.toThrow(
+      new UnauthorizedException(
+        'User authentication failed. Please log in again.',
+      ),
+    );
   });
 
   it('should throw if user role is not allowed', async () => {
@@ -155,11 +163,15 @@ describe('CartGuard', () => {
     });
 
     await expect(
-      cartGuard.canActivate(mockExecutionContext as ExecutionContext),
-    ).rejects.toThrow(new UnauthorizedException('User is not allowed'));
+      userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
+    ).rejects.toThrow(
+      new UnauthorizedException(
+        'You do not have permission to access this resource.',
+      ),
+    );
   });
 
-  it('should throw UnauthorizedException with "Token Expired" on TokenExpiredError', async () => {
+  it('should throw UnauthorizedException if token is expired', async () => {
     (mockReflector.getAllAndMerge as jest.Mock).mockReturnValue([
       RoleEnum.User,
     ]);
@@ -173,8 +185,10 @@ describe('CartGuard', () => {
     );
 
     await expect(
-      cartGuard.canActivate(mockExecutionContext as ExecutionContext),
-    ).rejects.toThrow(new UnauthorizedException('Token Expired'));
+      userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
+    ).rejects.toThrow(
+      new UnauthorizedException('Token has expired. Please log in again.'),
+    );
   });
 
   it('should throw generic UnauthorizedException on unknown error', async () => {
@@ -191,7 +205,11 @@ describe('CartGuard', () => {
     );
 
     await expect(
-      cartGuard.canActivate(mockExecutionContext as ExecutionContext),
-    ).rejects.toThrow(new UnauthorizedException('Unauthorized cart operation'));
+      userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
+    ).rejects.toThrow(
+      new UnauthorizedException(
+        'Unauthorized operation. Please check your credentials and try again.',
+      ),
+    );
   });
 });
