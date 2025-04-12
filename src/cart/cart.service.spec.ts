@@ -345,18 +345,23 @@ describe('CartService', () => {
   });
 
   describe('attachUser', () => {
-    it('should throw an error if the user already has a cart', async () => {
+    it('should throw an error if the user already has items in the cart', async () => {
       const userId = 1;
       const cartId = 1;
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        cart_items: [],
+        cart_items: [
+          {
+            id: 1,
+            bookid: 1,
+            cartid: 1,
+            quantity: 1,
+          },
+        ],
       });
 
-      try {
-        await service.claim(userId, cartId);
-      } catch (error) {
-        expect(error.message).toBe('User alredy has a cart.');
-      }
+      await expect(service.claim(userId, cartId)).rejects.toThrow(
+        new Error('User alredy has a cart.'),
+      );
     });
 
     it('should throw an error if the user tries to claim a cart that is not created by guest user', async () => {

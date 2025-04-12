@@ -212,7 +212,7 @@ export class CartService {
         },
       });
 
-      if (oldCart) {
+      if (oldCart && oldCart.cart_items.length > 0) {
         throw new Error('Cart is exist');
       }
 
