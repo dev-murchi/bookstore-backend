@@ -11,6 +11,7 @@ const mockPrismaService = {
     upsert: jest.fn(),
     update: jest.fn(),
     findUnique: jest.fn(),
+    delete: jest.fn(),
   },
   cart_items: {
     create: jest.fn(),
@@ -18,7 +19,9 @@ const mockPrismaService = {
     delete: jest.fn(),
     upsert: jest.fn(),
   },
-  $transaction: jest.fn(),
+  $transaction: jest
+    .fn()
+    .mockImplementation((callback) => callback(mockPrismaService)),
 };
 
 describe('CartService', () => {
@@ -383,6 +386,9 @@ describe('CartService', () => {
     it('should attach the user to the cart', async () => {
       const userId = 1;
       const cartId = 1;
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+        cart_items: [],
+      });
       mockPrismaService.cart.update.mockResolvedValue({ id: 1, userid: 1 });
 
       const result = await service.claim(userId, cartId);
