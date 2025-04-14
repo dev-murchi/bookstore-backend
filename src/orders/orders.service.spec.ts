@@ -8,6 +8,9 @@ const mockMailService = {
 };
 const mockPrismaService = {
   orders: { update: jest.fn() },
+  $transaction: jest
+    .fn()
+    .mockImplementation((callback) => callback(mockPrismaService)),
 };
 
 describe('OrdersService', () => {
@@ -80,7 +83,9 @@ describe('OrdersService', () => {
         new Error('Email send failed'),
       );
 
-      const result = await service.updateStatus(orderId, status);
+      await expect(service.updateStatus(orderId, status)).rejects.toThrow(
+        new Error('Status for Order #2 could not updated.'),
+      );
 
       expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
         where: { id: orderId },
@@ -97,9 +102,6 @@ describe('OrdersService', () => {
         orderId,
         status,
       );
-      expect(result).toEqual({
-        message: `Status is updated but notification mail could not sent.`,
-      });
     });
 
     it('should throw an error if order update fails', async () => {

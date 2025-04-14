@@ -36,32 +36,26 @@ export class OrdersService {
   ) {}
   async updateStatus(orderId: number, status: string) {
     try {
-      // update order status
-      const order = await this.prisma.orders.update({
-        where: { id: orderId },
-        data: { status },
-        select: {
-          id: true,
-          shipping_details: {
-            select: { email: true },
+      await this.prisma.$transaction(async (pr) => {
+        // update order status
+        const order = await pr.orders.update({
+          where: { id: orderId },
+          data: { status },
+          select: {
+            id: true,
+            shipping_details: {
+              select: { email: true },
+            },
           },
-        },
-      });
+        });
 
-      // send status update mail to the client
-      try {
+        // send status update mail to the client
         await this.mailService.sendOrderStatusUpdateMail(
           order.shipping_details.email,
           orderId,
           status,
         );
-      } catch (error) {
-        console.warn(error);
-        return {
-          message: `Status is updated but notification mail could not sent.`,
-        };
-      }
-
+      });
       return {
         message: `Status is updated and notification mail is sent.`,
       };

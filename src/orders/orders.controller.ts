@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Param,
@@ -22,6 +23,10 @@ export class OrdersController {
     @Param('id', ParseIntPipe) orderId: number,
     @Body() orderStatusDto: OrderStatusDto,
   ) {
-    return await this.service.updateStatus(orderId, orderStatusDto.status);
+    try {
+      return await this.service.updateStatus(orderId, orderStatusDto.status);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }
