@@ -9,14 +9,38 @@ export class ReviewsService {
   async create(userId: number, createReviewDTO: CreateReviewDTO) {
     // save the user reviews about the book to the database.
     try {
+      const { bookId, data, rating } = createReviewDTO;
+
+      // book has to be purchased by the user
+      const purchasedBook = await this.prisma.books.findUnique({
+        where: {
+          id: bookId,
+          order_items: {
+            some: {
+              order: {
+                userid: userId,
+              },
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!purchasedBook) {
+        throw new Error('purchase required');
+      }
+
       await this.prisma.reviews.create({
         data: {
           user: { connect: { id: userId } },
-          book: { connect: { id: createReviewDTO.bookId } },
-          data: createReviewDTO.data,
-          rating: createReviewDTO.rating,
+          book: { connect: { id: bookId } },
+          data: data,
+          rating: rating,
         },
       });
+
       return { message: 'Review created.' };
     } catch (error) {
       // database errors
@@ -27,6 +51,10 @@ export class ReviewsService {
         // no records
         if (error.code === 'P2025')
           throw new Error(`Book #${createReviewDTO.bookId} or is not found`);
+      }
+
+      if (error.message === 'purchase required') {
+        throw new Error('Please purchase the book to leave a review.');
       }
       throw new Error('Review creation failed.');
     }

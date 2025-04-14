@@ -5,6 +5,7 @@ import { CreateReviewDTO } from './dto/create-review.dto';
 import { Prisma } from '@prisma/client';
 
 const mockPrismaService = {
+  books: { findUnique: jest.fn() },
   reviews: {
     create: jest.fn(),
     findMany: jest.fn(),
@@ -43,6 +44,7 @@ describe('ReviewsService', () => {
     };
 
     it('should successfully create a review', async () => {
+      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockResolvedValueOnce({});
 
       const result = await service.create(userId, createReviewDTO);
@@ -65,6 +67,7 @@ describe('ReviewsService', () => {
           code: 'P2002',
         } as any,
       );
+      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
@@ -80,6 +83,14 @@ describe('ReviewsService', () => {
       });
     });
 
+    it('should throw an error if the book is not purchased', async () => {
+      mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
+        new Error('Please purchase the book to leave a review.'),
+      );
+    });
+
     it('should throw an error if the book is not found', async () => {
       const prismaError = new Prisma.PrismaClientKnownRequestError(
         'An operation failed because it depends on one or more records that were required but not found.',
@@ -87,6 +98,8 @@ describe('ReviewsService', () => {
           code: 'P2025',
         } as any,
       );
+
+      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
@@ -104,6 +117,7 @@ describe('ReviewsService', () => {
 
     it('should throw generic error for unknown error types', async () => {
       const error = new Error('Unknown database error');
+      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(error);
 
       await expect(service.create(userId, createReviewDTO)).rejects.toThrow(

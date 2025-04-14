@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   ParseIntPipe,
   Post,
@@ -25,14 +27,22 @@ export class ReviewsController {
     @Body() createReviewDTO: CreateReviewDTO,
     @Req() request: Request,
   ) {
-    return await this.reviewsService.create(
-      request.user['id'],
-      createReviewDTO,
-    );
+    try {
+      return await this.reviewsService.create(
+        request.user['id'],
+        createReviewDTO,
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Get()
-  async findAll(@Query('book', ParseIntPipe) bookId: number) {
-    return await this.reviewsService.findReviewsForBook(bookId);
+  async findAll(
+    @Query('book', ParseIntPipe) bookId: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    return await this.reviewsService.findReviewsForBook(bookId, page, limit);
   }
 }
