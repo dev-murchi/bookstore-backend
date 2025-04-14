@@ -99,7 +99,7 @@ export class AuthService {
     // check token validty
     if (!passwordResetToken) throw new BadRequestException('Invalid token');
 
-    // delete disposableToken
+    // delete disposable password reset token
     await this.prisma.password_reset_tokens.delete({ where: { token } });
 
     // check token expiration
@@ -125,9 +125,6 @@ export class AuthService {
 
     // update user password
     await this.userService.update(user.id, { password: hashedPassword });
-
-    // delete password reset token
-    await this.prisma.password_reset_tokens.delete({ where: { token } });
 
     return { message: 'Password reset successfully' };
   }
