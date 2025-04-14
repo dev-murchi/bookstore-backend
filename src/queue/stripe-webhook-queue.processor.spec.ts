@@ -301,6 +301,7 @@ describe('StripeWebhookProcessor', () => {
           status: 'paid',
           method: 'card',
           amount: 1000,
+          payment_date: expect.any(Date),
         },
       });
 

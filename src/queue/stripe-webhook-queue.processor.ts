@@ -160,21 +160,22 @@ export class StripeWebhookProcessor extends WorkerHost {
             status: 'paid',
             method: 'card',
             amount: data.amount_total,
+            payment_date: new Date(),
           },
         });
-
-        // send email to user
-        await this.mailService.sendMail(
-          data.customer_details.email,
-          `Your Book Order #${data.metadata.orderId} Confirmed!`,
-          `Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..`,
-          `<p>Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..</p>`,
-        );
       });
+
+      // send email to user after successful payment
+      await this.mailService.sendMail(
+        data.customer_details.email,
+        `Your Book Order #${data.metadata.orderId} Confirmed!`,
+        `Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..`,
+        `<p>Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..</p>`,
+      );
+      console.log(`Order #[${data.metadata.orderId}] is completed.`);
     } catch (error) {
+      console.error(error);
       throw error;
     }
-
-    console.log(`Order #[${data.metadata.orderId}] is completed.`);
   }
 }
