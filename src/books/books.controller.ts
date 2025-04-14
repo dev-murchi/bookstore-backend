@@ -45,6 +45,10 @@ export class BooksController {
   @Get('search')
   async search(@Query('search') query: string) {
     if (!query) return { data: [] };
+    if (query.length < 3)
+      throw new BadRequestException(
+        'The query must contain at least three characters.',
+      );
     return { data: await this.booksService.search(query) };
   }
 
