@@ -52,7 +52,7 @@ export class CheckoutService {
             throw new Error(`Not enough stock for book ID: ${item.book.id}`);
           }
           // Calculate the total price for each item and accumulate it
-          totalPrice += parseFloat(totalPrice.toFixed(2)) * item.quantity;
+          totalPrice += parseFloat(item.book.price.toFixed(2)) * item.quantity;
         }
 
         totalPrice = parseFloat(totalPrice.toFixed(2));
@@ -148,7 +148,7 @@ export class CheckoutService {
             id: order.id,
             user: order.user,
             items: order.order_items.map((item) => ({
-              quantity: 2,
+              quantity: item.quantity,
               bookId: item.book.id,
               price: parseFloat(item.book.price.toFixed(2)),
               bookTitle: item.book.title,
