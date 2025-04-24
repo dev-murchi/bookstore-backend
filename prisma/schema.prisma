@@ -76,10 +76,12 @@ model books {
 }
 
 model cart {
-  id        Int          @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
+  userid      Int? @unique
+  cart_items  cart_items[]
+  created_at  DateTime @default(now())
+
   user      User? @relation(fields: [userid], references: [id])
-  userid Int? @unique
-  cart_items cart_items[]
 }
 
 model cart_items {

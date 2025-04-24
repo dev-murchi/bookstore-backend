@@ -12,6 +12,7 @@ const mockPrismaService = {
     update: jest.fn(),
     findUnique: jest.fn(),
     delete: jest.fn(),
+    deleteMany: jest.fn(),
   },
   cart_items: {
     create: jest.fn(),
@@ -36,6 +37,16 @@ describe('CartService', () => {
     }).compile();
 
     service = module.get<CartService>(CartService);
+
+    // Mock the current date to a fixed value for consistency in the tests
+    const fixedDate = new Date('2025-04-24T00:00:00Z'); // Use any fixed date
+    jest.spyOn(global, 'Date').mockImplementation(() => fixedDate); // Ensure it returns fixedDate when new Date() is called
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    // Restore the original Date implementation
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -396,6 +407,54 @@ describe('CartService', () => {
       expect(result).toEqual({
         message: 'User is attached to the cart.',
       });
+    });
+  });
+
+  describe('removeInactiveGuestCarts', () => {
+    it('should remove inactive guest carts older than 1 day', async () => {
+      const currentDateTime = new Date().getTime();
+      const expirationDate = new Date(currentDateTime - 24 * 60 * 60 * 1000); // 1 day ago
+
+      const mockDeleteResult = { count: 5 };
+      mockPrismaService.cart.deleteMany.mockResolvedValue(mockDeleteResult);
+
+      const result = await service.removeInactiveGuestCarts();
+
+      expect(result).toEqual({ carts: mockDeleteResult });
+      expect(mockPrismaService.cart.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userid: null,
+          created_at: { lt: expirationDate },
+        },
+      });
+    });
+
+    it('should return 0 if no inactive carts are found', async () => {
+      const currentDateTime = new Date().getTime();
+      const expirationDate = new Date(currentDateTime - 24 * 60 * 60 * 1000); // 1 day ago
+
+      const mockDeleteResult = { count: 0 };
+      mockPrismaService.cart.deleteMany.mockResolvedValue(mockDeleteResult);
+
+      const result = await service.removeInactiveGuestCarts();
+
+      expect(result).toEqual({ carts: mockDeleteResult });
+      expect(mockPrismaService.cart.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userid: null,
+          created_at: { lt: expirationDate },
+        },
+      });
+    });
+
+    it('should throw an error if deleteMany fails', async () => {
+      mockPrismaService.cart.deleteMany.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(service.removeInactiveGuestCarts()).rejects.toThrow(
+        'Failed to remove inactive guest carts',
+      );
     });
   });
 });

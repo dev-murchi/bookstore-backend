@@ -237,4 +237,21 @@ export class CartService {
       throw new Error('User can only claim the cart created by the guest.');
     }
   }
+
+  async removeInactiveGuestCarts() {
+    try {
+      // remove the inactive carts
+      // the cart is inactive if it was created less than 1 day ago.
+      const currentDateTime = new Date().getTime();
+      const expirationDate = new Date(currentDateTime - 24 * 60 * 60 * 1000);
+
+      const carts = await this.prisma.cart.deleteMany({
+        where: { userid: null, created_at: { lt: expirationDate } },
+      });
+
+      return { carts };
+    } catch (error) {
+      throw new Error('Failed to remove inactive guest carts');
+    }
+  }
 }
