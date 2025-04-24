@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService, SortType } from './books.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
+import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
 
 const mockPrismaService = {
   books: {
@@ -48,7 +50,7 @@ describe('BooksService', () => {
       });
 
       const userId = 1;
-      const bookDto = {
+      const bookDto: CreateBookDto = {
         title: 'The Test Book',
         categoryId: 1,
         isbn: isbn,
@@ -57,6 +59,7 @@ describe('BooksService', () => {
         stockQuantity: 1,
         imageUrl: 'testbook-image-url',
         isActive: true,
+        author: 'testauthor@email.com',
       };
 
       try {
@@ -70,7 +73,7 @@ describe('BooksService', () => {
 
     it('should successfully create a book if ISBN is not taken', async () => {
       const userId = 1;
-      const bookDto = {
+      const bookDto: CreateBookDto = {
         title: 'The Test Book',
         categoryId: 1,
         isbn: '9780743273565',
@@ -79,6 +82,7 @@ describe('BooksService', () => {
         stockQuantity: 1,
         imageUrl: 'testbook-image-url',
         isActive: true,
+        author: 'testauthor@email.com',
       };
 
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
@@ -164,7 +168,9 @@ describe('BooksService', () => {
 
   describe('update', () => {
     it('should return a message when no fields are provided for update', async () => {
-      const updateBookDto = {};
+      const updateBookDto: UpdateBookDto = {
+        author: 'testauthor@email.com',
+      };
       const authorId = 1;
       const result = await service.update(1, updateBookDto, authorId);
       expect(result).toEqual({ message: 'No changes to update' });
@@ -181,6 +187,7 @@ describe('BooksService', () => {
         stockQuantity: 10,
         imageUrl: 'image-url',
         isActive: true,
+        author: 'testauthor@email.com',
       };
 
       const bookId = 1;
@@ -217,6 +224,7 @@ describe('BooksService', () => {
         stockQuantity: 50,
         imageUrl: undefined,
         isActive: undefined,
+        author: 'testauthor@email.com',
       };
 
       const bookId = 1;
@@ -246,6 +254,7 @@ describe('BooksService', () => {
         stockQuantity: 10,
         imageUrl: 'image-url',
         isActive: true,
+        author: 'testauthor@email.com',
       };
 
       const bookId = 1;

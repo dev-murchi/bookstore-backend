@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsEmail,
   IsInt,
   IsISBN,
   IsNotEmpty,
@@ -66,4 +67,7 @@ export class CreateBookDto {
   @ApiProperty()
   @IsBoolean()
   isActive: boolean;
+
+  @IsEmail()
+  author: string;
 }

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { UserService } from '../user/user.service';
 
 const mockBookService = {
   create: jest.fn(),
@@ -9,6 +10,10 @@ const mockBookService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+};
+
+const mockUserService = {
+  findBy: jest.fn(),
 };
 
 describe('BooksController', () => {
@@ -21,6 +26,10 @@ describe('BooksController', () => {
         {
           provide: BooksService,
           useValue: mockBookService,
+        },
+        {
+          provide: UserService,
+          useValue: mockUserService,
         },
       ],
     })
