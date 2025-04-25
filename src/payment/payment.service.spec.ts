@@ -1,141 +1,116 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
-import { ConfigService } from '@nestjs/config';
+import { StripeService } from './stripe.service';
 import Stripe from 'stripe';
 
-const mockStripeCheckoutSessionsCreateFunc = jest.fn();
-const mockStripWebhooksConstructEventAsync = jest.fn();
-const mockQueueAdd = jest.fn();
+const mockStripeService = {
+  createCheckoutSession: jest.fn(),
+  constructWebhookEvent: jest.fn(),
+};
 
-jest.mock('stripe', () => {
-  return {
-    __esModule: true,
-    default: jest.fn().mockImplementation(() => ({
-      checkout: {
-        sessions: {
-          create: mockStripeCheckoutSessionsCreateFunc,
-        },
-      },
-      webhooks: {
-        constructEventAsync: mockStripWebhooksConstructEventAsync,
-      },
-    })),
-  };
-});
-
-const mockConfigService = {
-  get: jest.fn().mockImplementation((key: string) => {
-    if (key === 'STRIPE_API_KEY') return 'test-api-key';
-    if (key === 'STRIPE_API_WHKEY') return 'test-webhook-key';
-  }),
+const mockStripeWebhookQueue = {
+  add: jest.fn(),
 };
 
 describe('PaymentService', () => {
-  let service: PaymentService;
+  let paymentService: PaymentService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaymentService,
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: 'StripeWebhookQueue', useValue: { add: mockQueueAdd } },
+        {
+          provide: StripeService,
+          useValue: mockStripeService,
+        },
+        {
+          provide: 'StripeWebhookQueue',
+          useValue: mockStripeWebhookQueue,
+        },
       ],
     }).compile();
 
-    service = module.get<PaymentService>(PaymentService);
+    // Get instances of the service and the mocked dependencies
+    paymentService = module.get<PaymentService>(PaymentService);
   });
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
+    expect(paymentService).toBeDefined();
   });
 
   describe('createCheckoutSession', () => {
-    it('should create a checkout session and return the url and expires time', async () => {
-      const checkoutSessionData: Stripe.Checkout.SessionCreateParams = {
+    it('should call mockStripeService.createCheckoutSession and return the correct session URL and expiration', async () => {
+      const sessionParams: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ['card'],
         line_items: [
           {
             price_data: {
               currency: 'usd',
-              product_data: {
-                name: 'Test Book 1',
-              },
+              product_data: { name: 'Test Product' },
               unit_amount: 1000,
             },
             quantity: 1,
           },
         ],
         mode: 'payment',
-        success_url: 'https://localhost/success',
-        cancel_url: 'https://localhost/cancel',
+        success_url: 'https://success.com',
+        cancel_url: 'https://cancel.com',
       };
 
       const mockSession = {
-        url: 'https://checkout.stripe.com/test-session-url',
-        expires_at: 1672531199,
-      };
+        url: 'https://checkout.stripe.com/session/123',
+        expires_at: 1633046400,
+      } as Stripe.Response<Stripe.Checkout.Session>;
 
-      mockStripeCheckoutSessionsCreateFunc.mockResolvedValueOnce(mockSession);
-
-      const result = await service.createCheckoutSession(checkoutSessionData);
-
-      expect(mockStripeCheckoutSessionsCreateFunc).toHaveBeenCalledWith(
-        checkoutSessionData,
+      mockStripeService.createCheckoutSession.mockResolvedValueOnce(
+        mockSession,
       );
 
+      const result = await paymentService.createCheckoutSession(sessionParams);
+
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
+        sessionParams,
+      );
       expect(result).toEqual({
-        url: 'https://checkout.stripe.com/test-session-url',
-        expires: 1672531199,
+        url: mockSession.url,
+        expires: mockSession.expires_at,
       });
     });
   });
 
   describe('handleStripeWebhook', () => {
-    it('should throw an error if the Stripe webhook secret is not configured', async () => {
-      service['stripeWebhookKey'] = ''; // Simulate missing key
-      const payload = Buffer.from('test_payload');
-      const signature = 'test_signature';
-      await expect(
-        service.handleStripeWebhook(payload, signature),
-      ).rejects.toThrow('Stripe Webhook secret not configured.');
+    it('should handle the stripe webhook event and add it to the queue', async () => {
+      const payload = Buffer.from('test-payload');
+      const signature = 'test-signature';
+      const mockEvent = {
+        type: 'payment_intent.succeeded',
+        data: { object: { id: 'pi_123' } },
+      } as Stripe.Event;
+
+      mockStripeService.constructWebhookEvent.mockResolvedValueOnce(mockEvent);
+
+      await paymentService.handleStripeWebhook(payload, signature);
+
+      expect(mockStripeService.constructWebhookEvent).toHaveBeenCalledWith(
+        payload,
+        signature,
+      );
+      expect(mockStripeWebhookQueue.add).toHaveBeenCalledWith('process-event', {
+        eventType: mockEvent.type,
+        eventData: mockEvent.data.object,
+      });
     });
 
-    it('should throw an error if the Stripe webhook signature is invalid', async () => {
-      const payload = Buffer.from('test_payload');
-      const signature = 'test_signature';
-      mockStripWebhooksConstructEventAsync.mockRejectedValueOnce(
+    it('should throw an error if webhook event construction fails', async () => {
+      const payload = Buffer.from('test-payload');
+      const signature = 'test-signature';
+      mockStripeService.constructWebhookEvent.mockRejectedValueOnce(
         new Error('Invalid signature'),
       );
 
       await expect(
-        service.handleStripeWebhook(payload, signature),
+        paymentService.handleStripeWebhook(payload, signature),
       ).rejects.toThrow('Webhook Error: Invalid signature');
-    });
-
-    it('should handle a valid stripe webhook event', async () => {
-      const payload = Buffer.from('test_payload');
-      const signature = 'test_signature';
-      const mockEvent = {
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'test_event_id',
-          },
-        },
-      };
-      mockStripWebhooksConstructEventAsync.mockResolvedValueOnce(mockEvent);
-
-      await service.handleStripeWebhook(payload, signature);
-
-      expect(mockStripWebhooksConstructEventAsync).toHaveBeenCalledWith(
-        payload,
-        signature,
-        'test-webhook-key',
-      );
-      expect(mockQueueAdd).toHaveBeenCalledWith('process-event', {
-        eventType: mockEvent.type,
-        eventData: mockEvent.data.object,
-      });
     });
   });
 });

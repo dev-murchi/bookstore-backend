@@ -1,13 +1,15 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
+import { Inject } from '@nestjs/common';
+import { StripeService } from '../payment/stripe.service';
 
 @Processor('stripe-webhook-queue')
 export class StripeWebhookProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly mailService: MailService,
+    private stripeService: StripeService,
+    @Inject('MailSenderQueue') private readonly mailSenderQueue: Queue,
   ) {
     super();
   }
@@ -57,84 +59,117 @@ export class StripeWebhookProcessor extends WorkerHost {
       throw error;
     }
   }
+
   private async paymentExpired(data: any) {
     try {
+      const orderId = parseInt(data.metadata.orderId);
+      if (isNaN(orderId)) {
+        throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
+      }
+
       await this.prisma.$transaction(async (pr) => {
-        // update order status
-        const order = await pr.orders.update({
-          where: { id: parseInt(data.metadata.orderId) },
-          data: {
-            status: 'expired',
-          },
+        // fetch order
+        const order = await pr.orders.findUnique({
+          where: { id: orderId },
           select: {
-            id: true,
+            status: true,
             order_items: {
               select: {
-                id: true,
                 quantity: true,
-                bookid: true,
+                book: {
+                  select: {
+                    id: true,
+                  },
+                },
               },
-            },
-            payment: {
-              select: { id: true },
             },
           },
         });
 
-        // update order item stock count
-        for (const item of order.order_items) {
-          await pr.books.update({
-            where: { id: item.bookid },
-            data: { stock_quantity: { increment: item.quantity } },
-            select: { id: true, stock_quantity: true },
-          });
+        if (!order) {
+          throw new Error(`Order not found: ${orderId}`);
         }
 
-        // upsert payment
-        await pr.payment.upsert({
-          where: {
-            orderid: order.id,
-          },
-          update: {
-            status: 'unpaid',
-          },
+        // update order item stock count
+        // the order item stock count was already updated when the order was canceled
+        if (order.status !== 'complete') {
+          for (const item of order.order_items) {
+            await pr.books.update({
+              where: { id: item.book.id },
+              data: { stock_quantity: { increment: item.quantity } },
+            });
+          }
+        }
+
+        // update order status as expired
+        await pr.orders.update({
+          where: { id: orderId },
+          data: { status: 'expired' },
+        });
+
+        // update payment status as unpaid
+        pr.payment.upsert({
+          where: { orderid: orderId },
+          update: { status: 'unpaid' },
           create: {
-            order: { connect: { id: parseInt(data.metadata.orderId) } },
+            order: { connect: { id: orderId } },
             status: 'unpaid',
             method: 'card',
             amount: data.amount_total,
           },
         });
 
-        // send email to user
-        await this.mailService.sendMail(
-          data.customer_details.email,
-          `Your Book Order #${data.metadata.orderId} Has Expired`,
-          `Your order #${data.metadata.orderId} has expired.`,
-          `<p>Your order #${data.metadata.orderId} has expired.</p>`,
-        );
-
         console.log(`Order #[${data.metadata.orderId}] is expired.`);
       });
+
+      // send an email to the user after the transaction is complete
+      await this.mailSenderQueue.add('order-status-mail', {
+        orderId,
+        email: data.customer_details.email,
+        status: 'expired',
+      });
+
+      console.log(`Expiration email add to the queue for Order #[${orderId}]`);
     } catch (error) {
+      console.error(
+        `Error processing payment expired for Order #[${data.metadata.orderId}]:`,
+        error,
+      );
       throw error;
     }
   }
 
   private async paymentSuccessful(data: any) {
+    const orderId = parseInt(data.metadata.orderId);
+    if (isNaN(orderId)) {
+      throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
+    }
+
     try {
       await this.prisma.$transaction(async (pr) => {
+        // fetch order
+        const existingOrder = await pr.orders.findUnique({
+          where: { id: orderId },
+          select: { status: true },
+        });
+
+        if (!existingOrder) {
+          throw new Error(`Order not found: ${orderId}`);
+        }
+
+        // update order status as complete
         await pr.orders.update({
-          where: { id: parseInt(data.metadata.orderId) },
+          where: { id: orderId },
           data: {
             status: 'complete',
           },
         });
 
+        // create shipping for the order
         await pr.shipping.create({
           data: {
             email: data.customer_details.email,
-            order: { connect: { id: parseInt(data.metadata.orderId) } },
+            order: { connect: { id: orderId } },
             address: {
               create: {
                 country: data.customer_details.address.country,
@@ -147,15 +182,16 @@ export class StripeWebhookProcessor extends WorkerHost {
           },
         });
 
+        // update payment status as paid
         await pr.payment.upsert({
           where: {
-            orderid: parseInt(data.metadata.orderId),
+            orderid: orderId,
           },
           update: {
             status: 'paid',
           },
           create: {
-            order: { connect: { id: parseInt(data.metadata.orderId) } },
+            order: { connect: { id: orderId } },
             transaction_id: data.payment_intent,
             status: 'paid',
             method: 'card',
@@ -163,16 +199,34 @@ export class StripeWebhookProcessor extends WorkerHost {
             payment_date: new Date(),
           },
         });
+
+        // create a refund if the order was canceled before the payment
+        if (existingOrder.status === 'canceled') {
+          // stripe.create.refund
+          try {
+            const refund = await this.stripeService.createRefundForPayment(
+              data.payment_intent as string,
+            );
+
+            console.log(`Refund issued for cancelled order: ${orderId}`);
+          } catch (error) {
+            console.error('Refund failed:', error);
+          }
+        }
+
+        console.log(`Order #[${data.metadata.orderId}] is complete.`);
       });
 
-      // send email to user after successful payment
-      await this.mailService.sendMail(
-        data.customer_details.email,
-        `Your Book Order #${data.metadata.orderId} Confirmed!`,
-        `Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..`,
-        `<p>Your order #${data.metadata.orderId} is confirmed. We'll email you tracking info soon..</p>`,
+      // send an email to the user after the transaction is complete
+      await this.mailSenderQueue.add('order-status-mail', {
+        orderId,
+        email: data.customer_details.email,
+        status: 'complete',
+      });
+
+      console.log(
+        `Order confirmation email add to the queue for Order #[${orderId}]`,
       );
-      console.log(`Order #[${data.metadata.orderId}] is completed.`);
     } catch (error) {
       console.error(error);
       throw error;
