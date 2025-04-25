@@ -1,10 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersController } from './orders.controller';
-import { OrdersService } from './orders.service';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
-const mockOrderService = {
-  updateStatus: jest.fn(),
+import { OrdersStatusService } from './orders-status.service';
+import { OrdersService } from './orders.service';
+
+const mockOrdersService = {
+  getOrder: jest.fn(),
+  getAll: jest.fn(),
+};
+const mockOrdersStatusService = {
+  deliverOrder: jest.fn(),
+  shipOrder: jest.fn(),
+  cancelOrder: jest.fn(),
 };
 
 describe('OrdersController', () => {
@@ -13,7 +21,10 @@ describe('OrdersController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrdersController],
-      providers: [{ provide: OrdersService, useValue: mockOrderService }],
+      providers: [
+        { provide: OrdersService, useValue: mockOrdersService },
+        { provide: OrdersStatusService, useValue: mockOrdersStatusService },
+      ],
     })
       .overrideGuard(UserAccessGuard)
       .useValue({

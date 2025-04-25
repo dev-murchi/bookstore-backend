@@ -7,6 +7,7 @@ const OrderStatus = [
   'complete',
   'shipped',
   'delivered',
+  'canceled',
 ] as const;
 
 export class OrderStatusDto {

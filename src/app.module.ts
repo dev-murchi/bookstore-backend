@@ -12,6 +12,7 @@ import { PaymentModule } from './payment/payment.module';
 import { QueueModule } from './queue/queue.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewsModule } from './reviews/reviews.module';
     QueueModule,
     OrdersModule,
     ReviewsModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

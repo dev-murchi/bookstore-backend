@@ -6,6 +6,7 @@ import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailModule } from 'src/mail/mail.module';
+import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
 @Module({
   imports: [
     MailModule,
@@ -20,9 +21,10 @@ import { MailModule } from 'src/mail/mail.module';
       inject: [ConfigService],
     }),
 
-    BullModule.registerQueue({
-      name: 'stripe-webhook-queue',
-    }),
+    BullModule.registerQueue(
+      { name: 'stripe-webhook-queue' },
+      { name: 'mail-sender-queue' },
+    ),
   ],
   providers: [
     {
@@ -30,9 +32,15 @@ import { MailModule } from 'src/mail/mail.module';
       useFactory: (queue: Queue) => queue,
       inject: [getQueueToken('stripe-webhook-queue')],
     },
+    {
+      provide: 'MailSenderQueue',
+      useFactory: (queue: Queue) => queue,
+      inject: [getQueueToken('mail-sender-queue')],
+    },
     StripeWebhookProcessor,
+    MailSenderQueueProcessor,
     PrismaService,
   ],
-  exports: ['StripeWebhookQueue'],
+  exports: ['StripeWebhookQueue', 'MailSenderQueue'],
 })
 export class QueueModule {}

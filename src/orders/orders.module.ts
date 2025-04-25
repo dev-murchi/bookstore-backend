@@ -2,13 +2,15 @@ import { Module } from '@nestjs/common';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { MailModule } from 'src/mail/mail.module';
-import { UserModule } from 'src/user/user.module';
+import { QueueModule } from 'src/queue/queue.module';
+import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { UserModule } from 'src/user/user.module';
+import { OrdersStatusService } from './orders-status.service';
 
 @Module({
-  imports: [PrismaModule, MailModule, UserModule, JwtModule],
+  imports: [PrismaModule, QueueModule, ConfigModule, JwtModule, UserModule],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersStatusService],
 })
 export class OrdersModule {}

@@ -1,16 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service';
-import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-const mockMailService = {
-  sendOrderStatusUpdateMail: jest.fn(),
+const mockOrder = {
+  id: 1,
+  userid: 101,
+  totalPrice: 42.5,
+  status: 'pending',
+  shipping_details: { email: 'user@example.com' },
+  order_items: [
+    {
+      id: 1,
+      quantity: 2,
+      book: {
+        id: 10,
+        title: 'Book Title',
+        author: { name: 'Author Name' },
+      },
+    },
+  ],
 };
+
 const mockPrismaService = {
-  orders: { update: jest.fn() },
-  $transaction: jest
-    .fn()
-    .mockImplementation((callback) => callback(mockPrismaService)),
+  orders: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+  },
 };
 
 describe('OrdersService', () => {
@@ -20,103 +36,98 @@ describe('OrdersService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
-        { provide: PrismaService, useValue: mockPrismaService },
-        { provide: MailService, useValue: mockMailService },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
       ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-  });
 
-  afterEach(() => {
+    // Clear all mock history before each test
     jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('getAll', () => {
+    it('returns all orders when no userId is provided', async () => {
+      mockPrismaService.orders.findMany.mockResolvedValueOnce([mockOrder]);
+
+      const result = await service.getAll();
+
+      expect(mockPrismaService.orders.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: {} }),
+      );
+      expect(result).toEqual([mockOrder]);
+    });
+
+    it('returns orders filtered by userId', async () => {
+      mockPrismaService.orders.findMany.mockResolvedValueOnce([mockOrder]);
+
+      const result = await service.getAll(101);
+
+      expect(mockPrismaService.orders.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { user: { id: 101 } } }),
+      );
+      expect(result).toEqual([mockOrder]);
+    });
+
+    it('throws an error if findMany fails', async () => {
+      mockPrismaService.orders.findMany.mockRejectedValueOnce(
+        new Error('DB failure'),
+      );
+
+      await expect(service.getAll()).rejects.toThrow(
+        'Orders could not fetched',
+      );
+    });
+  });
+
+  describe('getOrder', () => {
+    it('returns the order if found', async () => {
+      mockPrismaService.orders.findUnique.mockResolvedValueOnce(mockOrder);
+
+      const result = await service.getOrder(1);
+
+      expect(mockPrismaService.orders.findUnique).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: expect.anything(),
+      });
+      expect(result).toEqual(mockOrder);
+    });
+
+    it('returns null if no order found', async () => {
+      mockPrismaService.orders.findUnique.mockResolvedValueOnce(null);
+
+      const result = await service.getOrder(999);
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('updateStatus', () => {
-    it('should update order status and send email successfully', async () => {
-      const orderId = 1;
-      const status = 'shipped';
-      const email = 'test@example.com';
+    it('successfully updates order status', async () => {
+      const updatedOrder = { ...mockOrder, status: 'shipped' };
+      mockPrismaService.orders.update.mockResolvedValueOnce(updatedOrder);
 
-      mockPrismaService.orders.update.mockResolvedValue({
-        id: orderId,
-        shipping_details: { email },
-      });
-
-      const result = await service.updateStatus(orderId, status);
+      const result = await service.updateStatus(1, 'shipped');
 
       expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: { id: orderId },
-        data: { status },
-        select: {
-          id: true,
-          shipping_details: {
-            select: { email: true },
-          },
-        },
+        where: { id: 1 },
+        data: { status: 'shipped' },
+        select: expect.anything(),
       });
-      expect(mockMailService.sendOrderStatusUpdateMail).toHaveBeenCalledWith(
-        email,
-        orderId,
-        status,
-      );
-      expect(result).toEqual({
-        message: `Status is updated and notification mail is sent.`,
-      });
+      expect(result).toEqual(updatedOrder);
     });
 
-    it('should update order status but handle email sending failure', async () => {
-      const orderId = 2;
-      const status = 'delivered';
-      const email = 'test2@example.com';
-
-      mockPrismaService.orders.update.mockResolvedValue({
-        id: orderId,
-        shipping_details: { email },
-      });
-
-      mockMailService.sendOrderStatusUpdateMail.mockRejectedValue(
-        new Error('Email send failed'),
-      );
-
-      await expect(service.updateStatus(orderId, status)).rejects.toThrow(
-        new Error('Status for Order #2 could not updated.'),
-      );
-
-      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: { id: orderId },
-        data: { status },
-        select: {
-          id: true,
-          shipping_details: {
-            select: { email: true },
-          },
-        },
-      });
-      expect(mockMailService.sendOrderStatusUpdateMail).toHaveBeenCalledWith(
-        email,
-        orderId,
-        status,
-      );
-    });
-
-    it('should throw an error if order update fails', async () => {
-      const orderId = 3;
-      const status = 'pending';
-
-      mockPrismaService.orders.update.mockRejectedValue(
+    it('throws error if update fails', async () => {
+      mockPrismaService.orders.update.mockRejectedValueOnce(
         new Error('Update failed'),
       );
 
-      await expect(service.updateStatus(orderId, status)).rejects.toThrow(
-        `Status for Order #${orderId} could not updated.`,
+      await expect(service.updateStatus(1, 'shipped')).rejects.toThrow(
+        'Order #1 status could not be updated',
       );
-
-      expect(mockMailService.sendOrderStatusUpdateMail).not.toHaveBeenCalled();
     });
   });
 });
