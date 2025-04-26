@@ -61,12 +61,12 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentExpired(data: any) {
-    try {
       const orderId = parseInt(data.metadata.orderId);
       if (isNaN(orderId)) {
         throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
       }
 
+    try {
       await this.prisma.$transaction(async (pr) => {
         // fetch order
         const order = await pr.orders.findUnique({
@@ -92,7 +92,7 @@ export class StripeWebhookProcessor extends WorkerHost {
 
         // update order item stock count
         // the order item stock count was already updated when the order was canceled
-        if (order.status !== 'complete') {
+        if (order.status !== 'canceled') {
           for (const item of order.order_items) {
             await pr.books.update({
               where: { id: item.book.id },
@@ -118,9 +118,9 @@ export class StripeWebhookProcessor extends WorkerHost {
             amount: data.amount_total,
           },
         });
-
-        console.log(`Order #[${data.metadata.orderId}] is expired.`);
       });
+
+      console.log(`Order #[${orderId}] is expired.`);
 
       // send an email to the user after the transaction is complete
       await this.mailSenderQueue.add('order-status-mail', {
@@ -132,7 +132,7 @@ export class StripeWebhookProcessor extends WorkerHost {
       console.log(`Expiration email add to the queue for Order #[${orderId}]`);
     } catch (error) {
       console.error(
-        `Error processing payment expired for Order #[${data.metadata.orderId}]:`,
+        `Error processing payment expired for Order #[${orderId}]:`,
         error,
       );
       throw error;
