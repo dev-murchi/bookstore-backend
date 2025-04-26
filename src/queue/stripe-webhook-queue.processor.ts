@@ -61,10 +61,10 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentExpired(data: any) {
-      const orderId = parseInt(data.metadata.orderId);
-      if (isNaN(orderId)) {
-        throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
-      }
+    const orderId = parseInt(data.metadata.orderId);
+    if (isNaN(orderId)) {
+      throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
+    }
 
     try {
       await this.prisma.$transaction(async (pr) => {
@@ -146,7 +146,7 @@ export class StripeWebhookProcessor extends WorkerHost {
     }
 
     try {
-      await this.prisma.$transaction(async (pr) => {
+      const { existingOrder } = await this.prisma.$transaction(async (pr) => {
         // fetch order
         const existingOrder = await pr.orders.findUnique({
           where: { id: orderId },
@@ -158,7 +158,7 @@ export class StripeWebhookProcessor extends WorkerHost {
         }
 
         // update order status as complete
-        await pr.orders.update({
+        const updatedOrder = await pr.orders.update({
           where: { id: orderId },
           data: {
             status: 'complete',
@@ -166,7 +166,7 @@ export class StripeWebhookProcessor extends WorkerHost {
         });
 
         // create shipping for the order
-        await pr.shipping.create({
+        const shipping = await pr.shipping.create({
           data: {
             email: data.customer_details.email,
             order: { connect: { id: orderId } },
@@ -183,7 +183,7 @@ export class StripeWebhookProcessor extends WorkerHost {
         });
 
         // update payment status as paid
-        await pr.payment.upsert({
+        const payment = await pr.payment.upsert({
           where: {
             orderid: orderId,
           },
@@ -199,23 +199,24 @@ export class StripeWebhookProcessor extends WorkerHost {
             payment_date: new Date(),
           },
         });
-
-        // create a refund if the order was canceled before the payment
-        if (existingOrder.status === 'canceled') {
-          // stripe.create.refund
-          try {
-            const refund = await this.stripeService.createRefundForPayment(
-              data.payment_intent as string,
-            );
-
-            console.log(`Refund issued for cancelled order: ${orderId}`);
-          } catch (error) {
-            console.error('Refund failed:', error);
-          }
-        }
-
-        console.log(`Order #[${data.metadata.orderId}] is complete.`);
+        return { existingOrder, updatedOrder, shipping, payment };
       });
+
+      console.log(`Order #[${orderId}] is complete.`);
+
+      // create a refund if the order was canceled before the payment
+      if (existingOrder.status === 'canceled') {
+        // stripe.create.refund
+        try {
+          const refund = await this.stripeService.createRefundForPayment(
+            data.payment_intent as string,
+          );
+
+          console.log(`Refund issued for cancelled order: ${orderId}`);
+        } catch (error) {
+          console.error('Refund failed:', error);
+        }
+      }
 
       // send an email to the user after the transaction is complete
       await this.mailSenderQueue.add('order-status-mail', {
