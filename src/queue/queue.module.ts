@@ -5,8 +5,9 @@ import { Queue } from 'bullmq';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { MailModule } from 'src/mail/mail.module';
+import { MailModule } from '../mail/mail.module';
 import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
+import { StripeModule } from '../stripe/stripe.module';
 @Module({
   imports: [
     MailModule,
@@ -25,6 +26,7 @@ import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
       { name: 'stripe-webhook-queue' },
       { name: 'mail-sender-queue' },
     ),
+    StripeModule,
   ],
   providers: [
     {

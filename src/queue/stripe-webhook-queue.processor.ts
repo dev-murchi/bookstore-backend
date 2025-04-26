@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { Inject } from '@nestjs/common';
-import { StripeService } from '../payment/stripe.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Processor('stripe-webhook-queue')
 export class StripeWebhookProcessor extends WorkerHost {

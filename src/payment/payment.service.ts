@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Stripe from 'stripe';
-import { StripeService } from './stripe.service';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class PaymentService {

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { QueueModule } from 'src/queue/queue.module';
+import { QueueModule } from '../queue/queue.module';
 import { ConfigModule } from '@nestjs/config';
 import { PaymentController } from './payment.controller';
-import { StripeService } from './stripe.service';
+import { StripeModule } from '../stripe/stripe.module';
 
 @Module({
-  imports: [QueueModule, ConfigModule],
-  providers: [PaymentService, StripeService],
+  imports: [QueueModule, ConfigModule, StripeModule],
+  providers: [PaymentService],
   exports: [PaymentService],
   controllers: [PaymentController],
 })

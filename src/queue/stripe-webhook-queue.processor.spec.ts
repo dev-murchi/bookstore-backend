@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { PrismaService } from '../prisma/prisma.service';
-import { StripeService } from '../payment/stripe.service';
+import { StripeService } from '../stripe/stripe.service';
 
 const mockPrismaService = {
   $transaction: jest

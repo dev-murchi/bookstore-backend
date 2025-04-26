@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
-import { StripeService } from './stripe.service';
+import { StripeService } from '../stripe/stripe.service';
 import Stripe from 'stripe';
 
 const mockStripeService = {

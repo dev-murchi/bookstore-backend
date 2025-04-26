@@ -13,6 +13,7 @@ import { QueueModule } from './queue/queue.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CategoryModule } from './category/category.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CategoryModule } from './category/category.module';
     OrdersModule,
     ReviewsModule,
     CategoryModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
