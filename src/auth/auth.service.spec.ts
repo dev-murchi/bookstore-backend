@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
-import { MailService } from '../mail/mail.service';
+import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { RoleEnum } from '../common/role.enum';
 
 jest.mock('uuid', () => ({
@@ -32,7 +32,7 @@ const mockPrismaService = {
   },
 };
 
-const mockMailService = {
+const mockMailSenderService = {
   sendResetPasswordMail: jest.fn(),
 };
 
@@ -41,7 +41,7 @@ describe('AuthService', () => {
   let userService: UserService;
   let jwtService: JwtService;
   let prismaService: PrismaService;
-  let mailService: MailService;
+  let mailSenderService: MailSenderService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -60,8 +60,8 @@ describe('AuthService', () => {
           useValue: mockPrismaService,
         },
         {
-          provide: MailService,
-          useValue: mockMailService,
+          provide: MailSenderService,
+          useValue: mockMailSenderService,
         },
       ],
     }).compile();
@@ -70,7 +70,7 @@ describe('AuthService', () => {
     userService = module.get<UserService>(UserService);
     jwtService = module.get<JwtService>(JwtService);
     prismaService = module.get<PrismaService>(PrismaService);
-    mailService = module.get<MailService>(MailService);
+    mailSenderService = module.get<MailSenderService>(MailSenderService);
   });
 
   afterEach(() => {
@@ -222,7 +222,7 @@ describe('AuthService', () => {
           expires_at: expect.any(Date),
         },
       });
-      expect(mailService.sendResetPasswordMail).toHaveBeenCalledWith(
+      expect(mailSenderService.sendResetPasswordMail).toHaveBeenCalledWith(
         'testuser@email.com',
         'test user',
         'http://localhost/reset-password?token=mockToken',

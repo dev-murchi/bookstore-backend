@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MailService } from './mail.service';
+import { MailSenderService } from './mail-sender.service';
 import { ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
 
@@ -19,21 +19,21 @@ const mockConfigService = {
   }),
 };
 
-describe('MailService', () => {
-  let service: MailService;
+describe('MailSenderService', () => {
+  let service: MailSenderService;
   let createTransportMock: jest.MockedFunction<typeof createTransport>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MailService,
+        MailSenderService,
         {
           provide: ConfigService,
           useValue: mockConfigService,
         },
       ],
     }).compile();
-    service = module.get<MailService>(MailService);
+    service = module.get<MailSenderService>(MailSenderService);
     createTransportMock = createTransport as jest.MockedFunction<
       typeof createTransport
     >;
@@ -69,7 +69,7 @@ describe('MailService', () => {
               get: jest.fn().mockReturnValue(null),
             },
           },
-          MailService,
+          MailSenderService,
         ],
       }).compile();
     } catch (error) {

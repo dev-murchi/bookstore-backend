@@ -5,12 +5,12 @@ import { Queue } from 'bullmq';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { MailModule } from '../mail/mail.module';
+import { MailSenderModule } from '../mail-sender/mail-sender.module';
 import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
 import { StripeModule } from '../stripe/stripe.module';
 @Module({
   imports: [
-    MailModule,
+    MailSenderModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

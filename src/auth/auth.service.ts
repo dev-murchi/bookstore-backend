@@ -13,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
+import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 
@@ -25,7 +25,7 @@ export class AuthService {
     private readonly userService: UserService,
     private jwtService: JwtService,
     private readonly prisma: PrismaService,
-    private mailService: MailService,
+    private MailSenderService: MailSenderService,
   ) {}
 
   async register(user: CreateUserDto, role: RoleEnum) {
@@ -76,7 +76,7 @@ export class AuthService {
         // send password reset mail
         const link = `http://localhost/reset-password?token=${disposableToken}`;
 
-        await this.mailService.sendResetPasswordMail(
+        await this.MailSenderService.sendResetPasswordMail(
           user.email,
           user.name,
           link,

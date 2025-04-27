@@ -14,6 +14,8 @@ import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CategoryModule } from './category/category.module';
 import { StripeModule } from './stripe/stripe.module';
+import { LoggerMiddleware } from './common/middleware/logger/logger.middleware';
+import { MailSenderModule } from './mail-sender/mail-sender.module';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { StripeModule } from './stripe/stripe.module';
     ReviewsModule,
     CategoryModule,
     StripeModule,
+    MailSenderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

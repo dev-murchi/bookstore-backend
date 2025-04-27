@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
 
 @Injectable()
-export class MailService {
+export class MailSenderService {
   private transporter: Transporter;
   private mailHost: string;
   private mailPort: number;
