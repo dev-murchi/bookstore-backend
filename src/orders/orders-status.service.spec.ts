@@ -81,9 +81,12 @@ describe('OrdersStatusService', () => {
 
   describe('changeStatus', () => {
     it('throws if order is not found', async () => {
-      mockOrdersService.getOrder.mockResolvedValueOnce(null);
+      const orderId = 1;
+      mockOrdersService.getOrder.mockRejectedValueOnce(
+        new Error(`Order not found: ${orderId}`),
+      );
       await expect(
-        service.changeStatus(1, { from: 'pending', to: 'canceled' }),
+        service.changeStatus(orderId, { from: 'pending', to: 'canceled' }),
       ).rejects.toThrow('Order not found');
     });
 

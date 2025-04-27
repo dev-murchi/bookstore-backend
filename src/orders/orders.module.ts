@@ -12,5 +12,6 @@ import { OrdersStatusService } from './orders-status.service';
   imports: [PrismaModule, QueueModule, ConfigModule, JwtModule, UserModule],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersStatusService],
+  exports: [OrdersService],
 })
 export class OrdersModule {}

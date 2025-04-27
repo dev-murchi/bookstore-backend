@@ -23,7 +23,6 @@ export class OrdersStatusService {
 
   async changeStatus(orderId: number, rule: StatusRule) {
     const order = await this.ordersService.getOrder(orderId);
-    if (!order) throw new Error('Order not found');
 
     if (order.status === rule.to) return order;
     if (order.status !== rule.from)

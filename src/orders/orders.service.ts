@@ -69,7 +69,7 @@ export class OrdersService {
         },
       },
     });
-    if (!order) return null;
+    if (!order) throw new Error(`Order not found: ${orderId}`);
     return order;
   }
 

@@ -84,7 +84,6 @@ export class OrdersController {
   ) {
     try {
       const order = await this.ordersService.getOrder(orderId);
-      if (!order) throw new Error('Order not found');
 
       if (
         request.user['role'] === RoleEnum.User &&

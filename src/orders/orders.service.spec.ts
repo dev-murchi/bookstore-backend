@@ -99,9 +99,9 @@ describe('OrdersService', () => {
     it('returns null if no order found', async () => {
       mockPrismaService.orders.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.getOrder(999);
-
-      expect(result).toBeNull();
+      await expect(service.getOrder(999)).rejects.toThrow(
+        new Error('Order not found: 999'),
+      );
     });
   });
 
