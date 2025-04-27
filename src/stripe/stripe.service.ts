@@ -33,9 +33,13 @@ export class StripeService {
     }
   }
 
-  async createRefundForPayment(paymentIntent: string) {
+  async createRefundForPayment(
+    paymentIntent: string,
+    metadata?: Stripe.Emptyable<Stripe.MetadataParam>,
+  ) {
     return await this.stripe.refunds.create({
       payment_intent: paymentIntent,
+      metadata,
     });
   }
 }

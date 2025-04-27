@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job } from 'bullmq';
-import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
+import {
+  StripePaymentData,
+  StripeSessionData,
+  StripeWebhookProcessor,
+} from './stripe-webhook-queue.processor';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
 
@@ -59,14 +63,14 @@ describe('StripeWebhookProcessor', () => {
 
   describe('paymentFailed', () => {
     it('should upsert payment with correct data', async () => {
-      const data = {
+      const data: StripePaymentData = {
         id: 'pi_123',
         object: 'payment_intent',
         amount: 1000,
         last_payment_error: {
           message: 'Your card has insufficient funds.',
         },
-        metadata: { orderId: 123 },
+        metadata: { orderId: '123' },
         status: 'requires_payment_method',
       };
 
@@ -80,7 +84,7 @@ describe('StripeWebhookProcessor', () => {
         payment_date: null,
       });
 
-      const consoleSpy = jest.spyOn(console, 'log');
+      const consoleSpy = jest.spyOn(console, 'warn');
 
       await (processor as any).paymentFailed(data);
 
@@ -101,17 +105,19 @@ describe('StripeWebhookProcessor', () => {
       });
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Payment #1: Your card has insufficient funds.',
+        'Payment #1 failed: Your card has insufficient funds.',
       );
       consoleSpy.mockRestore();
     });
 
     it('should throw errors gracefully', async () => {
-      const data = {
+      const data: StripePaymentData = {
         id: 'pi_123',
-        metadata: { orderId: 123 },
+        metadata: { orderId: '123' },
         last_payment_error: { message: 'Payment failed' },
         amount: 1000,
+        object: 'payment_intent',
+        status: 'requires_payment_method',
       };
 
       mockPrismaService.payment.upsert.mockRejectedValueOnce(
@@ -126,10 +132,10 @@ describe('StripeWebhookProcessor', () => {
 
   describe('paymentExpired', () => {
     it('should update order status as "expired" and update stock count of order items', async () => {
-      const data = {
+      const data: StripeSessionData = {
         id: 'cs_123',
         object: 'checkout.session',
-        metadata: { orderId: 123 },
+        metadata: { orderId: '123' },
         amount_total: 1000,
         currency: 'usd',
         payment_status: 'unpaid',
@@ -165,7 +171,7 @@ describe('StripeWebhookProcessor', () => {
         status: 'pending',
       });
 
-      const consoleSpy = jest.spyOn(console, 'log');
+      const consoleSpy = jest.spyOn(console, 'warn');
 
       await (processor as any).paymentExpired(data);
 
@@ -205,15 +211,19 @@ describe('StripeWebhookProcessor', () => {
         },
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is expired.');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Order #[123] expired and expiration email added to the queue.',
+      );
       consoleSpy.mockRestore();
     });
 
     it('should throw errors gracefully', async () => {
-      const data = {
+      const data: StripeSessionData = {
         id: 'cs_123',
-        metadata: { orderId: 123 },
+        object: 'checkout.session',
+        metadata: { orderId: '123' },
         amount_total: 1000,
+        currency: 'usd',
         payment_status: 'unpaid',
         status: 'expired',
         customer_details: {
@@ -241,11 +251,13 @@ describe('StripeWebhookProcessor', () => {
 
   describe('paymentSuccessful', () => {
     it('should update order status as "complete" and create new shipping instance', async () => {
-      const data = {
+      const data: StripeSessionData = {
         id: 'cs_123',
-        metadata: { orderId: 123 },
+        object: 'checkout.session',
+        metadata: { orderId: '123' },
         payment_intent: 'pi_123',
         amount_total: 1000,
+        currency: 'usd',
         payment_status: 'paid',
         status: 'complete',
         customer_details: {
@@ -277,7 +289,7 @@ describe('StripeWebhookProcessor', () => {
         status: 'pending',
       });
 
-      const consoleSpy = jest.spyOn(console, 'log');
+      const consoleSpy = jest.spyOn(console, 'warn');
 
       await (processor as any).paymentSuccessful(data);
 
@@ -328,17 +340,32 @@ describe('StripeWebhookProcessor', () => {
         },
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith('Order #[123] is complete.');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Order #[123] marked as complete and order confirmation email added to queue.',
+      );
       consoleSpy.mockRestore();
     });
 
     it('should throw errors gracefully', async () => {
-      const data = {
+      const data: StripeSessionData = {
         id: 'cs_123',
-        metadata: { orderId: 123 },
+        object: 'checkout.session',
+        metadata: { orderId: '123' },
         amount_total: 1000,
+        currency: 'usd',
         payment_status: 'paid',
         status: 'complete',
+        customer_details: {
+          address: {
+            city: 'Test City',
+            country: 'Test Country',
+            line1: 'address line 1',
+            line2: 'address line 2',
+            postal_code: 'POSTAL_CODE',
+            state: 'Test State',
+          },
+          email: 'user@email.com',
+        },
       };
       mockPrismaService.orders.findUnique.mockResolvedValueOnce({
         id: 123,
@@ -553,7 +580,7 @@ describe('StripeWebhookProcessor', () => {
     });
 
     it('should log unhandled event types', async () => {
-      const consoleSpy = jest.spyOn(console, 'log');
+      const consoleSpy = jest.spyOn(console, 'warn');
       const job = {
         data: {
           eventType: 'unhandled_event',

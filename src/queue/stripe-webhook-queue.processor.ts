@@ -4,11 +4,51 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Inject } from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
 
+export interface StripeMetadata {
+  orderId: string;
+}
+
+export interface StripeAddress {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  country: string;
+  postal_code: string;
+}
+
+export interface StripeCustomerDetails {
+  email: string;
+  address: StripeAddress;
+}
+
+export interface StripeSessionData {
+  id: string;
+  object: string;
+  currency: string;
+  payment_intent?: string;
+  payment_status: string;
+  status: string;
+  amount_total: number;
+  metadata?: StripeMetadata;
+  customer_details: StripeCustomerDetails;
+  last_payment_error?: { message: string };
+}
+
+export interface StripePaymentData {
+  id: string;
+  object: string;
+  amount: number;
+  metadata?: StripeMetadata;
+  last_payment_error: { message: string } | null;
+  status: string;
+}
+
 @Processor('stripe-webhook-queue')
 export class StripeWebhookProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
-    private stripeService: StripeService,
+    private readonly stripeService: StripeService,
     @Inject('MailSenderQueue') private readonly mailSenderQueue: Queue,
   ) {
     super();
@@ -28,21 +68,24 @@ export class StripeWebhookProcessor extends WorkerHost {
         await this.paymentSuccessful(eventData);
         break;
       default:
-        console.log(`Unhandled Stripe webhook event: ${eventType}`);
+        console.warn(`Unhandled Stripe webhook event: ${eventType}`);
         break;
     }
     return Promise.resolve({ success: true });
   }
 
-  private async paymentFailed(data: any) {
+  private async paymentFailed(data: StripePaymentData): Promise<void> {
+    const orderId = parseInt(data.metadata?.orderId ?? '');
+    if (isNaN(orderId)) {
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
+    }
+
     try {
       const payment = await this.prisma.payment.upsert({
-        where: {
-          orderid: parseInt(data.metadata.orderId),
-        },
+        where: { orderid: orderId },
         create: {
           transaction_id: data.id,
-          order: { connect: { id: parseInt(data.metadata.orderId) } },
+          order: { connect: { id: orderId } },
           status: 'failed',
           method: 'card',
           amount: data.amount,
@@ -52,18 +95,22 @@ export class StripeWebhookProcessor extends WorkerHost {
         },
       });
 
-      console.log(
-        `Payment #${payment.id}: ${data.last_payment_error?.message}`,
+      console.warn(
+        `Payment #${payment.id} failed: ${data.last_payment_error?.message}`,
       );
     } catch (error) {
+      console.error(
+        `Payment failure handling error for order ID ${orderId}:`,
+        error,
+      );
       throw error;
     }
   }
 
-  private async paymentExpired(data: any) {
-    const orderId = parseInt(data.metadata.orderId);
+  private async paymentExpired(data: StripeSessionData): Promise<void> {
+    const orderId = parseInt(data.metadata?.orderId ?? '');
     if (isNaN(orderId)) {
-      throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
     }
 
     try {
@@ -76,11 +123,7 @@ export class StripeWebhookProcessor extends WorkerHost {
             order_items: {
               select: {
                 quantity: true,
-                book: {
-                  select: {
-                    id: true,
-                  },
-                },
+                book: { select: { id: true } },
               },
             },
           },
@@ -120,8 +163,6 @@ export class StripeWebhookProcessor extends WorkerHost {
         });
       });
 
-      console.log(`Order #[${orderId}] is expired.`);
-
       // send an email to the user after the transaction is complete
       await this.mailSenderQueue.add('order-status-mail', {
         orderId,
@@ -129,20 +170,22 @@ export class StripeWebhookProcessor extends WorkerHost {
         status: 'expired',
       });
 
-      console.log(`Expiration email add to the queue for Order #[${orderId}]`);
+      console.warn(
+        `Order #[${orderId}] expired and expiration email added to the queue.`,
+      );
     } catch (error) {
       console.error(
-        `Error processing payment expired for Order #[${orderId}]:`,
+        `Error processing expired payment for Order #[${orderId}]:`,
         error,
       );
       throw error;
     }
   }
 
-  private async paymentSuccessful(data: any) {
-    const orderId = parseInt(data.metadata.orderId);
+  private async paymentSuccessful(data: StripeSessionData): Promise<void> {
+    const orderId = parseInt(data.metadata?.orderId ?? '');
     if (isNaN(orderId)) {
-      throw new Error(`Invalid order ID: ${data.metadata.orderId}`);
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
     }
 
     try {
@@ -160,9 +203,7 @@ export class StripeWebhookProcessor extends WorkerHost {
         // update order status as complete
         const updatedOrder = await pr.orders.update({
           where: { id: orderId },
-          data: {
-            status: 'complete',
-          },
+          data: { status: 'complete' },
         });
 
         // create shipping for the order
@@ -175,7 +216,7 @@ export class StripeWebhookProcessor extends WorkerHost {
                 country: data.customer_details.address.country,
                 state: data.customer_details.address.state,
                 city: data.customer_details.address.city,
-                streetAddress: `${data.customer_details.address.line1} - ${data.customer_details.address.line2}`,
+                streetAddress: `${data.customer_details.address.line1} - ${data.customer_details.address.line2 ?? ''}`,
                 postalCode: data.customer_details.address.postal_code,
               },
             },
@@ -184,12 +225,8 @@ export class StripeWebhookProcessor extends WorkerHost {
 
         // update payment status as paid
         const payment = await pr.payment.upsert({
-          where: {
-            orderid: orderId,
-          },
-          update: {
-            status: 'paid',
-          },
+          where: { orderid: orderId },
+          update: { status: 'paid' },
           create: {
             order: { connect: { id: orderId } },
             transaction_id: data.payment_intent,
@@ -202,19 +239,18 @@ export class StripeWebhookProcessor extends WorkerHost {
         return { existingOrder, updatedOrder, shipping, payment };
       });
 
-      console.log(`Order #[${orderId}] is complete.`);
-
       // create a refund if the order was canceled before the payment
       if (existingOrder.status === 'canceled') {
-        // stripe.create.refund
         try {
-          const refund = await this.stripeService.createRefundForPayment(
-            data.payment_intent as string,
+          await this.stripeService.createRefundForPayment(
+            data.payment_intent!,
+            { orderId },
           );
-
-          console.log(`Refund issued for cancelled order: ${orderId}`);
+          console.warn(
+            `Refund issued for previously canceled order: ${orderId}`,
+          );
         } catch (error) {
-          console.error('Refund failed:', error);
+          console.error(`Refund failed for order ID ${orderId}:`, error);
         }
       }
 
@@ -225,11 +261,11 @@ export class StripeWebhookProcessor extends WorkerHost {
         status: 'complete',
       });
 
-      console.log(
-        `Order confirmation email add to the queue for Order #[${orderId}]`,
+      console.warn(
+        `Order #[${orderId}] marked as complete and order confirmation email added to queue.`,
       );
     } catch (error) {
-      console.error(error);
+      console.error(`Error finalizing payment for order ID ${orderId}:`, error);
       throw error;
     }
   }
