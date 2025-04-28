@@ -52,10 +52,10 @@ export class CheckoutService {
             throw new Error(`Not enough stock for book ID: ${item.book.id}`);
           }
           // Calculate the total price for each item and accumulate it
-          totalPrice += parseFloat(item.book.price.toFixed(2)) * item.quantity;
+          totalPrice += Number(item.book.price.toNumber() * item.quantity);
         }
 
-        totalPrice = parseFloat(totalPrice.toFixed(2));
+        totalPrice = Number(totalPrice.toFixed(2));
 
         // create the order and order items in a single transaction
         const order = await pr.orders.create({
@@ -132,7 +132,9 @@ export class CheckoutService {
               product_data: {
                 name: item.book.title,
               },
-              unit_amount: parseFloat(item.book.price.toFixed(2)) * 100,
+              unit_amount: Number(
+                (item.book.price.toNumber() * 100).toFixed(0),
+              ),
               currency: 'usd',
             },
             quantity: item.quantity,
@@ -162,6 +164,7 @@ export class CheckoutService {
         };
       });
     } catch (error) {
+      console.error(error);
       if (error.message === 'Cart is not exist') {
         throw new Error('Please check if the cart ID is correct.');
       }
