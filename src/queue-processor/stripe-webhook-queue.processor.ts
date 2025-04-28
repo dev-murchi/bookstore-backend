@@ -216,7 +216,8 @@ export class StripeWebhookProcessor extends WorkerHost {
                 country: data.customer_details.address.country,
                 state: data.customer_details.address.state,
                 city: data.customer_details.address.city,
-                streetAddress: `${data.customer_details.address.line1} - ${data.customer_details.address.line2 ?? ''}`,
+                line1: data.customer_details.address.line1,
+                line2: data.customer_details.address.line2,
                 postalCode: data.customer_details.address.postal_code,
               },
             },
@@ -233,7 +234,6 @@ export class StripeWebhookProcessor extends WorkerHost {
             status: 'paid',
             method: 'card',
             amount: data.amount_total,
-            payment_date: new Date(),
           },
         });
         return { existingOrder, updatedOrder, shipping, payment };

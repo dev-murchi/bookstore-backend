@@ -309,7 +309,8 @@ describe('StripeWebhookProcessor', () => {
               country: 'Test Country',
               state: 'Test State',
               city: 'Test City',
-              streetAddress: 'address line 1 - address line 2',
+              line1: 'address line 1',
+              line2: 'address line 2',
               postalCode: 'POSTAL_CODE',
             },
           },
@@ -325,7 +326,6 @@ describe('StripeWebhookProcessor', () => {
           status: 'paid',
           method: 'card',
           amount: 1000,
-          payment_date: expect.any(Date),
         },
       });
 

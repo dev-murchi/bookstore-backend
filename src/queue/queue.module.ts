@@ -2,15 +2,9 @@ import { Module } from '@nestjs/common';
 
 import { BullModule, getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailSenderModule } from '../mail-sender/mail-sender.module';
-import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
-import { StripeModule } from '../stripe/stripe.module';
 @Module({
   imports: [
-    MailSenderModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -26,7 +20,6 @@ import { StripeModule } from '../stripe/stripe.module';
       { name: 'stripe-webhook-queue' },
       { name: 'mail-sender-queue' },
     ),
-    StripeModule,
   ],
   providers: [
     {
@@ -39,9 +32,6 @@ import { StripeModule } from '../stripe/stripe.module';
       useFactory: (queue: Queue) => queue,
       inject: [getQueueToken('mail-sender-queue')],
     },
-    StripeWebhookProcessor,
-    MailSenderQueueProcessor,
-    PrismaService,
   ],
   exports: ['StripeWebhookQueue', 'MailSenderQueue'],
 })
