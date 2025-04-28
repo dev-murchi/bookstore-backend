@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { OrderStatus } from './enum/order-status.enum';
 
 const mockOrder = {
   id: 1,
@@ -117,7 +118,7 @@ describe('OrdersService', () => {
       const updatedOrder = { ...mockOrder, status: 'shipped' };
       mockPrismaService.orders.update.mockResolvedValueOnce(updatedOrder);
 
-      const result = await service.updateStatus(1, 'shipped');
+      const result = await service.updateStatus(1, OrderStatus.Shipped);
 
       expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
         where: { id: 1 },
@@ -132,9 +133,9 @@ describe('OrdersService', () => {
         new Error('Update failed'),
       );
 
-      await expect(service.updateStatus(1, 'shipped')).rejects.toThrow(
-        'Order #1 status could not be updated',
-      );
+      await expect(
+        service.updateStatus(1, OrderStatus.Shipped),
+      ).rejects.toThrow('Order #1 status could not be updated');
     });
   });
 

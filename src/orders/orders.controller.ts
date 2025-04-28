@@ -5,7 +5,6 @@ import {
   Get,
   HttpException,
   HttpStatus,
-  Inject,
   Param,
   ParseIntPipe,
   Post,
@@ -17,7 +16,6 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { Queue } from 'bullmq';
 import { OrderStatusDto } from './dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';

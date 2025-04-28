@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { OrderStatus } from './enum/order-status.enum';
 
 @Injectable()
 export class OrdersService {
@@ -73,7 +74,7 @@ export class OrdersService {
     return order;
   }
 
-  async updateStatus(orderId: number, status: string) {
+  async updateStatus(orderId: number, status: OrderStatus) {
     try {
       return await this.prisma.orders.update({
         where: { id: orderId },

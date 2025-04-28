@@ -1,20 +1,13 @@
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString } from 'class-validator';
-
-const OrderStatus = [
-  'pending',
-  'expired',
-  'complete',
-  'shipped',
-  'delivered',
-  'canceled',
-] as const;
+import { OrderStatus } from '../enum/order-status.enum';
 
 export class OrderStatusDto {
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => {
-    if (!OrderStatus.includes(value)) throw new Error('Invalid order status.');
+    if (!Object.values(OrderStatus).includes(value))
+      throw new Error('Invalid order status.');
     return value;
   })
   status: string;

@@ -3,8 +3,7 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { orders } from '@prisma/client';
 import { Queue } from 'bullmq';
-
-type OrderStatus = orders['status'];
+import { OrderStatus } from './enum/order-status.enum';
 
 interface StatusRule {
   from: OrderStatus;
@@ -45,8 +44,8 @@ export class OrdersStatusService {
   async cancelOrder(orderId: number) {
     return this.prisma.$transaction(async () => {
       return this.changeStatus(orderId, {
-        from: 'pending',
-        to: 'canceled',
+        from: OrderStatus.Pending,
+        to: OrderStatus.Canceled,
         postUpdate: async (order) => {
           for (const item of order.order_items) {
             await this.prisma.books.update({
@@ -68,8 +67,8 @@ export class OrdersStatusService {
 
   async shipOrder(orderId: number) {
     return this.changeStatus(orderId, {
-      from: 'complete',
-      to: 'shipped',
+      from: OrderStatus.Complete,
+      to: OrderStatus.Shipped,
       postUpdate: async (order) => {
         // send order staus update mail to the user
         await this.mailSenderQueue.add('order-status-mail', {
@@ -83,8 +82,8 @@ export class OrdersStatusService {
 
   async deliverOrder(orderId: number) {
     return this.changeStatus(orderId, {
-      from: 'shipped',
-      to: 'delivered',
+      from: OrderStatus.Shipped,
+      to: OrderStatus.Delivered,
       postUpdate: async (order) => {
         // send order staus update mail to the user
         await this.mailSenderQueue.add('order-status-mail', {
