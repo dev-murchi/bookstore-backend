@@ -1,8 +1,17 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job, Queue } from 'bullmq';
+import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { Inject } from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
+import { PaymentService } from '../payment/payment.service';
+import { OrdersService } from '../orders/orders.service';
+import { EmailService } from '../email/email.service';
+import {
+  ShippingCustomerDetails,
+  ShippingService,
+} from '../shipping/shipping.service';
+import { PaymentData } from '../payment/interfaces/payment-data.interface';
+import { PaymentStatus } from '../payment/enum/payment-status.enum';
+import { OrderStatus } from '../orders/enum/order-status.enum';
 
 export interface StripeMetadata {
   orderId: string;
@@ -49,7 +58,10 @@ export class StripeWebhookProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
-    @Inject('MailSenderQueue') private readonly mailSenderQueue: Queue,
+    private readonly paymentService: PaymentService,
+    private readonly ordersService: OrdersService,
+    private readonly emailService: EmailService,
+    private readonly shippingService: ShippingService,
   ) {
     super();
   }
@@ -75,198 +87,145 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentFailed(data: StripePaymentData): Promise<void> {
-    const orderId = parseInt(data.metadata?.orderId ?? '');
-    if (isNaN(orderId)) {
-      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
-    }
+    const orderId = this.parseOrderId(data.metadata);
+    const paymentData: PaymentData = {
+      orderId: orderId,
+      transactionId: data.id,
+      status: PaymentStatus.Failed,
+      amount: data.amount,
+    };
 
     try {
-      const payment = await this.prisma.payment.upsert({
-        where: { orderid: orderId },
-        create: {
-          transaction_id: data.id,
-          order: { connect: { id: orderId } },
-          status: 'failed',
-          method: 'card',
-          amount: data.amount,
-        },
-        update: {
-          status: 'failed',
-        },
-      });
-
-      console.warn(
-        `Payment #${payment.id} failed: ${data.last_payment_error?.message}`,
-      );
+      await this.paymentService.createOrUpdatePayment(paymentData);
     } catch (error) {
       console.error(
-        `Payment failure handling error for order ID ${orderId}:`,
+        `Failed to process 'payment_failed' for Order ID ${orderId}:`,
         error,
       );
-      throw error;
+      throw new Error(`Payment failure handling failed for Order ${orderId}.`);
     }
   }
 
   private async paymentExpired(data: StripeSessionData): Promise<void> {
-    const orderId = parseInt(data.metadata?.orderId ?? '');
-    if (isNaN(orderId)) {
-      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
-    }
+    const orderId = this.parseOrderId(data.metadata);
+    const paymentData: PaymentData = {
+      orderId: orderId,
+      transactionId: null,
+      status: PaymentStatus.Unpaid,
+      amount: data.amount_total,
+    };
 
     try {
-      await this.prisma.$transaction(async (pr) => {
-        // fetch order
-        const order = await pr.orders.findUnique({
-          where: { id: orderId },
-          select: {
-            status: true,
-            order_items: {
-              select: {
-                quantity: true,
-                book: { select: { id: true } },
-              },
-            },
-          },
-        });
-
-        if (!order) {
-          throw new Error(`Order not found: ${orderId}`);
-        }
-
-        // update order item stock count
-        // the order item stock count was already updated when the order was canceled
+      await this.prisma.$transaction(async () => {
+        const order = await this.ordersService.getOrder(orderId);
         if (order.status !== 'canceled') {
-          for (const item of order.order_items) {
-            await pr.books.update({
-              where: { id: item.book.id },
-              data: { stock_quantity: { increment: item.quantity } },
-            });
-          }
+          await this.ordersService.revertOrderStocks(orderId);
         }
 
-        // update order status as expired
-        await pr.orders.update({
-          where: { id: orderId },
-          data: { status: 'expired' },
-        });
-
-        // update payment status as unpaid
-        pr.payment.upsert({
-          where: { orderid: orderId },
-          update: { status: 'unpaid' },
-          create: {
-            order: { connect: { id: orderId } },
-            status: 'unpaid',
-            method: 'card',
-            amount: data.amount_total,
-          },
-        });
+        await this.ordersService.updateStatus(orderId, OrderStatus.Expired);
+        await this.paymentService.createOrUpdatePayment(paymentData);
       });
 
-      // send an email to the user after the transaction is complete
-      await this.mailSenderQueue.add('order-status-mail', {
+      await this.emailService.sendOrderStatusUpdate(
         orderId,
-        email: data.customer_details.email,
-        status: 'expired',
-      });
+        OrderStatus.Expired,
+        data.customer_details.email,
+      );
 
       console.warn(
         `Order #[${orderId}] expired and expiration email added to the queue.`,
       );
     } catch (error) {
       console.error(
-        `Error processing expired payment for Order #[${orderId}]:`,
+        `Failed to process 'payment_expired' for Order ID ${orderId}:`,
         error,
       );
-      throw error;
+      throw new Error(
+        `Payment expiration handling failed for Order ${orderId}.`,
+      );
     }
   }
 
   private async paymentSuccessful(data: StripeSessionData): Promise<void> {
-    const orderId = parseInt(data.metadata?.orderId ?? '');
-    if (isNaN(orderId)) {
-      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
-    }
+    const orderId = this.parseOrderId(data.metadata);
 
     try {
-      const { existingOrder } = await this.prisma.$transaction(async (pr) => {
-        // fetch order
-        const existingOrder = await pr.orders.findUnique({
-          where: { id: orderId },
-          select: { status: true },
-        });
+      const { existingOrder } = await this.prisma.$transaction(async () => {
+        const existingOrder = await this.ordersService.getOrder(orderId);
 
-        if (!existingOrder) {
-          throw new Error(`Order not found: ${orderId}`);
-        }
+        const updatedOrder = await this.ordersService.updateStatus(
+          orderId,
+          OrderStatus.Complete,
+        );
 
-        // update order status as complete
-        const updatedOrder = await pr.orders.update({
-          where: { id: orderId },
-          data: { status: 'complete' },
-        });
-
-        // create shipping for the order
-        const shipping = await pr.shipping.create({
-          data: {
-            email: data.customer_details.email,
-            order: { connect: { id: orderId } },
-            address: {
-              create: {
-                country: data.customer_details.address.country,
-                state: data.customer_details.address.state,
-                city: data.customer_details.address.city,
-                line1: data.customer_details.address.line1,
-                line2: data.customer_details.address.line2,
-                postalCode: data.customer_details.address.postal_code,
-              },
-            },
+        const shippingDetails: ShippingCustomerDetails = {
+          email: data.customer_details.email,
+          address: {
+            country: data.customer_details.address.country,
+            state: data.customer_details.address.state,
+            city: data.customer_details.address.city,
+            postalCode: data.customer_details.address.postal_code,
+            line1: data.customer_details.address.line1,
+            line2: data.customer_details.address.line2,
           },
-        });
+        };
 
-        // update payment status as paid
-        const payment = await pr.payment.upsert({
-          where: { orderid: orderId },
-          update: { status: 'paid' },
-          create: {
-            order: { connect: { id: orderId } },
-            transaction_id: data.payment_intent,
-            status: 'paid',
-            method: 'card',
-            amount: data.amount_total,
-          },
-        });
+        const shipping = await this.shippingService.createShipping(
+          orderId,
+          shippingDetails,
+        );
+
+        const paymentData: PaymentData = {
+          orderId: orderId,
+          transactionId: data.payment_intent,
+          status: PaymentStatus.Paid,
+          amount: data.amount_total,
+        };
+
+        const payment =
+          await this.paymentService.createOrUpdatePayment(paymentData);
+
         return { existingOrder, updatedOrder, shipping, payment };
       });
 
-      // create a refund if the order was canceled before the payment
       if (existingOrder.status === 'canceled') {
-        try {
-          await this.stripeService.createRefundForPayment(
-            data.payment_intent!,
-            { orderId },
-          );
-          console.warn(
-            `Refund issued for previously canceled order: ${orderId}`,
-          );
-        } catch (error) {
-          console.error(`Refund failed for order ID ${orderId}:`, error);
-        }
+        await this.tryRefund(orderId, data.payment_intent);
       }
 
-      // send an email to the user after the transaction is complete
-      await this.mailSenderQueue.add('order-status-mail', {
+      await this.emailService.sendOrderStatusUpdate(
         orderId,
-        email: data.customer_details.email,
-        status: 'complete',
-      });
+        OrderStatus.Complete,
+        data.customer_details.email,
+      );
 
       console.warn(
         `Order #[${orderId}] marked as complete and order confirmation email added to queue.`,
       );
     } catch (error) {
-      console.error(`Error finalizing payment for order ID ${orderId}:`, error);
-      throw error;
+      console.error(
+        `Failed to process 'payment_successful' for Order ID ${orderId}:`,
+        error,
+      );
+      throw new Error(`Payment success handling failed for Order ${orderId}.`);
+    }
+  }
+
+  private parseOrderId(metadata: any) {
+    const orderId = parseInt(metadata?.orderId ?? '');
+    if (isNaN(orderId)) {
+      throw new Error(`Invalid or missing order ID: ${metadata?.orderId}`);
+    }
+    return orderId;
+  }
+
+  private async tryRefund(orderId: number, paymentIntent: string) {
+    try {
+      await this.stripeService.createRefundForPayment(paymentIntent!, {
+        orderId,
+      });
+      console.warn(`Refund issued for previously canceled order: ${orderId}`);
+    } catch (error) {
+      console.error(`Refund failed for order ID ${orderId}:`, error);
     }
   }
 }

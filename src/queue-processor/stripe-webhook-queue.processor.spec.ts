@@ -7,11 +7,15 @@ import {
 } from './stripe-webhook-queue.processor';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from '../stripe/stripe.service';
+import { PaymentService } from '../payment/payment.service';
+import { OrdersService } from '../orders/orders.service';
+import { ShippingService } from '../shipping/shipping.service';
+import { PaymentStatus } from '../payment/enum/payment-status.enum';
+import { EmailService } from '../email/email.service';
+import { OrderStatus } from '../orders/enum/order-status.enum';
 
 const mockPrismaService = {
-  $transaction: jest
-    .fn()
-    .mockImplementation((callback) => callback(mockPrismaService)),
+  $transaction: jest.fn((fn) => fn()),
   payment: {
     upsert: jest.fn(),
   },
@@ -27,12 +31,24 @@ const mockPrismaService = {
   },
 };
 
-const mockMailSenderQueue = {
-  add: jest.fn(),
+const mockOrdersService = {
+  getOrder: jest.fn(),
+  revertOrderStocks: jest.fn(),
+  updateStatus: jest.fn(),
+};
+const mockPaymentService = {
+  createOrUpdatePayment: jest.fn(),
+};
+const mockShippingService = {
+  createShipping: jest.fn(),
 };
 
 const mockStripeService = {
   createRefundForPayment: jest.fn(),
+};
+
+const mockEmailService = {
+  sendOrderStatusUpdate: jest.fn(),
 };
 
 describe('StripeWebhookProcessor', () => {
@@ -45,7 +61,10 @@ describe('StripeWebhookProcessor', () => {
         StripeWebhookProcessor,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
-        { provide: 'MailSenderQueue', useValue: mockMailSenderQueue },
+        { provide: PaymentService, useValue: mockPaymentService },
+        { provide: OrdersService, useValue: mockOrdersService },
+        { provide: ShippingService, useValue: mockShippingService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
@@ -73,41 +92,16 @@ describe('StripeWebhookProcessor', () => {
         metadata: { orderId: '123' },
         status: 'requires_payment_method',
       };
-
-      mockPrismaService.payment.upsert.mockResolvedValueOnce({
-        id: 1,
-        orderid: 123,
-        transaction_id: 'pi_123',
-        status: 'failed',
-        method: 'card',
-        amount: 1000,
-        payment_date: null,
-      });
-
-      const consoleSpy = jest.spyOn(console, 'warn');
+      mockPaymentService.createOrUpdatePayment.mockResolvedValueOnce({});
 
       await (processor as any).paymentFailed(data);
 
-      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: {
-          orderid: 123,
-        },
-        create: {
-          transaction_id: 'pi_123',
-          order: { connect: { id: 123 } },
-          status: 'failed',
-          method: 'card',
-          amount: 1000,
-        },
-        update: {
-          status: 'failed',
-        },
+      expect(mockPaymentService.createOrUpdatePayment).toHaveBeenCalledWith({
+        orderId: 123,
+        transactionId: 'pi_123',
+        status: PaymentStatus.Failed,
+        amount: 1000,
       });
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Payment #1 failed: Your card has insufficient funds.',
-      );
-      consoleSpy.mockRestore();
     });
 
     it('should throw errors gracefully', async () => {
@@ -120,12 +114,12 @@ describe('StripeWebhookProcessor', () => {
         status: 'requires_payment_method',
       };
 
-      mockPrismaService.payment.upsert.mockRejectedValueOnce(
-        new Error('DB error in paymentFailed'),
+      mockPaymentService.createOrUpdatePayment.mockRejectedValueOnce(
+        new Error('Payment upsert error'),
       );
 
       await expect((processor as any).paymentFailed(data)).rejects.toThrow(
-        new Error('DB error in paymentFailed'),
+        new Error('Payment failure handling failed for Order 123.'),
       );
     });
   });
@@ -152,63 +146,63 @@ describe('StripeWebhookProcessor', () => {
           email: 'user@email.com',
         },
       };
+
       const orderItems = [
         {
           id: 1,
           quantity: 1,
-          book: { id: 1 },
+          book: {
+            id: 1,
+            title: 'Test Book 1',
+            author: { name: 'Test Author One' },
+          },
         },
         {
           id: 2,
           quantity: 2,
-          book: { id: 2 },
+          book: {
+            id: 2,
+            title: 'Test Book 2',
+            author: { name: 'Test Author Two' },
+          },
         },
       ];
 
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce({
-        id: 123,
+      const existingOrder = {
         order_items: orderItems,
+        id: 1,
         status: 'pending',
-      });
+        userid: 1,
+        totalPrice: 1000,
+        shipping_details: null,
+      };
+
+      mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
+      mockOrdersService.revertOrderStocks.mockResolvedValueOnce({});
+      mockOrdersService.updateStatus.mockResolvedValueOnce({});
+      mockPaymentService.createOrUpdatePayment.mockResolvedValueOnce({});
 
       const consoleSpy = jest.spyOn(console, 'warn');
 
       await (processor as any).paymentExpired(data);
 
-      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: {
-          id: 123,
-        },
-        data: {
-          status: 'expired',
-        },
+      expect(mockOrdersService.getOrder).toHaveBeenCalledWith(123);
+      expect(mockOrdersService.revertOrderStocks).toHaveBeenCalledWith(123);
+      expect(mockOrdersService.updateStatus).toHaveBeenCalledWith(
+        123,
+        OrderStatus.Expired,
+      );
+      expect(mockPaymentService.createOrUpdatePayment).toHaveBeenCalledWith({
+        orderId: 123,
+        transactionId: null,
+        status: PaymentStatus.Unpaid,
+        amount: 1000,
       });
 
-      for (const item of orderItems) {
-        expect(mockPrismaService.books.update).toHaveBeenCalledWith({
-          where: { id: item.book.id },
-          data: { stock_quantity: { increment: item.quantity } },
-        });
-      }
-
-      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: { orderid: 123 },
-        update: { status: 'unpaid' },
-        create: {
-          order: { connect: { id: 123 } },
-          status: 'unpaid',
-          method: 'card',
-          amount: 1000,
-        },
-      });
-
-      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
-        'order-status-mail',
-        {
-          orderId: 123,
-          email: 'user@email.com',
-          status: 'expired',
-        },
+      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
+        123,
+        OrderStatus.Expired,
+        'user@email.com',
       );
 
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -239,12 +233,12 @@ describe('StripeWebhookProcessor', () => {
         },
       };
 
-      mockPrismaService.orders.findUnique.mockRejectedValueOnce(
-        new Error('DB error in paymentExpired'),
+      mockOrdersService.getOrder.mockRejectedValueOnce(
+        new Error('Order not found: 123'),
       );
 
       await expect((processor as any).paymentExpired(data)).rejects.toThrow(
-        new Error('DB error in paymentExpired'),
+        new Error('Payment expiration handling failed for Order 123.'),
       );
     });
   });
@@ -272,73 +266,98 @@ describe('StripeWebhookProcessor', () => {
           email: 'user@email.com',
         },
       };
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce({
-        id: 123,
-        order_items: [
-          {
+
+      const orderItems = [
+        {
+          id: 1,
+          quantity: 1,
+          book: {
             id: 1,
-            quantity: 1,
-            book: { id: 1 },
+            title: 'Test Book 1',
+            author: { name: 'Test Author One' },
           },
-          {
+        },
+        {
+          id: 2,
+          quantity: 2,
+          book: {
             id: 2,
-            quantity: 2,
-            book: { id: 2 },
+            title: 'Test Book 2',
+            author: { name: 'Test Author Two' },
           },
-        ],
+        },
+      ];
+
+      const existingOrder = {
+        order_items: orderItems,
+        id: 123,
         status: 'pending',
-      });
+        userid: 1,
+        totalPrice: 1000,
+        shipping_details: null,
+      };
+
+      const updatedOrder = {
+        order_items: orderItems,
+        id: 123,
+        status: 'complete',
+        userid: 1,
+        totalPrice: 1000,
+        shipping_details: {
+          email: 'user@email.com',
+        },
+      };
+
+      const shippingDetails = {
+        email: data.customer_details.email,
+        address: {
+          country: 'Test Country',
+          state: 'Test State',
+          city: 'Test City',
+          postalCode: 'POSTAL_CODE',
+          line1: 'address line 1',
+          line2: 'address line 2',
+        },
+      };
+
+      const paymentData = {
+        orderId: 123,
+        transactionId: 'pi_123',
+        status: PaymentStatus.Paid,
+        amount: 1000,
+      };
+
+      mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
+      mockOrdersService.updateStatus.mockResolvedValueOnce(updatedOrder);
+      mockShippingService.createShipping.mockResolvedValueOnce({});
+      mockPaymentService.createOrUpdatePayment.mockResolvedValueOnce({});
 
       const consoleSpy = jest.spyOn(console, 'warn');
 
       await (processor as any).paymentSuccessful(data);
 
-      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: { id: 123 },
-        data: {
-          status: 'complete',
-        },
-      });
-
-      expect(mockPrismaService.shipping.create).toHaveBeenCalledWith({
-        data: {
-          email: 'user@email.com',
-          order: { connect: { id: 123 } },
-          address: {
-            create: {
-              country: 'Test Country',
-              state: 'Test State',
-              city: 'Test City',
-              line1: 'address line 1',
-              line2: 'address line 2',
-              postalCode: 'POSTAL_CODE',
-            },
-          },
-        },
-      });
-
-      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: { orderid: 123 },
-        update: { status: 'paid' },
-        create: {
-          order: { connect: { id: 123 } },
-          transaction_id: 'pi_123',
-          status: 'paid',
-          method: 'card',
-          amount: 1000,
-        },
-      });
-
-      expect(mockStripeService.createRefundForPayment).not.toHaveBeenCalled(); // No refund for non-canceled orders.
-
-      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
-        'order-status-mail',
-        {
-          orderId: 123,
-          email: 'user@email.com',
-          status: 'complete',
-        },
+      expect(mockOrdersService.getOrder).toHaveBeenCalledWith(123);
+      expect(mockOrdersService.updateStatus).toHaveBeenCalledWith(
+        123,
+        OrderStatus.Complete,
       );
+
+      expect(mockShippingService.createShipping).toHaveBeenCalledWith(
+        123,
+        shippingDetails,
+      );
+
+      expect(mockPaymentService.createOrUpdatePayment).toHaveBeenCalledWith(
+        paymentData,
+      );
+
+      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
+        123,
+        OrderStatus.Complete,
+        'user@email.com',
+      );
+
+      expect(mockStripeService.createRefundForPayment).not.toHaveBeenCalled();
 
       expect(consoleSpy).toHaveBeenCalledWith(
         'Order #[123] marked as complete and order confirmation email added to queue.',
@@ -367,29 +386,12 @@ describe('StripeWebhookProcessor', () => {
           email: 'user@email.com',
         },
       };
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce({
-        id: 123,
-        order_items: [
-          {
-            id: 1,
-            quantity: 1,
-            book: { id: 1 },
-          },
-          {
-            id: 2,
-            quantity: 2,
-            book: { id: 2 },
-          },
-        ],
-        status: 'pending',
-      });
-
-      mockPrismaService.orders.update.mockRejectedValueOnce(
-        new Error('DB error in paymentSuccessful'),
+      mockOrdersService.getOrder.mockRejectedValueOnce(
+        new Error('Order not found'),
       );
 
       await expect((processor as any).paymentSuccessful(data)).rejects.toThrow(
-        new Error('DB error in paymentSuccessful'),
+        new Error('Payment success handling failed for Order 123.'),
       );
     });
   });
@@ -411,16 +413,6 @@ describe('StripeWebhookProcessor', () => {
           },
         },
       } as any;
-
-      mockPrismaService.payment.upsert.mockResolvedValueOnce({
-        id: 1,
-        orderid: 123,
-        transaction_id: 'pi_123',
-        status: 'failed',
-        method: 'card',
-        amount: 1000,
-        payment_date: null,
-      });
 
       const spy = jest.spyOn(processor as any, 'paymentFailed');
       await processor.process(job);
@@ -462,27 +454,38 @@ describe('StripeWebhookProcessor', () => {
           },
         },
       } as any;
-      // order
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce({
-        id: 123,
-        order_items: [
-          {
+
+      const orderItems = [
+        {
+          id: 1,
+          quantity: 1,
+          book: {
             id: 1,
-            quantity: 1,
-            book: { id: 1 },
+            title: 'Test Book 1',
+            author: { name: 'Test Author One' },
           },
-          {
+        },
+        {
+          id: 2,
+          quantity: 2,
+          book: {
             id: 2,
-            quantity: 2,
-            book: { id: 2 },
+            title: 'Test Book 2',
+            author: { name: 'Test Author Two' },
           },
-        ],
+        },
+      ];
+
+      const existingOrder = {
+        order_items: orderItems,
+        id: 1,
         status: 'pending',
-      });
-      // books
-      mockPrismaService.books.update.mockResolvedValueOnce({});
-      //payment
-      mockPrismaService.payment.upsert.mockResolvedValueOnce({});
+        userid: 1,
+        totalPrice: 1000,
+        shipping_details: null,
+      };
+
+      mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
 
       const spy = jest.spyOn(processor as any, 'paymentExpired');
       await processor.process(job);
@@ -533,27 +536,38 @@ describe('StripeWebhookProcessor', () => {
           },
         },
       } as any;
-      // order
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce({
-        id: 123,
-        order_items: [
-          {
+
+      const orderItems = [
+        {
+          id: 1,
+          quantity: 1,
+          book: {
             id: 1,
-            quantity: 1,
-            book: { id: 1 },
+            title: 'Test Book 1',
+            author: { name: 'Test Author One' },
           },
-          {
+        },
+        {
+          id: 2,
+          quantity: 2,
+          book: {
             id: 2,
-            quantity: 2,
-            book: { id: 2 },
+            title: 'Test Book 2',
+            author: { name: 'Test Author Two' },
           },
-        ],
+        },
+      ];
+
+      const existingOrder = {
+        order_items: orderItems,
+        id: 1,
         status: 'pending',
-      });
-      // shipping
-      mockPrismaService.shipping.create.mockResolvedValueOnce({});
-      //payment
-      mockPrismaService.payment.upsert.mockResolvedValueOnce({});
+        userid: 1,
+        totalPrice: 1000,
+        shipping_details: null,
+      };
+
+      mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
 
       const spy = jest.spyOn(processor as any, 'paymentSuccessful');
       await processor.process(job);
