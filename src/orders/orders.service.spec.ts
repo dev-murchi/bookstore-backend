@@ -27,6 +27,13 @@ const mockPrismaService = {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
+  order_items: {
+    findMany: jest.fn(),
+  },
+  books: {
+    update: jest.fn(),
+  },
+  $transaction: jest.fn((fn) => fn()),
 };
 
 describe('OrdersService', () => {
@@ -96,7 +103,7 @@ describe('OrdersService', () => {
       expect(result).toEqual(mockOrder);
     });
 
-    it('returns null if no order found', async () => {
+    it('throws an error if no order found', async () => {
       mockPrismaService.orders.findUnique.mockResolvedValueOnce(null);
 
       await expect(service.getOrder(999)).rejects.toThrow(
@@ -128,6 +135,52 @@ describe('OrdersService', () => {
       await expect(service.updateStatus(1, 'shipped')).rejects.toThrow(
         'Order #1 status could not be updated',
       );
+    });
+  });
+
+  describe('revertOrderStocks', () => {
+    it('should revert stocks successfully for valid order items', async () => {
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        {
+          bookid: 10,
+          quantity: 2,
+        },
+      ]);
+      mockPrismaService.books.update.mockResolvedValueOnce({});
+
+      await service.revertOrderStocks(1);
+
+      expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
+        where: { orderid: 1 },
+      });
+
+      expect(mockPrismaService.books.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: { stock_quantity: { increment: 2 } },
+      });
+    });
+
+    it('should throw an error if updating the stock fails', async () => {
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        {
+          bookid: 10,
+          quantity: 2,
+        },
+      ]);
+      mockPrismaService.books.update.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.revertOrderStocks(1)).rejects.toThrow(
+        'Stock counts could not be reverted for Order 1.',
+      );
+
+      expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
+        where: { orderid: 1 },
+      });
+
+      expect(mockPrismaService.books.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: { stock_quantity: { increment: 2 } },
+      });
     });
   });
 });

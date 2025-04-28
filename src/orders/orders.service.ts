@@ -104,4 +104,28 @@ export class OrdersService {
       throw new Error(`Order #${orderId} status could not be updated`);
     }
   }
+
+  async revertOrderStocks(orderId: number) {
+    try {
+      const orderItems = await this.prisma.order_items.findMany({
+        where: { orderid: orderId },
+      });
+
+      await this.prisma.$transaction(async () => {
+        for (const item of orderItems) {
+          await this.prisma.books.update({
+            where: { id: item.bookid },
+            data: { stock_quantity: { increment: item.quantity } },
+          });
+        }
+      });
+
+      console.log(`Stock reverted successfully for Order ${orderId}`);
+    } catch (error) {
+      console.error('Error while reverting stock counts:', error);
+      throw new Error(
+        `Stock counts could not be reverted for Order ${orderId}.`,
+      );
+    }
+  }
 }
