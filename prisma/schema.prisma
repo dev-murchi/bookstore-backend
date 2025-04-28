@@ -148,7 +148,8 @@ model payment {
   status String
   method  String
   amount Float
-  payment_date  DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   order  orders @relation(fields: [orderid], references: [id])
 }
