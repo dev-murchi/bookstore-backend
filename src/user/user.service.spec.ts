@@ -189,9 +189,11 @@ describe('UserService', () => {
       });
     });
 
-    it('should return null an error if the user does not exist', async () => {
+    it('should throw an error if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      expect(await service.findOne(999)).toBeNull();
+      await expect(service.findOne(999)).rejects.toThrow(
+        new Error('User not found.'),
+      );
     });
   });
 
@@ -243,9 +245,11 @@ describe('UserService', () => {
       });
     });
 
-    it('should return null if the user does not exist', async () => {
+    it('should throw an error if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      expect(await service.findBy('invaliduser@email.com')).toBeNull();
+      await expect(service.findBy('invaliduser@email.com')).rejects.toThrow(
+        new Error('User not found.'),
+      );
     });
   });
 
@@ -320,7 +324,9 @@ describe('UserService', () => {
       const result = await service.remove(1);
       expect(result).toEqual({ message: 'User deleted successfully' });
 
-      expect(await service.findOne(1)).toBeNull();
+      await expect(service.findOne(1)).rejects.toThrow(
+        new Error('User not found.'),
+      );
     });
     it('should throw an error if user does not exist', async () => {
       mockPrismaService.user.delete.mockRejectedValueOnce(
