@@ -36,40 +36,40 @@ export class BooksController {
       const requestingUser = request.user;
       const targetAuthor = await this.userService.findBy(createBookDto.author);
 
-      if (!targetAuthor) {
+      if (targetAuthor.role.role_name !== RoleEnum.Author) {
         throw new BadRequestException(
-          'Unable to locate the specified author. Please ensure the author exists before creating a book.',
+          'Books can only belong to registered authors.',
         );
       }
 
-      let authorId: number;
+      const isAdmin = requestingUser['role'] === RoleEnum.Admin;
+      const isAuthor = requestingUser['email'] === targetAuthor.email;
 
-      if (requestingUser['role'] === RoleEnum.Admin) {
-        if (targetAuthor.role.role_name !== RoleEnum.Author) {
-          throw new BadRequestException(
-            'Book creation denied: Target user does not have the required Author role.',
-          );
-        }
-
-        authorId = targetAuthor.id;
-      } else {
-        if (targetAuthor.email !== createBookDto.author) {
-          throw new BadRequestException(
-            'Permission denied: Authors can only create books under their own profiles.',
-          );
-        }
-
-        authorId = requestingUser['id'];
-      }
+      // requesting user must be an admin or an author
+      if (!isAdmin && !isAuthor)
+        throw new BadRequestException(
+          'You are not authorized to create a book for this author.',
+        );
 
       const createdBook = await this.booksService.create(
-        authorId,
+        targetAuthor.id,
         createBookDto,
       );
 
       return { data: createdBook };
     } catch (error) {
-      throw new BadRequestException('Could not created');
+      if (error instanceof BadRequestException) throw error;
+
+      if (error.message === 'User not found.') {
+        throw new BadRequestException(
+          'Please ensure the author exists before creating a book.',
+        );
+      }
+
+      console.error('Unexpected error during book creation:', error);
+      throw new BadRequestException(
+        'Failed to create book due to an unexpected error.',
+      );
     }
   }
 
