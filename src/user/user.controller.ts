@@ -2,7 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  ParseIntPipe,
   Put,
   Req,
   UseGuards,
@@ -70,5 +73,27 @@ export class UserController {
   @Roles([RoleEnum.Admin])
   async viewAllRegisteredUsers() {
     return await this.userService.findAll();
+  }
+
+  @Put(':userId')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async updateUser(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body()
+    updateUserDto: UpdateUserDto,
+  ) {
+    try {
+      return await this.userService.update(userId, updateUserDto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async deleteUser(@Param('userId', ParseIntPipe) userId: number) {
+    return await this.userService.remove(userId);
   }
 }

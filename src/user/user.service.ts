@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import * as bcrypt from 'bcrypt';
+import { Prisma } from '@prisma/client';
 const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
@@ -110,12 +111,39 @@ export class UserService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     try {
+      const { name, email, role, password } = updateUserDto;
+      if (!name && !email && !role && !password) {
+        throw new Error('No changes provided.');
+      }
+
+      const userUpdateObject: Prisma.UserUpdateInput = {};
+
+      if (name) {
+        userUpdateObject.name = name;
+      }
+
+      if (email) {
+        userUpdateObject.email = email;
+      }
+
+      if (role) {
+        userUpdateObject.role = { connect: { role_name: role } };
+      }
+
+      if (password) {
+        userUpdateObject.password = await bcrypt.hash(
+          password,
+          roundsOfHashing,
+        );
+      }
+
       await this.prisma.user.update({
         where: { id },
-        data: updateUserDto,
+        data: userUpdateObject,
       });
       return { message: 'User updated successfully' };
     } catch (error) {
+      console.error('User could not be deleted. Error:', error);
       throw new BadRequestException('User could not be updated');
     }
   }

@@ -33,8 +33,6 @@ export class AuthGuard implements CanActivate {
       // get user
       const user = await this.userService.findOne(payload.id);
 
-      if (!user) throw new UnauthorizedException('User is not exist');
-
       // attach user to the request object
       request.user = {
         id: user.id,
@@ -50,6 +48,7 @@ export class AuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
+      console.error('Authentication error: ', error);
       throw new UnauthorizedException('Unauthorized');
     }
   }

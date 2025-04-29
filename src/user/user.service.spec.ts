@@ -263,7 +263,6 @@ describe('UserService', () => {
         id: 1,
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
-        password: 'newpassword123',
         role: {
           id: 1,
           role_name: 'user',
@@ -278,7 +277,7 @@ describe('UserService', () => {
         data: {
           name: 'updated test user',
           email: 'updatedtestuser@email.com',
-          password: 'newpassword123',
+          password: 'hashedPassword',
         },
       });
 
@@ -298,6 +297,15 @@ describe('UserService', () => {
 
       try {
         await service.update(999, user);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error.message).toBe('User could not be updated');
+      }
+    });
+
+    it('should throw an error if no changes provided', async () => {
+      try {
+        await service.update(999, {});
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         expect(error.message).toBe('User could not be updated');
