@@ -1,14 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { orders } from '@prisma/client';
-import { Queue } from 'bullmq';
 import { OrderStatus } from './enum/order-status.enum';
+import { EmailService } from '../email/email.service';
 
 interface StatusRule {
   from: OrderStatus;
   to: OrderStatus;
-  validate?: (order: orders & any) => Promise<void> | void; // 'any' to include joins like order_items
   postUpdate?: (order: orders & any) => Promise<void> | void;
 }
 
@@ -17,7 +16,7 @@ export class OrdersStatusService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
-    @Inject('MailSenderQueue') private readonly mailSenderQueue: Queue,
+    private readonly emailService: EmailService,
   ) {}
 
   async changeStatus(orderId: number, rule: StatusRule) {
@@ -28,8 +27,6 @@ export class OrdersStatusService {
       throw new Error(
         `Order must be in '${rule.from}' status to change to '${rule.to}'. Current: '${order.status}'`,
       );
-
-    if (rule.validate) await rule.validate(order);
 
     const updatedOrder = await this.ordersService.updateStatus(
       orderId,
@@ -55,11 +52,11 @@ export class OrdersStatusService {
           }
 
           // send order staus update mail to the user
-          await this.mailSenderQueue.add('order-status-mail', {
+          await this.emailService.sendOrderStatusUpdate(
             orderId,
-            email: order.shipping_details.email,
-            status: order.status,
-          });
+            order.status,
+            order.shipping_details.email,
+          );
         },
       });
     });
@@ -71,11 +68,11 @@ export class OrdersStatusService {
       to: OrderStatus.Shipped,
       postUpdate: async (order) => {
         // send order staus update mail to the user
-        await this.mailSenderQueue.add('order-status-mail', {
+        await this.emailService.sendOrderStatusUpdate(
           orderId,
-          email: order.shipping_details.email,
-          status: order.status,
-        });
+          order.status,
+          order.shipping_details.email,
+        );
       },
     });
   }
@@ -86,11 +83,11 @@ export class OrdersStatusService {
       to: OrderStatus.Delivered,
       postUpdate: async (order) => {
         // send order staus update mail to the user
-        await this.mailSenderQueue.add('order-status-mail', {
+        await this.emailService.sendOrderStatusUpdate(
           orderId,
-          email: order.shipping_details.email,
-          status: order.status,
-        });
+          order.status,
+          order.shipping_details.email,
+        );
       },
     });
   }

@@ -7,9 +7,17 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { OrdersStatusService } from './orders-status.service';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [PrismaModule, QueueModule, ConfigModule, JwtModule, UserModule],
+  imports: [
+    PrismaModule,
+    QueueModule,
+    ConfigModule,
+    JwtModule,
+    UserModule,
+    EmailModule,
+  ],
   controllers: [OrdersController],
   providers: [OrdersService, OrdersStatusService],
   exports: [OrdersService],

@@ -2,14 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { Queue } from 'bullmq';
+import { OrderStatus } from './enum/order-status.enum';
+import { EmailService } from '../email/email.service';
 
 const mockOrder = {
   id: 1,
   userid: 101,
   totalPrice: 42.5,
-  status: 'pending',
-  shipping_details: { email: 'user@example.com' },
+  status: OrderStatus.Pending,
+  shipping_details: { email: 'user@email.com' },
   order_items: [
     {
       id: 1,
@@ -37,8 +38,8 @@ const mockOrdersService = {
   updateStatus: jest.fn(),
 };
 
-const mockMailSenderQueue = {
-  add: jest.fn(),
+const mockEmailService = {
+  sendOrderStatusUpdate: jest.fn(),
 };
 
 const mockPrismaService = {
@@ -52,7 +53,6 @@ describe('OrdersStatusService', () => {
   let service: OrdersStatusService;
   let ordersService: OrdersService;
   let prismaService: PrismaService;
-  let mailQueue: Queue;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -67,8 +67,8 @@ describe('OrdersStatusService', () => {
           useValue: mockPrismaService,
         },
         {
-          provide: 'MailSenderQueue',
-          useValue: mockMailSenderQueue,
+          provide: EmailService,
+          useValue: mockEmailService,
         },
       ],
     }).compile();
@@ -76,7 +76,6 @@ describe('OrdersStatusService', () => {
     service = module.get(OrdersStatusService);
     ordersService = module.get(OrdersService);
     prismaService = module.get(PrismaService);
-    mailQueue = module.get<Queue>('MailSenderQueue');
   });
 
   describe('changeStatus', () => {
@@ -86,64 +85,57 @@ describe('OrdersStatusService', () => {
         new Error(`Order not found: ${orderId}`),
       );
       await expect(
-        service.changeStatus(orderId, { from: 'pending', to: 'canceled' }),
-      ).rejects.toThrow('Order not found');
+        service.changeStatus(orderId, {
+          from: OrderStatus.Pending,
+          to: OrderStatus.Canceled,
+        }),
+      ).rejects.toThrow('Order not found: 1');
     });
 
     it('returns early if status already matches target', async () => {
-      const order = { ...mockOrder, status: 'canceled' };
+      const order = { ...mockOrder, status: OrderStatus.Canceled };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
       const result = await service.changeStatus(1, {
-        from: 'pending',
-        to: 'canceled',
+        from: OrderStatus.Pending,
+        to: OrderStatus.Canceled,
       });
 
       expect(result).toEqual(order);
     });
 
     it('throws if current status does not match rule.from', async () => {
-      const order = { ...mockOrder, status: 'complete' };
+      const order = { ...mockOrder, status: OrderStatus.Complete };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
       await expect(
-        service.changeStatus(1, { from: 'pending', to: 'canceled' }),
-      ).rejects.toThrow(/must be in 'pending'/);
-    });
-
-    it('calls validate if provided', async () => {
-      const validate = jest.fn();
-      const order = { ...mockOrder, status: 'pending' };
-      mockOrdersService.getOrder.mockResolvedValueOnce(order);
-      mockOrdersService.updateStatus.mockResolvedValueOnce({
-        ...order,
-        status: 'canceled',
-      });
-
-      await service.changeStatus(1, {
-        from: 'pending',
-        to: 'canceled',
-        validate,
-      });
-
-      expect(validate).toHaveBeenCalledWith(order);
+        service.changeStatus(1, {
+          from: OrderStatus.Pending,
+          to: OrderStatus.Canceled,
+        }),
+      ).rejects.toThrow(
+        "Order must be in 'pending' status to change to 'canceled'. Current: 'complete'",
+      );
     });
 
     it('calls updateStatus and postUpdate', async () => {
       const postUpdate = jest.fn();
-      const order = { ...mockOrder, status: 'pending' };
-      const updatedOrder = { ...order, status: 'canceled' };
+      const order = { ...mockOrder, status: OrderStatus.Pending };
+      const updatedOrder = { ...order, status: OrderStatus.Canceled };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
       mockOrdersService.updateStatus.mockResolvedValueOnce(updatedOrder);
 
       await service.changeStatus(1, {
-        from: 'pending',
-        to: 'canceled',
+        from: OrderStatus.Pending,
+        to: OrderStatus.Canceled,
         postUpdate,
       });
 
-      expect(ordersService.updateStatus).toHaveBeenCalledWith(1, 'canceled');
+      expect(ordersService.updateStatus).toHaveBeenCalledWith(
+        1,
+        OrderStatus.Canceled,
+      );
       expect(postUpdate).toHaveBeenCalledWith(updatedOrder);
     });
   });
@@ -153,17 +145,17 @@ describe('OrdersStatusService', () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(mockOrder);
       mockOrdersService.updateStatus.mockResolvedValueOnce({
         ...mockOrder,
-        status: 'canceled',
+        status: OrderStatus.Canceled,
       });
 
       await service.cancelOrder(1);
 
       expect(prismaService.books.update).toHaveBeenCalledTimes(2);
-      expect(mailQueue.add).toHaveBeenCalledWith('order-status-mail', {
-        orderId: 1,
-        email: 'user@example.com',
-        status: 'canceled',
-      });
+      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
+        1,
+        'canceled',
+        'user@email.com',
+      );
     });
   });
 
@@ -181,11 +173,12 @@ describe('OrdersStatusService', () => {
         order.id,
         'shipped',
       );
-      expect(mailQueue.add).toHaveBeenCalledWith('order-status-mail', {
-        orderId: order.id,
-        email: order.shipping_details.email,
-        status: 'shipped',
-      });
+
+      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
+        1,
+        'shipped',
+        'user@email.com',
+      );
     });
   });
 
@@ -203,11 +196,11 @@ describe('OrdersStatusService', () => {
         order.id,
         'delivered',
       );
-      expect(mailQueue.add).toHaveBeenCalledWith('order-status-mail', {
-        orderId: order.id,
-        email: order.shipping_details.email,
-        status: 'delivered',
-      });
+      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
+        1,
+        'delivered',
+        'user@email.com',
+      );
     });
   });
 });
