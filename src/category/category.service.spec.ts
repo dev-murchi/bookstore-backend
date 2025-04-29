@@ -127,7 +127,7 @@ describe('CategoryService', () => {
       expect(result).toEqual({ message: 'Category deleted successfully' });
     });
 
-    it('should throw an error if the category name could not be updated', async () => {
+    it('should throw an error if the category name could not be deleted', async () => {
       mockPrismaService.category.delete.mockRejectedValueOnce(
         new Error('DB Error'),
       );

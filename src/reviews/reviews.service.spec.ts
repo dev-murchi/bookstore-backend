@@ -11,6 +11,7 @@ const mockPrismaService = {
     findMany: jest.fn(),
     aggregate: jest.fn(),
     count: jest.fn(),
+    delete: jest.fn(),
   },
 };
 describe('ReviewsService', () => {
@@ -316,6 +317,30 @@ describe('ReviewsService', () => {
 
       await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
         'Reviews could not fetched.',
+      );
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete review', async () => {
+      mockPrismaService.reviews.delete.mockResolvedValueOnce({});
+
+      const result = await service.delete(1);
+
+      expect(mockPrismaService.reviews.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+
+      expect(result).toEqual({ message: 'Review is successfully deleted.' });
+    });
+
+    it('should throw an error if the review could not be deleted', async () => {
+      mockPrismaService.reviews.delete.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.delete(1)).rejects.toThrow(
+        new Error('Review could not be deleted.'),
       );
     });
   });

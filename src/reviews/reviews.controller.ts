@@ -3,7 +3,9 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
+  Param,
   ParseIntPipe,
   Post,
   Query,
@@ -44,5 +46,16 @@ export class ReviewsController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
   ) {
     return await this.reviewsService.findReviewsForBook(bookId, page, limit);
+  }
+
+  @Delete(':id')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async deleteReview(@Param('id', ParseIntPipe) reviewId: number) {
+    try {
+      return await this.reviewsService.delete(reviewId);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

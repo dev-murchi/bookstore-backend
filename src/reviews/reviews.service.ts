@@ -115,4 +115,13 @@ export class ReviewsService {
       throw new Error('Reviews could not fetched.');
     }
   }
+
+  async delete(reviewId: number) {
+    try {
+      await this.prisma.reviews.delete({ where: { id: reviewId } });
+      return { message: 'Review is successfully deleted.' };
+    } catch (error) {
+      throw new Error('Review could not be deleted.');
+    }
+  }
 }
