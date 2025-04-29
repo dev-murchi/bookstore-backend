@@ -10,6 +10,8 @@ import {
   Patch,
   Get,
   Query,
+  ParseFloatPipe,
+  ParseBoolPipe,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -66,31 +68,60 @@ export class BooksController {
       throw new BadRequestException(
         'The query must contain at least three characters.',
       );
-    return { data: await this.booksService.search(query) };
+    try {
+      return { data: await this.booksService.search(query) };
+    } catch (error) {
+      console.error(
+        'Failed to search the book due to an unexpected error.',
+        error,
+      );
+      throw new BadRequestException(
+        'Failed to search the book due to an unexpected error.',
+      );
+    }
   }
 
   @Get('filter')
   async filter(
-    @Query('minPrice') minPrice?: number,
-    @Query('maxPrice') maxPrice?: number,
-    @Query('rating') rating?: number | undefined,
-    @Query('stock') stock?: boolean,
+    @Query('minPrice', ParseFloatPipe) minPrice?: number,
+    @Query('maxPrice', ParseFloatPipe) maxPrice?: number,
+    @Query('rating', ParseIntPipe) rating?: number,
+    @Query('stock', ParseBoolPipe) stock?: boolean,
     @Query('sort') sort?: 'asc' | 'desc',
   ) {
     const orderBy = sort === 'desc' ? 'desc' : 'asc';
 
-    return await this.booksService.filter({
-      minPrice,
-      maxPrice,
-      rating,
-      stock,
-      orderBy,
-    });
+    try {
+      const filteredBooks = await this.booksService.filter({
+        minPrice,
+        maxPrice,
+        rating,
+        stock,
+        orderBy,
+      });
+
+      return { data: filteredBooks };
+    } catch (error) {
+      console.error(
+        'Failed to filter the books due to an unexpected error.',
+        error,
+      );
+      throw new BadRequestException(
+        'Failed to filter the books due to an unexpected error.',
+      );
+    }
   }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
-    return { data: await this.booksService.findOne(id) };
+    try {
+      const book = await this.booksService.findOne(id);
+      return { data: book };
+    } catch (error) {
+      throw new BadRequestException(
+        'The book you are trying to update does not exist.',
+      );
+    }
   }
 
   @UseGuards(UserAccessGuard)
