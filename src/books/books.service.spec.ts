@@ -142,7 +142,9 @@ describe('BooksService', () => {
     it('should return null if there is no book', async () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
       const id = 1;
-      expect(await service.findOne(id)).toBeNull();
+      await expect(service.findOne(id)).rejects.toThrow(
+        new Error('Book not found.'),
+      );
     });
     it('should a book by id', async () => {
       const bookId = 1;

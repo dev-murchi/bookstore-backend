@@ -95,7 +95,7 @@ export class BooksService {
       },
     });
 
-    if (!book) return null;
+    if (!book) throw new Error('Book not found.');
     return book;
   }
 
