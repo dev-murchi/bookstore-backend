@@ -51,7 +51,15 @@ export class UserService {
   }
 
   async findAll() {
-    const users = await this.prisma.user.findMany();
+    const users = await this.prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        roleid: true,
+        is_active: true,
+      },
+    });
 
     if (!users) return [];
     return users;

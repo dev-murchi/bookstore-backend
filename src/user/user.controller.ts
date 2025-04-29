@@ -14,6 +14,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import * as bcrypt from 'bcrypt';
 import { UserDto } from './dto/user.dto';
+import { UserAccessGuard } from 'src/common/guards/user-access/user-access.guard';
+import { RoleEnum } from 'src/common/role.enum';
+import { Roles } from 'src/common/decorator/role/role.decorator';
 const roundsOfHashing = 10;
 
 @Controller('user')
@@ -60,5 +63,12 @@ export class UserController {
       throw new BadRequestException('No changes provided.');
 
     return await this.userService.update(request.user['id'], updateData);
+  }
+
+  @Get()
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async viewAllRegisteredUsers() {
+    return await this.userService.findAll();
   }
 }

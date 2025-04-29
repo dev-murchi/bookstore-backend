@@ -113,7 +113,6 @@ describe('UserService', () => {
           id: 1,
           name: 'test user',
           email: 'testuser@email.com',
-          password: 'password123',
           role: {
             id: 1,
             role_name: 'user',
@@ -127,7 +126,6 @@ describe('UserService', () => {
           id: 1,
           name: 'test user',
           email: 'testuser@email.com',
-          password: 'password123',
           role: {
             id: 1,
             role_name: 'user',
