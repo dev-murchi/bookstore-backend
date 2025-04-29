@@ -29,4 +29,27 @@ export class CategoryService {
       throw new Error('Book Category could not be created.');
     }
   }
+
+  async update(categoryId: number, name: string) {
+    try {
+      return await this.prisma.category.update({
+        where: { id: categoryId },
+        data: { category_name: name },
+        select: { id: true, category_name: true },
+      });
+    } catch (error) {
+      console.error('Category name could not be updated. Error:', error);
+      throw new Error('Category name could not be updated.');
+    }
+  }
+
+  async delete(categoryId: number) {
+    try {
+      await this.prisma.category.delete({ where: { id: categoryId } });
+      return { message: 'Category deleted successfully' };
+    } catch (error) {
+      console.error('Category name could not be deleted. Error:', error);
+      throw new Error('Category name could not be deleted.');
+    }
+  }
 }

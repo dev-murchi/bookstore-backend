@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { CategoryService } from './category.service';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
@@ -16,7 +26,22 @@ export class CategoryController {
   @Post()
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
-  async creatCategory(@Body() createCategoryDTO: CreateCategoryDTO) {
+  async createCategory(@Body() createCategoryDTO: CreateCategoryDTO) {
     return await this.categoryService.create(createCategoryDTO);
+  }
+
+  @Put(':id')
+  @Roles([RoleEnum.Admin])
+  async updateCategory(
+    @Param('id', ParseIntPipe) categoryId: number,
+    @Body() name: string,
+  ) {
+    return await this.categoryService.update(categoryId, name);
+  }
+
+  @Delete(':id')
+  @Roles([RoleEnum.Admin])
+  async deleteCategory(@Param('id', ParseIntPipe) categoryId: number) {
+    return this.categoryService.delete(categoryId);
   }
 }

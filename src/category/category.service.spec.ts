@@ -7,6 +7,8 @@ const mockPrismaService = {
   category: {
     findMany: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   },
 };
 
@@ -85,6 +87,53 @@ describe('CategoryService', () => {
 
       await expect(service.create(createCategoryDTO)).rejects.toThrow(
         'Book Category could not be created',
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('should update category name', async () => {
+      mockPrismaService.category.update.mockResolvedValueOnce({
+        id: 1,
+        category_name: 'new-category',
+      });
+
+      const category = await service.update(1, 'new-category');
+
+      expect(category).toEqual({ id: 1, category_name: 'new-category' });
+    });
+
+    it('should throw an error if the category name could not be updated', async () => {
+      mockPrismaService.category.update.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.update(1, 'new-category')).rejects.toThrow(
+        new Error('Category name could not be updated.'),
+      );
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete category name', async () => {
+      mockPrismaService.category.delete.mockResolvedValueOnce({});
+
+      const result = await service.delete(1);
+
+      expect(mockPrismaService.category.delete).toHaveBeenCalledWith({
+        where: { id: 1 },
+      });
+
+      expect(result).toEqual({ message: 'Category deleted successfully' });
+    });
+
+    it('should throw an error if the category name could not be updated', async () => {
+      mockPrismaService.category.delete.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.delete(1)).rejects.toThrow(
+        new Error('Category name could not be deleted.'),
       );
     });
   });
