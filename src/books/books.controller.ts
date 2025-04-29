@@ -1,15 +1,14 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
-  ParseIntPipe,
   Req,
   UseGuards,
   BadRequestException,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Get,
   Query,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
@@ -33,23 +32,11 @@ export class BooksController {
   @Post()
   async create(@Req() request: Request, @Body() createBookDto: CreateBookDto) {
     try {
-      const requestingUser = request.user;
-      const targetAuthor = await this.userService.findBy(createBookDto.author);
-
-      if (targetAuthor.role.role_name !== RoleEnum.Author) {
-        throw new BadRequestException(
-          'Books can only belong to registered authors.',
-        );
-      }
-
-      const isAdmin = requestingUser['role'] === RoleEnum.Admin;
-      const isAuthor = requestingUser['email'] === targetAuthor.email;
-
-      // requesting user must be an admin or an author
-      if (!isAdmin && !isAuthor)
-        throw new BadRequestException(
-          'You are not authorized to create a book for this author.',
-        );
+      const { targetAuthor } = await this.validateAuthorAndAuthorize(
+        { email: request.user['email'], role: request.user['role'] },
+        createBookDto.author,
+        'create',
+      );
 
       const createdBook = await this.booksService.create(
         targetAuthor.id,
@@ -59,12 +46,6 @@ export class BooksController {
       return { data: createdBook };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-
-      if (error.message === 'User not found.') {
-        throw new BadRequestException(
-          'Please ensure the author exists before creating a book.',
-        );
-      }
 
       console.error('Unexpected error during book creation:', error);
       throw new BadRequestException(
@@ -121,39 +102,20 @@ export class BooksController {
     @Body() updateBookDto: UpdateBookDto,
   ) {
     try {
-      const requestingUser = request.user;
-      // Find the author of the updated book
-      const targetAuthor = await this.userService.findBy(updateBookDto.author);
-      if (!targetAuthor) {
-        throw new BadRequestException('Specified author does not exist.');
-      }
+      const { targetAuthor } = await this.validateAuthorAndAuthorize(
+        { email: request.user['email'], role: request.user['role'] },
+        updateBookDto.author,
+        'update',
+      );
 
-      // Find the book to update
       const book = await this.booksService.findOne(bookId);
-      if (!book) {
+
+      if (book.author.id !== targetAuthor.id) {
         throw new BadRequestException(
-          'The book you are trying to update does not exist.',
+          `You are not authorized to update this book. Only the original author or an admin specifying the original author can update it.`,
         );
       }
 
-      // Admin check: Admins can update any book as long as the author exists
-      if (requestingUser['role'] === RoleEnum.Admin) {
-        // Admin can only update books if the author is correct
-        if (book.author.id !== targetAuthor.id) {
-          throw new BadRequestException(
-            'You are not authorized to update this book.',
-          );
-        }
-      } else {
-        // Author check: Authors can only update their own books
-        if (requestingUser['id'] !== book.author.id) {
-          throw new BadRequestException(
-            'You can only update books that belong to you.',
-          );
-        }
-      }
-
-      // Update the book
       const updatedBook = await this.booksService.update(
         bookId,
         updateBookDto,
@@ -164,17 +126,53 @@ export class BooksController {
         data: updatedBook,
       };
     } catch (error) {
-      console.error('Error while updating book:', error);
+      if (error instanceof BadRequestException) throw error;
+
+      if (error.message === 'Book not found.') {
+        throw new BadRequestException(
+          'The book you are trying to update does not exist.',
+        );
+      }
+
+      console.error('Unexpected error during book update:', error);
       throw new BadRequestException(
-        'Failed to update the book. Please try again later.',
+        'Failed to update book due to an unexpected error.',
       );
     }
   }
 
-  @UseGuards(UserAccessGuard)
-  @Roles([RoleEnum.Admin, RoleEnum.Author])
-  @Delete(':id')
-  async remove(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {
-    return { data: await this.booksService.remove(id) };
+  private async validateAuthorAndAuthorize(
+    requestUser: { email: string; role: RoleEnum },
+    authorIdentifier: string,
+    operation: 'create' | 'update',
+  ): Promise<{ targetAuthor: any }> {
+    try {
+      const targetAuthor = await this.userService.findBy(authorIdentifier);
+
+      const isAuthorRole = targetAuthor.role.role_name === RoleEnum.Author;
+      if (!isAuthorRole) {
+        throw new BadRequestException(
+          'Books can only belong to registered authors.',
+        );
+      }
+
+      const isAdmin = requestUser.role === RoleEnum.Admin;
+      const isSelf = requestUser.email === targetAuthor.email;
+
+      if (!isAdmin && !isSelf) {
+        throw new BadRequestException(
+          `You are not authorized to ${operation} a book for this author.`,
+        );
+      }
+
+      return { targetAuthor };
+    } catch (error) {
+      if (error.message === 'User not found.') {
+        throw new BadRequestException(
+          `Please ensure the author exists before ${operation}ing a book.`,
+        );
+      }
+      throw error;
+    }
   }
 }
