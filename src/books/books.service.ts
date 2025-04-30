@@ -6,6 +6,24 @@ import { Prisma } from '@prisma/client';
 
 export type SortType = 'asc' | 'desc';
 
+const selectedBookInformations = {
+  id: true,
+  title: true,
+  author: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  category: { select: { category_name: true } },
+  isbn: true,
+  price: true,
+  description: true,
+  stock_quantity: true,
+  rating: true,
+  image_url: true,
+};
+
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
@@ -51,23 +69,7 @@ export class BooksService {
   async findAll() {
     const books = await this.prisma.books.findMany({
       orderBy: { id: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: { select: { category_name: true } },
-        isbn: true,
-        price: true,
-        description: true,
-        stock_quantity: true,
-        rating: true,
-        image_url: true,
-      },
+      select: selectedBookInformations,
     });
     if (!books) return [];
     return books;
@@ -76,23 +78,7 @@ export class BooksService {
   async findOne(id: number) {
     const book = await this.prisma.books.findUnique({
       where: { id },
-      select: {
-        id: true,
-        title: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: { select: { category_name: true } },
-        isbn: true,
-        price: true,
-        description: true,
-        stock_quantity: true,
-        rating: true,
-        image_url: true,
-      },
+      select: selectedBookInformations,
     });
 
     if (!book) throw new Error('Book not found.');
@@ -157,23 +143,7 @@ export class BooksService {
           },
         ],
       },
-      select: {
-        id: true,
-        title: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: { select: { category_name: true } },
-        isbn: true,
-        price: true,
-        description: true,
-        stock_quantity: true,
-        rating: true,
-        image_url: true,
-      },
+      select: selectedBookInformations,
     });
   }
 
@@ -219,23 +189,7 @@ export class BooksService {
 
     return await this.prisma.books.findMany({
       where: conditions,
-      select: {
-        id: true,
-        title: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        category: { select: { category_name: true } },
-        isbn: true,
-        price: true,
-        description: true,
-        stock_quantity: true,
-        rating: true,
-        image_url: true,
-      },
+      select: selectedBookInformations,
       orderBy: [{ price: orderBy }, { rating: orderBy }],
     });
   }
