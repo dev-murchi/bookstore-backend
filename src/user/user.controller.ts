@@ -22,7 +22,7 @@ import { RoleEnum } from 'src/common/role.enum';
 import { Roles } from 'src/common/decorator/role/role.decorator';
 const roundsOfHashing = 10;
 
-@Controller('user')
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
