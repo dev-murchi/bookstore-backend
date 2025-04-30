@@ -117,11 +117,8 @@ export class StripeWebhookProcessor extends WorkerHost {
 
     try {
       await this.prisma.$transaction(async () => {
-        const order = await this.ordersService.getOrder(orderId);
-        if (order.status !== 'canceled') {
-          await this.ordersService.revertOrderStocks(orderId);
-        }
-
+        await this.ordersService.getOrder(orderId);
+        await this.ordersService.revertOrderStocks(orderId);
         await this.ordersService.updateStatus(orderId, OrderStatus.Expired);
         await this.paymentService.createOrUpdatePayment(paymentData);
       });
@@ -149,6 +146,25 @@ export class StripeWebhookProcessor extends WorkerHost {
   private async paymentSuccessful(data: StripeSessionData): Promise<void> {
     const orderId = this.parseOrderId(data.metadata);
 
+    const shippingDetails: ShippingCustomerDetails = {
+      email: data.customer_details.email,
+      address: {
+        country: data.customer_details.address.country,
+        state: data.customer_details.address.state,
+        city: data.customer_details.address.city,
+        postalCode: data.customer_details.address.postal_code,
+        line1: data.customer_details.address.line1,
+        line2: data.customer_details.address.line2,
+      },
+    };
+
+    const paymentData: PaymentData = {
+      orderId: orderId,
+      transactionId: data.payment_intent,
+      status: PaymentStatus.Paid,
+      amount: data.amount_total,
+    };
+
     try {
       const { existingOrder } = await this.prisma.$transaction(async () => {
         const existingOrder = await this.ordersService.getOrder(orderId);
@@ -158,29 +174,10 @@ export class StripeWebhookProcessor extends WorkerHost {
           OrderStatus.Complete,
         );
 
-        const shippingDetails: ShippingCustomerDetails = {
-          email: data.customer_details.email,
-          address: {
-            country: data.customer_details.address.country,
-            state: data.customer_details.address.state,
-            city: data.customer_details.address.city,
-            postalCode: data.customer_details.address.postal_code,
-            line1: data.customer_details.address.line1,
-            line2: data.customer_details.address.line2,
-          },
-        };
-
         const shipping = await this.shippingService.createShipping(
           orderId,
           shippingDetails,
         );
-
-        const paymentData: PaymentData = {
-          orderId: orderId,
-          transactionId: data.payment_intent,
-          status: PaymentStatus.Paid,
-          amount: data.amount_total,
-        };
 
         const payment =
           await this.paymentService.createOrUpdatePayment(paymentData);
@@ -188,16 +185,15 @@ export class StripeWebhookProcessor extends WorkerHost {
         return { existingOrder, updatedOrder, shipping, payment };
       });
 
-      if (existingOrder.status === 'canceled') {
-        await this.tryRefund(orderId, data.payment_intent);
-      }
-
       await this.emailService.sendOrderStatusUpdate(
         orderId,
         OrderStatus.Complete,
         data.customer_details.email,
       );
 
+      if (existingOrder.status === 'canceled') {
+        await this.tryRefund(orderId, data.payment_intent);
+      }
       console.warn(
         `Order #[${orderId}] marked as complete and order confirmation email added to queue.`,
       );
