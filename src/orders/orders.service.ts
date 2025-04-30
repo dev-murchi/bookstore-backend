@@ -3,6 +3,26 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { OrderStatus } from './enum/order-status.enum';
 
+const selectedOrderInformations = {
+  id: true,
+  userid: true,
+  totalPrice: true,
+  status: true,
+  shipping_details: { select: { email: true } },
+  order_items: {
+    select: {
+      id: true,
+      book: {
+        select: {
+          id: true,
+          title: true,
+          author: { select: { name: true } },
+        },
+      },
+      quantity: true,
+    },
+  },
+};
 @Injectable()
 export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -49,26 +69,7 @@ export class OrdersService {
       where: {
         id: orderId,
       },
-      select: {
-        id: true,
-        userid: true,
-        totalPrice: true,
-        status: true,
-        shipping_details: { select: { email: true } },
-        order_items: {
-          select: {
-            id: true,
-            book: {
-              select: {
-                id: true,
-                title: true,
-                author: { select: { name: true } },
-              },
-            },
-            quantity: true,
-          },
-        },
-      },
+      select: selectedOrderInformations,
     });
     if (!order) throw new Error(`Order not found: ${orderId}`);
     return order;
@@ -79,26 +80,7 @@ export class OrdersService {
       return await this.prisma.orders.update({
         where: { id: orderId },
         data: { status },
-        select: {
-          id: true,
-          userid: true,
-          totalPrice: true,
-          status: true,
-          shipping_details: { select: { email: true } },
-          order_items: {
-            select: {
-              id: true,
-              book: {
-                select: {
-                  id: true,
-                  title: true,
-                  author: { select: { name: true } },
-                },
-              },
-              quantity: true,
-            },
-          },
-        },
+        select: selectedOrderInformations,
       });
     } catch (error) {
       console.error(`Order #${orderId} status update failed`, error);

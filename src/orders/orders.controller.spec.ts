@@ -4,6 +4,7 @@ import { UserAccessGuard } from '../common/guards/user-access/user-access.guard'
 
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
+import { EmailService } from '../email/email.service';
 
 const mockOrdersService = {
   getOrder: jest.fn(),
@@ -15,6 +16,10 @@ const mockOrdersStatusService = {
   cancelOrder: jest.fn(),
 };
 
+const mockEmailService = {
+  sendOrderStatusUpdate: jest.fn(),
+};
+
 describe('OrdersController', () => {
   let controller: OrdersController;
 
@@ -24,6 +29,10 @@ describe('OrdersController', () => {
       providers: [
         { provide: OrdersService, useValue: mockOrdersService },
         { provide: OrdersStatusService, useValue: mockOrdersStatusService },
+        {
+          provide: EmailService,
+          useValue: mockEmailService,
+        },
       ],
     })
       .overrideGuard(UserAccessGuard)

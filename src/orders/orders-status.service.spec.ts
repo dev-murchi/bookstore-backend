@@ -3,7 +3,6 @@ import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus } from './enum/order-status.enum';
-import { EmailService } from '../email/email.service';
 
 const mockOrder = {
   id: 1,
@@ -38,10 +37,6 @@ const mockOrdersService = {
   updateStatus: jest.fn(),
 };
 
-const mockEmailService = {
-  sendOrderStatusUpdate: jest.fn(),
-};
-
 const mockPrismaService = {
   $transaction: jest.fn((fn) => fn()),
   books: {
@@ -66,10 +61,6 @@ describe('OrdersStatusService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
-        {
-          provide: EmailService,
-          useValue: mockEmailService,
-        },
       ],
     }).compile();
 
@@ -85,7 +76,7 @@ describe('OrdersStatusService', () => {
         new Error(`Order not found: ${orderId}`),
       );
       await expect(
-        service.changeStatus(orderId, {
+        (service as any).changeStatus(orderId, {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
         }),
@@ -96,7 +87,7 @@ describe('OrdersStatusService', () => {
       const order = { ...mockOrder, status: OrderStatus.Canceled };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
-      const result = await service.changeStatus(1, {
+      const result = await (service as any).changeStatus(1, {
         from: OrderStatus.Pending,
         to: OrderStatus.Canceled,
       });
@@ -109,34 +100,13 @@ describe('OrdersStatusService', () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
       await expect(
-        service.changeStatus(1, {
+        (service as any).changeStatus(1, {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
         }),
       ).rejects.toThrow(
         "Order must be in 'pending' status to change to 'canceled'. Current: 'complete'",
       );
-    });
-
-    it('calls updateStatus and postUpdate', async () => {
-      const postUpdate = jest.fn();
-      const order = { ...mockOrder, status: OrderStatus.Pending };
-      const updatedOrder = { ...order, status: OrderStatus.Canceled };
-
-      mockOrdersService.getOrder.mockResolvedValueOnce(order);
-      mockOrdersService.updateStatus.mockResolvedValueOnce(updatedOrder);
-
-      await service.changeStatus(1, {
-        from: OrderStatus.Pending,
-        to: OrderStatus.Canceled,
-        postUpdate,
-      });
-
-      expect(ordersService.updateStatus).toHaveBeenCalledWith(
-        1,
-        OrderStatus.Canceled,
-      );
-      expect(postUpdate).toHaveBeenCalledWith(updatedOrder);
     });
   });
 
@@ -150,12 +120,7 @@ describe('OrdersStatusService', () => {
 
       await service.cancelOrder(1);
 
-      expect(prismaService.books.update).toHaveBeenCalledTimes(2);
-      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        1,
-        'canceled',
-        'user@email.com',
-      );
+      expect(ordersService.updateStatus).toHaveBeenCalledWith(1, 'canceled');
     });
   });
 
@@ -173,12 +138,6 @@ describe('OrdersStatusService', () => {
         order.id,
         'shipped',
       );
-
-      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        1,
-        'shipped',
-        'user@email.com',
-      );
     });
   });
 
@@ -195,11 +154,6 @@ describe('OrdersStatusService', () => {
       expect(ordersService.updateStatus).toHaveBeenCalledWith(
         order.id,
         'delivered',
-      );
-      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        1,
-        'delivered',
-        'user@email.com',
       );
     });
   });

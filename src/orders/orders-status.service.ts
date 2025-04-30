@@ -3,7 +3,6 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { orders } from '@prisma/client';
 import { OrderStatus } from './enum/order-status.enum';
-import { EmailService } from '../email/email.service';
 
 interface StatusRule {
   from: OrderStatus;
@@ -16,10 +15,9 @@ export class OrdersStatusService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
-    private readonly emailService: EmailService,
   ) {}
 
-  async changeStatus(orderId: number, rule: StatusRule) {
+  private async changeStatus(orderId: number, rule: StatusRule) {
     const order = await this.ordersService.getOrder(orderId);
 
     if (order.status === rule.to) return order;
@@ -33,62 +31,42 @@ export class OrdersStatusService {
       rule.to,
     );
 
-    if (rule.postUpdate) await rule.postUpdate(updatedOrder);
-
     return updatedOrder;
   }
 
   async cancelOrder(orderId: number) {
-    return this.prisma.$transaction(async () => {
-      return this.changeStatus(orderId, {
+    try {
+      return await this.changeStatus(orderId, {
         from: OrderStatus.Pending,
         to: OrderStatus.Canceled,
-        postUpdate: async (order) => {
-          for (const item of order.order_items) {
-            await this.prisma.books.update({
-              where: { id: item.book.id },
-              data: { stock_quantity: { increment: item.quantity } },
-            });
-          }
-
-          // send order staus update mail to the user
-          await this.emailService.sendOrderStatusUpdate(
-            orderId,
-            order.status,
-            order.shipping_details.email,
-          );
-        },
       });
-    });
+    } catch (error) {
+      console.error(`Unable to complete order canceling process: Error`, error);
+      throw new Error(`Unable to complete order canceling process`);
+    }
   }
 
   async shipOrder(orderId: number) {
-    return this.changeStatus(orderId, {
-      from: OrderStatus.Complete,
-      to: OrderStatus.Shipped,
-      postUpdate: async (order) => {
-        // send order staus update mail to the user
-        await this.emailService.sendOrderStatusUpdate(
-          orderId,
-          order.status,
-          order.shipping_details.email,
-        );
-      },
-    });
+    try {
+      return await this.changeStatus(orderId, {
+        from: OrderStatus.Complete,
+        to: OrderStatus.Shipped,
+      });
+    } catch (error) {
+      console.error(`Unable to complete order shipping process: Error`, error);
+      throw new Error(`Unable to complete order shipping process`);
+    }
   }
 
   async deliverOrder(orderId: number) {
-    return this.changeStatus(orderId, {
-      from: OrderStatus.Shipped,
-      to: OrderStatus.Delivered,
-      postUpdate: async (order) => {
-        // send order staus update mail to the user
-        await this.emailService.sendOrderStatusUpdate(
-          orderId,
-          order.status,
-          order.shipping_details.email,
-        );
-      },
-    });
+    try {
+      return await this.changeStatus(orderId, {
+        from: OrderStatus.Shipped,
+        to: OrderStatus.Delivered,
+      });
+    } catch (error) {
+      console.error(`Unable to complete order delivery process: Error`, error);
+      throw new Error(`Unable to complete order delivery process`);
+    }
   }
 }

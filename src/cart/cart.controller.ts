@@ -106,6 +106,10 @@ export class CartController {
   @Post('clear')
   @Roles([RoleEnum.Admin])
   removeInactiveGuestCarts() {
-    return this.cartService.removeInactiveGuestCarts();
+    try {
+      return this.cartService.removeInactiveGuestCarts();
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 }

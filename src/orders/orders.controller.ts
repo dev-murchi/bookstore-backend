@@ -19,6 +19,7 @@ import { UserAccessGuard } from '../common/guards/user-access/user-access.guard'
 import { OrderStatusDto } from './dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
+import { EmailService } from '../email/email.service';
 
 @Controller('orders')
 @UseGuards(UserAccessGuard)
@@ -26,6 +27,7 @@ export class OrdersController {
   constructor(
     private ordersService: OrdersService,
     private ordersStatusService: OrdersStatusService,
+    private readonly emailService: EmailService,
   ) {}
 
   @Post(':id/status')
@@ -36,6 +38,7 @@ export class OrdersController {
   ) {
     try {
       let order;
+
       switch (orderStatusDTO.status) {
         case 'delivered':
           order = await this.ordersStatusService.deliverOrder(orderId);
@@ -49,6 +52,12 @@ export class OrdersController {
         default:
           throw new Error('Invalid order status.');
       }
+
+      await this.emailService.sendOrderStatusUpdate(
+        order.id,
+        order.status,
+        order.shipping_details.email,
+      );
     } catch (error) {
       throw new BadRequestException(error.message);
     }
