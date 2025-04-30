@@ -13,7 +13,7 @@ export class PaymentService {
     @Inject('StripeWebhookQueue') private readonly stripeWebhookQueue: Queue,
   ) {}
 
-  async createCheckoutSession(data: Stripe.Checkout.SessionCreateParams) {
+  async createStripeCheckoutSession(data: Stripe.Checkout.SessionCreateParams) {
     const session = await this.stripeService.createCheckoutSession(data);
     return {
       url: session.url,

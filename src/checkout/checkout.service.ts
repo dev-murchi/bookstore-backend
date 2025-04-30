@@ -112,7 +112,7 @@ export class CheckoutService {
         await pr.cart.delete({ where: { id: data.cartId } });
 
         // create payment checkout session
-        const session = await this.paymentService.createCheckoutSession({
+        const session = await this.paymentService.createStripeCheckoutSession({
           mode: 'payment',
           payment_method_types: ['card'],
           shipping_address_collection: {

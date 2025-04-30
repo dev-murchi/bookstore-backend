@@ -24,7 +24,7 @@ const mockPrismaService = {
 };
 
 const mockPaymentService = {
-  createCheckoutSession: jest.fn(),
+  createStripeCheckoutSession: jest.fn(),
 };
 
 const userId = 1;
@@ -150,7 +150,9 @@ describe('CheckoutService', () => {
 
     mockPrismaService.cart.delete.mockReturnValueOnce({ id: 1 });
 
-    mockPaymentService.createCheckoutSession.mockResolvedValueOnce(session);
+    mockPaymentService.createStripeCheckoutSession.mockResolvedValueOnce(
+      session,
+    );
 
     const result = await service.checkout(userId, { cartId: 1 });
 
@@ -240,36 +242,38 @@ describe('CheckoutService', () => {
     expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
       where: { id: 1 },
     });
-    // check paymentService.createCheckoutSession called with correct data
-    expect(mockPaymentService.createCheckoutSession).toHaveBeenCalledWith({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      shipping_address_collection: {
-        allowed_countries: ['TR', 'GB', 'US', 'JP'],
-      },
-      metadata: {
-        orderId: 1,
-      },
-      payment_intent_data: {
+    // check paymentService.createStripeCheckoutSession called with correct data
+    expect(mockPaymentService.createStripeCheckoutSession).toHaveBeenCalledWith(
+      {
+        mode: 'payment',
+        payment_method_types: ['card'],
+        shipping_address_collection: {
+          allowed_countries: ['TR', 'GB', 'US', 'JP'],
+        },
         metadata: {
           orderId: 1,
         },
-      },
-      customer_email: undefined,
-      line_items: cartItems.map((item) => ({
-        price_data: {
-          product_data: {
-            name: item.book.title,
+        payment_intent_data: {
+          metadata: {
+            orderId: 1,
           },
-          unit_amount: Number(item.book.price.toFixed(2)) * 100,
-          currency: 'usd',
         },
-        quantity: item.quantity,
-      })),
-      success_url: 'http://localhost:8080/success',
-      cancel_url: 'http://localhost:8080/cancel',
-      expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
-    });
+        customer_email: undefined,
+        line_items: cartItems.map((item) => ({
+          price_data: {
+            product_data: {
+              name: item.book.title,
+            },
+            unit_amount: Number(item.book.price.toFixed(2)) * 100,
+            currency: 'usd',
+          },
+          quantity: item.quantity,
+        })),
+        success_url: 'http://localhost:8080/success',
+        cancel_url: 'http://localhost:8080/cancel',
+        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+      },
+    );
 
     // check return value
     expect(result).toEqual({

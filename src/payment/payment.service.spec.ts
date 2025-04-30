@@ -76,7 +76,8 @@ describe('PaymentService', () => {
         mockSession,
       );
 
-      const result = await paymentService.createCheckoutSession(sessionParams);
+      const result =
+        await paymentService.createStripeCheckoutSession(sessionParams);
 
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         sessionParams,
