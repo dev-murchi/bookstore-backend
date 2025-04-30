@@ -16,9 +16,11 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 
 @Controller('category')
+@UseGuards(UserAccessGuard)
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
   @Get()
+  @Roles([RoleEnum.Admin, RoleEnum.Author, RoleEnum.User, RoleEnum.GuestUser])
   async viewAllCategories() {
     return await this.categoryService.getAll();
   }
