@@ -261,7 +261,7 @@ describe('CheckoutService', () => {
           product_data: {
             name: item.book.title,
           },
-          unit_amount: parseFloat(item.book.price.toFixed(2)) * 100,
+          unit_amount: Number(item.book.price.toFixed(2)) * 100,
           currency: 'usd',
         },
         quantity: item.quantity,

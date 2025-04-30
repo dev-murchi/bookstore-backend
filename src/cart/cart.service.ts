@@ -55,11 +55,11 @@ export class CartService {
     const cartItems = cart.cart_items.map((item) => ({
       bookId: item.book.id,
       bookTitle: item.book.title,
-      price: parseFloat(item.book.price.toFixed(2)),
+      price: Number(item.book.price.toFixed(2)),
       quantity: item.quantity,
     }));
 
-    const totalPrice = parseFloat(
+    const totalPrice = Number(
       cartItems.reduce((p, c) => p + c.price * c.quantity, 0).toFixed(2),
     );
 

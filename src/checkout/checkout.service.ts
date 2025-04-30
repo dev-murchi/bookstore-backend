@@ -152,11 +152,11 @@ export class CheckoutService {
             items: order.order_items.map((item) => ({
               quantity: item.quantity,
               bookId: item.book.id,
-              price: parseFloat(item.book.price.toFixed(2)),
+              price: Number(item.book.price.toFixed(2)),
               bookTitle: item.book.title,
             })),
             status: order.status,
-            totalPrice: parseFloat(order.totalPrice.toFixed(2)),
+            totalPrice: Number(order.totalPrice.toFixed(2)),
           },
           message: 'Checkout successfull.',
           expires: session.expires,
