@@ -13,7 +13,6 @@ import { QueueModule } from './queue/queue.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CategoryModule } from './category/category.module';
-import { StripeModule } from './stripe/stripe.module';
 import { MailSenderModule } from './mail-sender/mail-sender.module';
 import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
@@ -35,7 +34,6 @@ import { QueueProcessorModule } from './queue-processor/queue-processor.module';
     OrdersModule,
     ReviewsModule,
     CategoryModule,
-    StripeModule,
     MailSenderModule,
     EmailModule,
     QueueProcessorModule,

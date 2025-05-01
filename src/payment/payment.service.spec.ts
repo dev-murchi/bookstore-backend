@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
-import { StripeService } from '../stripe/stripe.service';
+import { StripeService } from './stripe/stripe.service';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentStatus } from './enum/payment-status.enum';

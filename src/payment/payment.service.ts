@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Stripe from 'stripe';
-import { StripeService } from '../stripe/stripe.service';
+import { StripeService } from './stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentData } from './interfaces/payment-data.interface';
 

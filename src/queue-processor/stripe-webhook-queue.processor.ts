@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { StripeService } from '../stripe/stripe.service';
+import { StripeService } from '../payment/stripe/stripe.service';
 import { PaymentService } from '../payment/payment.service';
 import { OrdersService } from '../orders/orders.service';
 import { EmailService } from '../email/email.service';
