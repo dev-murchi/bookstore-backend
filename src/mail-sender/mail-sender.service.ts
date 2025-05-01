@@ -114,6 +114,7 @@ Technical Team of BookStore`;
 
       return info;
     } catch (error) {
+      console.error('Failed to send the email. Error:', error);
       throw new Error('Failed to send the email');
     }
   }

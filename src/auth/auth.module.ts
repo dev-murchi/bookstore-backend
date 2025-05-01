@@ -5,7 +5,7 @@ import { UserModule } from 'src/user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { MailSenderModule } from 'src/mail-sender/mail-sender.module';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { MailSenderModule } from 'src/mail-sender/mail-sender.module';
     }),
     UserModule,
     PrismaModule,
-    MailSenderModule,
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService],

@@ -11,7 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from '../user/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 
-import { MailSenderService } from '../mail-sender/mail-sender.service';
+import { EmailService } from '../email/email.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 
@@ -20,7 +20,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private jwtService: JwtService,
-    private MailSenderService: MailSenderService,
+    private emailService: EmailService,
   ) {}
 
   async register(user: CreateUserDto, role: RoleEnum) {
@@ -57,7 +57,7 @@ export class AuthService {
         // send password reset mail
         const link = `http://localhost/reset-password?token=${resetToken}`;
 
-        await this.MailSenderService.sendResetPasswordMail(
+        await this.emailService.sendResetPasswordMail(
           user.email,
           user.name,
           link,

@@ -48,4 +48,40 @@ describe('EmailService', () => {
       );
     });
   });
+
+  describe('sendResetPasswordMail', () => {
+    it('should adds a new job to the queue. ', async () => {
+      const job = {
+        email: 'testuser@email.com',
+        username: 'test user',
+        link: 'http://localhost/reset-password?token=reset-token-123',
+      };
+
+      await service.sendResetPasswordMail(
+        'testuser@email.com',
+        'test user',
+        'http://localhost/reset-password?token=reset-token-123',
+      );
+
+      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
+        'password-reset',
+        job,
+      );
+    });
+    it('should throw an error if the job could not be added to the queue ', async () => {
+      mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
+
+      await expect(
+        service.sendResetPasswordMail(
+          'testuser@email.com',
+          'test user',
+          'http://localhost/reset-password?token=reset-token-123',
+        ),
+      ).rejects.toThrow(
+        new Error(
+          'Unable to send password reset email at this time. Please try again later.',
+        ),
+      );
+    });
+  });
 });

@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
 import { StripeWebhookProcessor } from './stripe-webhook-queue.processor';
-import { QueueModule } from 'src/queue/queue.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { PaymentModule } from 'src/payment/payment.module';
 import { OrdersModule } from 'src/orders/orders.module';
 import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
 import { EmailModule } from 'src/email/email.module';
+import { MailSenderModule } from 'src/mail-sender/mail-sender.module';
 
 @Module({
   imports: [
-    QueueModule,
     PrismaModule,
     PaymentModule,
     OrdersModule,
     EmailModule,
+    MailSenderModule,
   ],
   providers: [StripeWebhookProcessor, MailSenderQueueProcessor],
   exports: [],

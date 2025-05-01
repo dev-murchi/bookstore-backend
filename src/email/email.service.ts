@@ -24,4 +24,20 @@ export class EmailService {
       );
     }
   }
+
+  async sendResetPasswordMail(email: string, username: string, link: string) {
+    try {
+      await this.mailSenderQueue.add('password-reset', {
+        email,
+        username,
+        link,
+      });
+      console.log('....');
+    } catch (error) {
+      console.error('Failed to queue password reset email:', error);
+      throw new Error(
+        'Unable to send password reset email at this time. Please try again later.',
+      );
+    }
+  }
 }

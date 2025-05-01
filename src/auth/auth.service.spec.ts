@@ -5,9 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-
-import { MailSenderService } from '../mail-sender/mail-sender.service';
+import { EmailService } from '../email/email.service';
 import { RoleEnum } from '../common/role.enum';
 
 const mockUserService = {
@@ -22,14 +20,7 @@ const mockJwtService = {
   signAsync: jest.fn(),
 };
 
-const mockPrismaService = {
-  password_reset_tokens: {
-    findUnique: jest.fn(),
-    delete: jest.fn(),
-  },
-};
-
-const mockMailSenderService = {
+const mockEmailService = {
   sendResetPasswordMail: jest.fn(),
 };
 
@@ -37,8 +28,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
   let jwtService: JwtService;
-  let prismaService: PrismaService;
-  let mailSenderService: MailSenderService;
+  let emailService: EmailService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -52,13 +42,10 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: mockJwtService,
         },
+
         {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: MailSenderService,
-          useValue: mockMailSenderService,
+          provide: EmailService,
+          useValue: mockEmailService,
         },
       ],
     }).compile();
@@ -66,8 +53,7 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
     jwtService = module.get<JwtService>(JwtService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    mailSenderService = module.get<MailSenderService>(MailSenderService);
+    emailService = module.get<EmailService>(EmailService);
   });
 
   afterEach(() => {
@@ -207,7 +193,7 @@ describe('AuthService', () => {
       });
 
       expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
-      expect(mailSenderService.sendResetPasswordMail).toHaveBeenCalledWith(
+      expect(emailService.sendResetPasswordMail).toHaveBeenCalledWith(
         'testuser@email.com',
         'test user',
         'http://localhost/reset-password?token=mockToken',
