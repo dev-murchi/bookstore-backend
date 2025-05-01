@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
 import { OrdersStatusService } from './orders-status.service';
 import { EmailModule } from 'src/email/email.module';
+import { ShippingService } from './shipping/shipping.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { EmailModule } from 'src/email/email.module';
     EmailModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrdersStatusService],
-  exports: [OrdersService],
+  providers: [OrdersService, OrdersStatusService, ShippingService],
+  exports: [OrdersService, ShippingService],
 })
 export class OrdersModule {}

@@ -7,7 +7,6 @@ import { PaymentModule } from 'src/payment/payment.module';
 import { OrdersModule } from 'src/orders/orders.module';
 import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
 import { EmailModule } from 'src/email/email.module';
-import { ShippingModule } from 'src/shipping/shipping.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { ShippingModule } from 'src/shipping/shipping.module';
     PaymentModule,
     OrdersModule,
     EmailModule,
-    ShippingModule,
   ],
   providers: [StripeWebhookProcessor, MailSenderQueueProcessor],
   exports: [],

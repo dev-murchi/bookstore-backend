@@ -8,7 +8,7 @@ import { EmailService } from '../email/email.service';
 import {
   ShippingCustomerDetails,
   ShippingService,
-} from '../shipping/shipping.service';
+} from '../orders/shipping/shipping.service';
 import { PaymentData } from '../payment/interfaces/payment-data.interface';
 import { PaymentStatus } from '../payment/enum/payment-status.enum';
 import { OrderStatus } from '../orders/enum/order-status.enum';

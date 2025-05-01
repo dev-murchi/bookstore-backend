@@ -17,7 +17,6 @@ import { StripeModule } from './stripe/stripe.module';
 import { MailSenderModule } from './mail-sender/mail-sender.module';
 import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
-import { ShippingModule } from './shipping/shipping.module';
 
 @Module({
   imports: [
@@ -40,7 +39,6 @@ import { ShippingModule } from './shipping/shipping.module';
     MailSenderModule,
     EmailModule,
     QueueProcessorModule,
-    ShippingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
