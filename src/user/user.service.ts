@@ -184,4 +184,52 @@ export class UserService {
       throw new Error('Password reset token could not be created.');
     }
   }
+
+  async resetPassword(email: string, token: string, newPassword: string) {
+    try {
+      // get password_reset_tokens
+      const passwordResetToken =
+        await this.prisma.password_reset_tokens.findUnique({
+          where: { token },
+        });
+
+      // check token validty
+      if (!passwordResetToken) throw new BadRequestException('Invalid token');
+
+      // delete disposable password reset token
+      await this.prisma.password_reset_tokens.delete({ where: { token } });
+
+      // check token expiration
+      if (passwordResetToken.expires_at < new Date(Date.now())) {
+        throw new BadRequestException('Expired token');
+      }
+
+      // get user with email
+      const user = await this.findBy(email);
+
+      // check user correctness
+      if (user.id !== passwordResetToken.userid)
+        throw new BadRequestException('Invalid email');
+
+      // compare new password with old password
+      if (await bcrypt.compare(newPassword, user.password)) {
+        throw new BadRequestException(
+          'New password must be different from the current password. Please try again.',
+        );
+      }
+      // hash password
+      const hashedPassword = await bcrypt.hash(newPassword, roundsOfHashing);
+
+      // update user password
+      await this.update(user.id, { password: hashedPassword });
+
+      return { message: 'Password reset successfully' };
+    } catch (error) {
+      console.error('Password could not be reset. Error:', error);
+
+      if (error instanceof BadRequestException) throw error;
+
+      throw new Error('Password could not be reset.');
+    }
+  }
 }

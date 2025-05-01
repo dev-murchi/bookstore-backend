@@ -15,6 +15,7 @@ const mockUserService = {
   findBy: jest.fn(),
   update: jest.fn(),
   createPasswordResetToken: jest.fn(),
+  resetPassword: jest.fn(),
 };
 
 const mockJwtService = {
@@ -222,9 +223,9 @@ describe('AuthService', () => {
   });
 
   describe('resetPassword', () => {
-    it('should throw an error if the token is invalid', async () => {
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
-        null,
+    it('should throw an error if the password reset operation failes', async () => {
+      mockUserService.resetPassword.mockRejectedValueOnce(
+        new Error('Something went wrong'),
       );
 
       try {
@@ -235,167 +236,21 @@ describe('AuthService', () => {
         });
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('Invalid token');
-        expect(
-          prismaService.password_reset_tokens.findUnique,
-        ).toHaveBeenCalledWith({
-          where: {
-            token: 'invalid-token',
-          },
-        });
+        expect(error.message).toBe('Something went wrong');
       }
     });
 
-    it('should throw an error if the token has expired', async () => {
-      const mockPasswordResetData = {
-        token_id: 1,
-        userid: 1,
-        token: 'token',
-        expires_at: new Date(Date.now() - 60 * 1000), // token expired 1 minute ago
-      };
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
-        mockPasswordResetData,
-      );
-      mockPrismaService.password_reset_tokens.delete.mockReturnValueOnce(
-        mockPasswordResetData,
-      );
-
-      try {
-        await service.resetPassword({
-          email: 'testuse@email.com',
-          token: 'token',
-          newPassword: 'newpassword',
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('Invalid token');
-        expect(
-          prismaService.password_reset_tokens.findUnique,
-        ).toHaveBeenCalledWith({
-          where: { token: 'token' },
-        });
-
-        expect(prismaService.password_reset_tokens.delete).toHaveBeenCalledWith(
-          {
-            where: { token: 'token' },
-          },
-        );
-      }
-    });
-
-    it('should throw an error if the email does not match the token', async () => {
-      const mockPasswordResetData = {
-        token_id: 1,
-        userid: 1,
-        token: 'token',
-        expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
-      };
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValue(
-        mockPasswordResetData,
-      );
-
-      mockUserService.findBy.mockReturnValueOnce(null).mockReturnValueOnce({
-        name: 'second user',
-        id: 2,
-        email: 'seconduser@email.com',
-        password: 'oldpassword',
-        roleid: 1,
-        is_active: true,
+    it('should reset the password successfully', async () => {
+      mockUserService.resetPassword.mockResolvedValueOnce({
+        message: 'Password reset successfully',
       });
-
-      try {
-        await service.resetPassword({
-          email: 'unknownuser@email.com',
-          token: 'token',
-          newPassword: 'newpassword',
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('Invalid email');
-      }
-
-      try {
-        await service.resetPassword({
-          email: 'seconduser@email.com',
-          token: 'token',
-          newPassword: 'newpassword',
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('Invalid email');
-      }
-
-      mockPrismaService.password_reset_tokens.findUnique.mockClear();
-    });
-
-    it('should throw an error if the new password is the same as the old password', async () => {
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
-        token_id: 1,
-        userid: 1,
-        token: 'token',
-        expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
-      });
-
-      mockUserService.findBy.mockReturnValueOnce({
-        name: 'test user',
-        id: 1,
+      const result = await service.resetPassword({
         email: 'testuser@email.com',
-        password: 'oldpassword',
-        roleid: 1,
-        is_active: true,
+        token: 'token',
+        newPassword: 'newpassword',
       });
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(true as never);
-
-      try {
-        await service.resetPassword({
-          email: 'testuser@email.com',
-          token: 'token',
-          newPassword: 'oldpassword',
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe(
-          'New password must be different from the current password. Please try again.',
-        );
-      }
+      expect(result).toEqual({ message: 'Password reset successfully' });
     });
-  });
-
-  it('should reset the password successfully', async () => {
-    mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
-      token_id: 1,
-      userid: 1,
-      token: 'token',
-      expires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
-    });
-
-    mockUserService.findBy.mockReturnValueOnce({
-      name: 'test user',
-      id: 1,
-      email: 'testuser@email.com',
-      password: 'oldpassword',
-      roleid: 1,
-      is_active: true,
-    });
-
-    jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(false as never);
-    jest.spyOn(bcrypt, 'hash').mockResolvedValueOnce('hashedPassword' as never);
-
-    const result = await service.resetPassword({
-      email: 'testuser@email.com',
-      token: 'token',
-      newPassword: 'newpassword',
-    });
-
-    expect(userService.update).toHaveBeenCalledWith(1, {
-      password: 'hashedPassword',
-    });
-
-    expect(prismaService.password_reset_tokens.delete).toHaveBeenCalledWith({
-      where: { token: 'token' },
-    });
-
-    expect(result).toEqual({ message: 'Password reset successfully' });
   });
 });
