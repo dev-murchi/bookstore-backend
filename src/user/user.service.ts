@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+
 const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
@@ -156,6 +158,30 @@ export class UserService {
       return { message: 'User deleted successfully' };
     } catch (error) {
       throw new BadRequestException('User could not be deleted');
+    }
+  }
+
+  async createPasswordResetToken(userId: number) {
+    try {
+      const disposableToken = uuidv4();
+
+      const tenMinutes = 10 * 60 * 1000;
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          password_reset_tokens: {
+            create: {
+              token: disposableToken,
+              expires_at: new Date(Date.now() + tenMinutes),
+            },
+          },
+        },
+      });
+      return disposableToken;
+    } catch (error) {
+      console.error('Password reset token could not be created. Error:', error);
+      throw new Error('Password reset token could not be created.');
     }
   }
 }

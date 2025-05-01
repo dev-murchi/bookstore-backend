@@ -11,7 +11,6 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from '../user/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 
-import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
@@ -55,26 +54,12 @@ export class AuthService {
       const user = await this.userService.findBy(email);
 
       if (user) {
-        // create token
-        const disposableToken = uuidv4();
-
-        const tenMinutes = 10 * 60 * 1000;
-
-        // save token
-        await this.prisma.password_reset_tokens.create({
-          data: {
-            user: {
-              connect: {
-                id: user.id,
-              },
-            },
-            token: disposableToken,
-            expires_at: new Date(Date.now() + tenMinutes),
-          },
-        });
+        const resetToken = await this.userService.createPasswordResetToken(
+          user.id,
+        );
 
         // send password reset mail
-        const link = `http://localhost/reset-password?token=${disposableToken}`;
+        const link = `http://localhost/reset-password?token=${resetToken}`;
 
         await this.MailSenderService.sendResetPasswordMail(
           user.email,

@@ -6,18 +6,15 @@ import { CreateUserDto } from '../user/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { v4 as uuidv4 } from 'uuid';
+
 import { MailSenderService } from '../mail-sender/mail-sender.service';
 import { RoleEnum } from '../common/role.enum';
-
-jest.mock('uuid', () => ({
-  v4: jest.fn(),
-}));
 
 const mockUserService = {
   create: jest.fn(),
   findBy: jest.fn(),
   update: jest.fn(),
+  createPasswordResetToken: jest.fn(),
 };
 
 const mockJwtService = {
@@ -26,7 +23,6 @@ const mockJwtService = {
 
 const mockPrismaService = {
   password_reset_tokens: {
-    create: jest.fn(),
     findUnique: jest.fn(),
     delete: jest.fn(),
   },
@@ -190,7 +186,7 @@ describe('AuthService', () => {
       });
 
       expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
-      expect(prismaService.password_reset_tokens.create).not.toHaveBeenCalled();
+      expect(userService.createPasswordResetToken).not.toHaveBeenCalled();
     });
     it('should return a reset password URL if the user is found and token is saved', async () => {
       mockUserService.findBy.mockReturnValueOnce({
@@ -201,13 +197,8 @@ describe('AuthService', () => {
         roleid: 1,
         is_active: true,
       });
-      mockPrismaService.password_reset_tokens.create.mockReturnValueOnce({
-        token_id: 1,
-        userid: 1,
-        token: 'mocktoken',
-        exprires_at: new Date(Date.now() + 10 * 60 * 1000), // token will expire 10 minutes later
-      });
-      (uuidv4 as jest.Mock).mockReturnValueOnce('mockToken');
+
+      mockUserService.createPasswordResetToken.mockReturnValueOnce('mockToken');
       const result = await service.forgotPassword('testuser@email.com');
 
       expect(result).toEqual({
@@ -215,13 +206,6 @@ describe('AuthService', () => {
       });
 
       expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
-      expect(prismaService.password_reset_tokens.create).toHaveBeenCalledWith({
-        data: {
-          user: { connect: { id: 1 } },
-          token: 'mockToken',
-          expires_at: expect.any(Date),
-        },
-      });
       expect(mailSenderService.sendResetPasswordMail).toHaveBeenCalledWith(
         'testuser@email.com',
         'test user',

@@ -6,6 +6,11 @@ import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
+
+jest.mock('uuid', () => ({
+  v4: jest.fn(),
+}));
 
 jest.spyOn(bcrypt, 'hash').mockImplementation((pass, salt) => 'hashedPassword');
 
@@ -344,6 +349,45 @@ describe('UserService', () => {
         expect(error).toBeInstanceOf(BadRequestException);
         expect(error.message).toBe('User could not be deleted');
       }
+    });
+  });
+
+  describe('createPasswordResetToken', () => {
+    it('should create and return a disposable token', async () => {
+      const mockUserId = 1;
+      const mockToken = 'mock-uuid-token';
+
+      (uuidv4 as jest.Mock).mockReturnValue(mockToken);
+
+      mockPrismaService.user.update.mockResolvedValueOnce({});
+
+      const result = await service.createPasswordResetToken(mockUserId);
+
+      expect(uuidv4).toHaveBeenCalled();
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: mockUserId },
+        data: {
+          password_reset_tokens: {
+            create: {
+              token: mockToken,
+              expires_at: expect.any(Date),
+            },
+          },
+        },
+      });
+      expect(result).toBe(mockToken);
+    });
+
+    it('should throw an error if Prisma update fails', async () => {
+      const mockUserId = 1;
+
+      (uuidv4 as jest.Mock).mockReturnValue('mock-uuid-token');
+
+      mockPrismaService.user.update.mockRejectedValue(new Error('DB error'));
+
+      await expect(
+        service.createPasswordResetToken(mockUserId),
+      ).rejects.toThrow('Password reset token could not be created.');
     });
   });
 });
