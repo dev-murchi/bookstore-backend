@@ -17,17 +17,38 @@ import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { CheckoutService } from './checkout/checkout.service';
 
 @Controller('cart')
 @UseGuards(UserAccessGuard)
 export class CartController {
-  constructor(private readonly cartService: CartService) {}
+  constructor(
+    private readonly cartService: CartService,
+    private readonly checkoutService: CheckoutService,
+  ) {}
 
   @Post()
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
   async createCart(@Req() request: Request) {
     const userId = request.user ? request.user['id'] : null;
     return await this.cartService.createCart(userId);
+  }
+
+  @Post('checkout')
+  @Roles([RoleEnum.User, RoleEnum.GuestUser])
+  async checkout(
+    @Req() request: Request,
+    @Body() createCheckoutDto: CreateCheckoutDto,
+  ) {
+    try {
+      // guest user can also checkout
+      const userId = request.user ? request.user['id'] : null;
+
+      return await this.checkoutService.checkout(userId, createCheckoutDto);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Get(':id')
