@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { orders } from '@prisma/client';
 import { OrderStatus } from './enum/order-status.enum';
 
@@ -12,10 +11,7 @@ interface StatusRule {
 
 @Injectable()
 export class OrdersStatusService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly ordersService: OrdersService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   private async changeStatus(orderId: number, rule: StatusRule) {
     const order = await this.ordersService.getOrder(orderId);
