@@ -3,10 +3,9 @@ import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
-import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, UserModule],
+  imports: [PrismaModule, JwtModule],
   controllers: [CategoryController],
   providers: [CategoryService],
 })

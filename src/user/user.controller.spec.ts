@@ -8,14 +8,6 @@ const mockUserService = {
   findOne: jest.fn(),
 };
 
-jest.mock('../common/guards/auth/auth.guard', () => {
-  return {
-    AuthGuard: jest.fn().mockImplementation(() => ({
-      canActivate: jest.fn().mockResolvedValue(true),
-    })),
-  };
-});
-
 describe('UserController', () => {
   let controller: UserController;
 
