@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TestingModule, Test } from '@nestjs/testing';
 import { AuthGuard } from './auth.guard';
-import { UserService } from '../../../user/user.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
-const mockUserService = {
-  findOne: jest.fn(),
+const mockPrismaService = {
+  user: { findUnique: jest.fn() },
 };
 
 const mockJwtService = {
@@ -28,7 +28,7 @@ describe('AuthGuard', () => {
         AuthGuard,
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: UserService, useValue: mockUserService },
+        { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 
@@ -98,18 +98,18 @@ describe('AuthGuard', () => {
 
     jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
 
-    mockUserService.findOne.mockResolvedValueOnce({
+    mockPrismaService.user.findUnique.mockResolvedValueOnce({
       name: 'test user',
+      password: 'password',
       id: 1,
       email: 'testuser@email.com',
-      password: 'password',
       role: {
         id: 1,
         role_name: 'user',
       },
+      cart: null,
       is_active: true,
     });
-    // mockUserService.findOne.mockResolvedValueOnce({});
 
     const result = await authGuard.canActivate({
       switchToHttp: () => ({ getRequest: () => mockRequest }),
@@ -162,7 +162,7 @@ describe('AuthGuard', () => {
 
     jest.spyOn(jwtService, 'verifyAsync').mockResolvedValue(mockDecoded);
 
-    mockUserService.findOne.mockResolvedValueOnce(null);
+    mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
 
     try {
       await authGuard.canActivate({

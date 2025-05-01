@@ -3,7 +3,7 @@ import { UserAccessGuard } from './user-access.guard';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { UserService } from '../../../user/user.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { RoleEnum } from '../../role.enum';
 const mockReflector = {
@@ -21,8 +21,8 @@ const mockJwtService = {
   verifyAsync: jest.fn(),
 };
 
-const mockUserService = {
-  findOne: jest.fn(),
+const mockPrismaService = {
+  user: { findUnique: jest.fn() },
 };
 
 const mockRequest: any = {
@@ -47,7 +47,7 @@ describe('UserAccessGuard', () => {
         { provide: Reflector, useValue: mockReflector },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: JwtService, useValue: mockJwtService },
-        { provide: UserService, useValue: mockUserService },
+        { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 
@@ -105,11 +105,17 @@ describe('UserAccessGuard', () => {
     });
     (mockConfigService.get as jest.Mock).mockReturnValue('secret');
     (mockJwtService.verifyAsync as jest.Mock).mockResolvedValue({ id: 1 });
-    (mockUserService.findOne as jest.Mock).mockResolvedValue({
+    mockPrismaService.user.findUnique.mockResolvedValueOnce({
+      name: 'test user',
+      password: 'password',
       id: 1,
       email: 'test@example.com',
-      role: { role_name: RoleEnum.User },
+      role: {
+        id: 1,
+        role_name: 'user',
+      },
       cart: { id: 10 },
+      is_active: true,
     });
 
     const result = await userAccessGuard.canActivate(
@@ -134,7 +140,7 @@ describe('UserAccessGuard', () => {
     });
     (mockConfigService.get as jest.Mock).mockReturnValue('secret');
     (mockJwtService.verifyAsync as jest.Mock).mockResolvedValue({ id: 99 });
-    (mockUserService.findOne as jest.Mock).mockResolvedValue(null);
+    mockPrismaService.user.findUnique.mockResolvedValue(null);
 
     await expect(
       userAccessGuard.canActivate(mockExecutionContext as ExecutionContext),
@@ -155,11 +161,18 @@ describe('UserAccessGuard', () => {
     });
     (mockConfigService.get as jest.Mock).mockReturnValue('secret');
     (mockJwtService.verifyAsync as jest.Mock).mockResolvedValue({ id: 1 });
-    (mockUserService.findOne as jest.Mock).mockResolvedValue({
+
+    mockPrismaService.user.findUnique.mockResolvedValueOnce({
+      name: 'test user',
+      password: 'password',
       id: 1,
       email: 'test@example.com',
-      role: { role_name: RoleEnum.Admin },
+      role: {
+        id: 2,
+        role_name: 'admin',
+      },
       cart: null,
+      is_active: true,
     });
 
     await expect(

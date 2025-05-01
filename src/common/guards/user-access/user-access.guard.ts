@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { Roles } from '../../decorator/role/role.decorator';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
-import { UserService } from '../../../user/user.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { RoleEnum } from '../../role.enum';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class UserAccessGuard implements CanActivate {
     private reflector: Reflector,
     private configService: ConfigService,
     private jwtService: JwtService,
-    private userService: UserService,
+    private readonly prisma: PrismaService,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
@@ -46,7 +46,23 @@ export class UserAccessGuard implements CanActivate {
       const secret = this.configService.get<string>('JWT_SECRET');
       const payload = await this.jwtService.verifyAsync(token, { secret });
 
-      const user = await this.userService.findOne(payload.id);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
+          },
+          is_active: true,
+          cart: true,
+        },
+      });
 
       if (!user) throw Error('User authentication failed.');
 
