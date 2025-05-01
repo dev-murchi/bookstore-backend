@@ -18,8 +18,6 @@ import { MailSenderModule } from './mail-sender/mail-sender.module';
 import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
 import { ShippingModule } from './shipping/shipping.module';
-import { LoggerMiddleware } from './common/middleware/logger/logger.middleware';
-import { MailSenderModule } from './mail-sender/mail-sender.module';
 
 @Module({
   imports: [
