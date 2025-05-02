@@ -15,6 +15,7 @@ import { CategoryModule } from './category/category.module';
 import { MailSenderModule } from './mail-sender/mail-sender.module';
 import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
+import { JwtGlobalModule } from './jwt-global/jwt-global.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { QueueProcessorModule } from './queue-processor/queue-processor.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    JwtGlobalModule,
     UserModule,
     AuthModule,
     PrismaModule,
