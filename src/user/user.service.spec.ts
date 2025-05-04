@@ -2,10 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
-import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Password } from '../common/password';
@@ -315,13 +313,13 @@ describe('UserService', () => {
       };
 
       mockPrismaService.user.update.mockRejectedValueOnce(
-        'User to update not found',
+        new Error('User to update not found'),
       );
 
       try {
         await service.update(999, user);
       } catch (error) {
-        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('User could not be updated');
       }
     });
@@ -364,7 +362,7 @@ describe('UserService', () => {
       try {
         await service.remove(1);
       } catch (error) {
-        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('User could not be deleted');
       }
     });
@@ -508,7 +506,7 @@ describe('UserService', () => {
         );
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
-        expect(error.message).toBe('Password could not be reset.');
+        expect(error.message).toBe('Invalid email');
       }
 
       try {
@@ -543,7 +541,7 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(true as never);
+      mockPasswordProvider.compare.mockResolvedValueOnce(true);
 
       try {
         await service.resetPassword(
@@ -577,8 +575,8 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      mockPasswordProvider.compare.mockResolvedValue(false);
-      mockPasswordProvider.generate.mockResolvedValue('hashedPassword');
+      mockPasswordProvider.compare.mockResolvedValueOnce(false);
+      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
 
       const updateSpy = jest.spyOn(service, 'update');
 

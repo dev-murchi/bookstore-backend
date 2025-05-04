@@ -57,7 +57,7 @@ export class UserService {
     } catch (error) {
       console.error('User creation failed. Error:', error);
       if (error instanceof CustomAPIError) throw error;
-      throw new CustomAPIError('User creation failed.');
+      throw new Error('User creation failed.');
     }
   }
 
@@ -75,8 +75,8 @@ export class UserService {
 
       return users;
     } catch (error) {
-      console.log('Users could not fetched. Error:', error);
-      throw new CustomAPIError('Users could not fetched');
+      console.error('Users could not fetched. Error:', error);
+      throw new Error('Users could not fetched');
     }
   }
 
@@ -102,8 +102,8 @@ export class UserService {
 
       return user;
     } catch (error) {
-      console.log('User could not be fetched. Error:', error);
-      throw new CustomAPIError('User could not be fetched.');
+      console.error('User could not be fetched. Error:', error);
+      throw new Error('User could not be fetched.');
     }
   }
 
@@ -129,8 +129,8 @@ export class UserService {
 
       return user;
     } catch (error) {
-      console.log('User could not be fetched. Error:', error);
-      throw new CustomAPIError('User could not be fetched.');
+      console.error('User could not be fetched. Error:', error);
+      throw new Error('User could not be fetched.');
     }
   }
 
@@ -168,7 +168,7 @@ export class UserService {
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
       if (error instanceof CustomAPIError) throw error;
-      throw new CustomAPIError('User could not be updated');
+      throw new Error('User could not be updated');
     }
   }
 
@@ -180,7 +180,7 @@ export class UserService {
       return { message: 'User deleted successfully' };
     } catch (error) {
       console.error('user could not be deleted. Error:', error);
-      throw new CustomAPIError('User could not be deleted');
+      throw new Error('User could not be deleted');
     }
   }
 
@@ -231,7 +231,7 @@ export class UserService {
       const user = await this.findBy(email);
 
       // check user correctness
-      if (user.id !== passwordResetToken.userid)
+      if (!user || user.id !== passwordResetToken.userid)
         throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
@@ -250,7 +250,7 @@ export class UserService {
 
       if (error instanceof CustomAPIError) throw error;
 
-      throw new CustomAPIError('Password could not be reset.');
+      throw new Error('Password could not be reset.');
     }
   }
 }
