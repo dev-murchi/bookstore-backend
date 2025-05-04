@@ -5,6 +5,7 @@ import {
   DefaultValuePipe,
   Delete,
   Get,
+  InternalServerErrorException,
   Param,
   ParseIntPipe,
   Post,
@@ -18,6 +19,7 @@ import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -35,7 +37,12 @@ export class ReviewsController {
         createReviewDTO,
       );
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException(
+        'Review creation failed due to an unexpected error.',
+      );
     }
   }
 
@@ -45,7 +52,13 @@ export class ReviewsController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
   ) {
-    return await this.reviewsService.findReviewsForBook(bookId, page, limit);
+    try {
+      return await this.reviewsService.findReviewsForBook(bookId, page, limit);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Book(s) could not fetched due to an unexpected error.',
+      );
+    }
   }
 
   @Delete(':id')
@@ -55,7 +68,9 @@ export class ReviewsController {
     try {
       return await this.reviewsService.delete(reviewId);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Book could not deleted due to an unexpected error.',
+      );
     }
   }
 }

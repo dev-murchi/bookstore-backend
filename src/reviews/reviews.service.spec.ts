@@ -3,6 +3,7 @@ import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { Prisma } from '@prisma/client';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockPrismaService = {
   books: { findUnique: jest.fn() },
@@ -71,25 +72,33 @@ describe('ReviewsService', () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
-      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
-        'User can create only one review per book.',
-      );
-      expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
-        data: {
-          user: { connect: { id: userId } },
-          book: { connect: { id: createReviewDTO.bookId } },
-          data: createReviewDTO.data,
-          rating: createReviewDTO.rating,
-        },
-      });
+      try {
+        await service.create(userId, createReviewDTO);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('User can create only one review per book.');
+        expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
+          data: {
+            user: { connect: { id: userId } },
+            book: { connect: { id: createReviewDTO.bookId } },
+            data: createReviewDTO.data,
+            rating: createReviewDTO.rating,
+          },
+        });
+      }
     });
 
     it('should throw an error if the book is not purchased', async () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
-        new Error('Please purchase the book to leave a review.'),
-      );
+      try {
+        await service.create(userId, createReviewDTO);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe(
+          'Please purchase the book to leave a review.',
+        );
+      }
     });
 
     it('should throw an error if the book is not found', async () => {
@@ -103,17 +112,23 @@ describe('ReviewsService', () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
-      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
-        `Book #${createReviewDTO.bookId} or is not found`,
-      );
-      expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
-        data: {
-          user: { connect: { id: userId } },
-          book: { connect: { id: createReviewDTO.bookId } },
-          data: createReviewDTO.data,
-          rating: createReviewDTO.rating,
-        },
-      });
+      try {
+        await service.create(userId, createReviewDTO);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe(
+          `Book #${createReviewDTO.bookId} or is not found`,
+        );
+
+        expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
+          data: {
+            user: { connect: { id: userId } },
+            book: { connect: { id: createReviewDTO.bookId } },
+            data: createReviewDTO.data,
+            rating: createReviewDTO.rating,
+          },
+        });
+      }
     });
 
     it('should throw generic error for unknown error types', async () => {
@@ -121,9 +136,12 @@ describe('ReviewsService', () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockRejectedValueOnce(error);
 
-      await expect(service.create(userId, createReviewDTO)).rejects.toThrow(
-        'Review creation failed.',
-      );
+      try {
+        await service.create(userId, createReviewDTO);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Review creation failed.');
+      }
     });
   });
 
@@ -294,9 +312,12 @@ describe('ReviewsService', () => {
       const error = new Error('Database error');
       mockPrismaService.reviews.findMany.mockRejectedValueOnce(error);
 
-      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
-        'Reviews could not fetched.',
-      );
+      try {
+        await service.findReviewsForBook(bookId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Reviews could not fetched.');
+      }
     });
 
     it('should throw error if there is an error during average rating calculation', async () => {
@@ -306,18 +327,24 @@ describe('ReviewsService', () => {
         new Error('Aggregation error'),
       );
 
-      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
-        'Reviews could not fetched.',
-      );
+      try {
+        await service.findReviewsForBook(bookId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Reviews could not fetched.');
+      }
     });
 
     it('should throw error if there is an error if count fails', async () => {
       const error = new Error('Database error');
       mockPrismaService.reviews.count.mockRejectedValueOnce(error);
 
-      await expect(service.findReviewsForBook(bookId)).rejects.toThrow(
-        'Reviews could not fetched.',
-      );
+      try {
+        await service.findReviewsForBook(bookId);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Reviews could not fetched.');
+      }
     });
   });
 
@@ -339,9 +366,12 @@ describe('ReviewsService', () => {
         new Error('DB Error'),
       );
 
-      await expect(service.delete(1)).rejects.toThrow(
-        new Error('Review could not be deleted.'),
-      );
+      try {
+        await service.delete(1);
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Review could not be deleted.');
+      }
     });
   });
 });

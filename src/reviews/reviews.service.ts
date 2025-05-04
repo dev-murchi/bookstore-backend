@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Injectable()
 export class ReviewsService {
@@ -29,7 +29,7 @@ export class ReviewsService {
       });
 
       if (!purchasedBook) {
-        throw new Error('purchase required');
+        throw new CustomAPIError('Please purchase the book to leave a review.');
       }
 
       await this.prisma.reviews.create({
@@ -43,19 +43,19 @@ export class ReviewsService {
 
       return { message: 'Review created.' };
     } catch (error) {
-      // database errors
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        // unique constraint
-        if (error.code === 'P2002')
-          throw new Error('User can create only one review per book.');
-        // no records
-        if (error.code === 'P2025')
-          throw new Error(`Book #${createReviewDTO.bookId} or is not found`);
-      }
+      console.error('Review creation failed.Error:', error);
+      if (error instanceof CustomAPIError) throw error;
 
-      if (error.message === 'purchase required') {
-        throw new Error('Please purchase the book to leave a review.');
-      }
+      // database errors
+      // unique constraint
+      if (error.code === 'P2002')
+        throw new CustomAPIError('User can create only one review per book.');
+      // no records
+      if (error.code === 'P2025')
+        throw new CustomAPIError(
+          `Book #${createReviewDTO.bookId} or is not found`,
+        );
+
       throw new Error('Review creation failed.');
     }
   }
@@ -111,7 +111,7 @@ export class ReviewsService {
         },
       };
     } catch (error) {
-      console.error(error);
+      console.error('Reviews could not fetched.Error:', error);
       throw new Error('Reviews could not fetched.');
     }
   }
@@ -121,6 +121,7 @@ export class ReviewsService {
       await this.prisma.reviews.delete({ where: { id: reviewId } });
       return { message: 'Review is successfully deleted.' };
     } catch (error) {
+      console.error('Review could not be deleted. Error:', error);
       throw new Error('Review could not be deleted.');
     }
   }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Injectable()
 export class CategoryService {
@@ -13,7 +14,8 @@ export class CategoryService {
 
       return categories;
     } catch (error) {
-      throw new Error('Book Categories could not be fetched.');
+      console.error('Categories could not be fetched. Error:', error);
+      throw new Error('Categories could not be fetched.');
     }
   }
 
@@ -26,7 +28,11 @@ export class CategoryService {
 
       return category;
     } catch (error) {
-      throw new Error('Book Category could not be created.');
+      console.error('Category could not be created. Error:', error);
+      // unique constraint
+      if (error.code === 'P2002')
+        throw new CustomAPIError('Category is already exist.');
+      throw new Error('Category could not be created.');
     }
   }
 

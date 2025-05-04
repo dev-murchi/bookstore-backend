@@ -59,7 +59,7 @@ describe('CategoryService', () => {
       );
 
       await expect(service.getAll()).rejects.toThrow(
-        'Book Categories could not be fetched.',
+        'Categories could not be fetched.',
       );
     });
   });
@@ -86,7 +86,7 @@ describe('CategoryService', () => {
       );
 
       await expect(service.create(createCategoryDTO)).rejects.toThrow(
-        'Book Category could not be created',
+        'Category could not be created',
       );
     });
   });
