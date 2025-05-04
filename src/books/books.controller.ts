@@ -12,6 +12,9 @@ import {
   Query,
   ParseFloatPipe,
   ParseBoolPipe,
+  InternalServerErrorException,
+  UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -21,6 +24,7 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Controller('books')
 export class BooksController {
@@ -47,10 +51,14 @@ export class BooksController {
 
       return { data: createdBook };
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-
       console.error('Unexpected error during book creation:', error);
-      throw new BadRequestException(
+
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof UnauthorizedException) throw error;
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException(
         'Failed to create book due to an unexpected error.',
       );
     }
@@ -58,24 +66,35 @@ export class BooksController {
 
   @Get()
   async findAll() {
-    return { data: await this.booksService.findAll() };
+    try {
+      return { data: await this.booksService.findAll() };
+    } catch (error) {
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException('User could not be fetched.');
+    }
   }
 
   @Get('search')
   async search(@Query('search') query: string) {
-    if (!query) return { data: [] };
-    if (query.length < 3)
-      throw new BadRequestException(
-        'The query must contain at least three characters.',
-      );
     try {
+      if (!query) return { data: [] };
+      if (query.length < 3)
+        throw new BadRequestException(
+          'The query must contain at least three characters.',
+        );
       return { data: await this.booksService.search(query) };
     } catch (error) {
       console.error(
         'Failed to search the book due to an unexpected error.',
         error,
       );
-      throw new BadRequestException(
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException(
         'Failed to search the book due to an unexpected error.',
       );
     }
@@ -89,9 +108,8 @@ export class BooksController {
     @Query('stock', ParseBoolPipe) stock?: boolean,
     @Query('sort') sort?: 'asc' | 'desc',
   ) {
-    const orderBy = sort === 'desc' ? 'desc' : 'asc';
-
     try {
+      const orderBy = sort === 'desc' ? 'desc' : 'asc';
       const filteredBooks = await this.booksService.filter({
         minPrice,
         maxPrice,
@@ -106,7 +124,11 @@ export class BooksController {
         'Failed to filter the books due to an unexpected error.',
         error,
       );
-      throw new BadRequestException(
+
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException(
         'Failed to filter the books due to an unexpected error.',
       );
     }
@@ -118,8 +140,11 @@ export class BooksController {
       const book = await this.booksService.findOne(id);
       return { data: book };
     } catch (error) {
-      throw new BadRequestException(
-        'The book you are trying to update does not exist.',
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+
+      throw new InternalServerErrorException(
+        'Failed to update the book due to an unexpected error',
       );
     }
   }
@@ -141,8 +166,13 @@ export class BooksController {
 
       const book = await this.booksService.findOne(bookId);
 
+      if (!book)
+        throw new NotFoundException(
+          'The book you are trying to update does not exist.',
+        );
+
       if (book.author.id !== targetAuthor.id) {
-        throw new BadRequestException(
+        throw new UnauthorizedException(
           `You are not authorized to update this book. Only the original author or an admin specifying the original author can update it.`,
         );
       }
@@ -157,16 +187,15 @@ export class BooksController {
         data: updatedBook,
       };
     } catch (error) {
+      console.error('Failed to update book. Error:', error);
       if (error instanceof BadRequestException) throw error;
+      if (error instanceof NotFoundException) throw error;
+      if (error instanceof UnauthorizedException) throw error;
 
-      if (error.message === 'Book not found.') {
-        throw new BadRequestException(
-          'The book you are trying to update does not exist.',
-        );
-      }
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
 
-      console.error('Unexpected error during book update:', error);
-      throw new BadRequestException(
+      throw new InternalServerErrorException(
         'Failed to update book due to an unexpected error.',
       );
     }
@@ -179,6 +208,10 @@ export class BooksController {
   ): Promise<{ targetAuthor: any }> {
     try {
       const targetAuthor = await this.userService.findBy(authorIdentifier);
+      if (!targetAuthor)
+        throw new BadRequestException(
+          `Please ensure the author exists before ${operation}ing a book.`,
+        );
 
       const isAuthorRole = targetAuthor.role.role_name === RoleEnum.Author;
       if (!isAuthorRole) {
@@ -191,18 +224,14 @@ export class BooksController {
       const isSelf = requestUser.email === targetAuthor.email;
 
       if (!isAdmin && !isSelf) {
-        throw new BadRequestException(
+        throw new UnauthorizedException(
           `You are not authorized to ${operation} a book for this author.`,
         );
       }
 
       return { targetAuthor };
     } catch (error) {
-      if (error.message === 'User not found.') {
-        throw new BadRequestException(
-          `Please ensure the author exists before ${operation}ing a book.`,
-        );
-      }
+      console.error('Failed to validate author and authorize action.', error);
       throw error;
     }
   }

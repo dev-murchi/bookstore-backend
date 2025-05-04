@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService, SortType } from './books.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
 
@@ -65,7 +65,7 @@ describe('BooksService', () => {
       try {
         await service.create(userId, bookDto);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('The book with same ISBN is already exist');
         expect(prisma.books.create).toHaveBeenCalledTimes(0);
       }
@@ -113,7 +113,7 @@ describe('BooksService', () => {
 
   describe('finAll', () => {
     it('should return empty array if there is no book', async () => {
-      mockPrismaService.books.findMany.mockResolvedValueOnce(null);
+      mockPrismaService.books.findMany.mockResolvedValueOnce([]);
       expect(await service.findAll()).toEqual([]);
     });
 
@@ -142,9 +142,7 @@ describe('BooksService', () => {
     it('should return null if there is no book', async () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
       const id = 1;
-      await expect(service.findOne(id)).rejects.toThrow(
-        new Error('Book not found.'),
-      );
+      expect(await service.findOne(id)).toBeNull();
     });
     it('should a book by id', async () => {
       const bookId = 1;
@@ -174,9 +172,12 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
       const authorId = 1;
-      const result = await service.update(1, updateBookDto, authorId);
-      expect(result).toEqual({ message: 'No changes to update' });
-      expect(prisma.books.update).toHaveBeenCalledTimes(0);
+      try {
+        await service.update(1, updateBookDto, authorId);
+      } catch (error) {
+        expect(error).toEqual(new CustomAPIError('No changes provided.'));
+        expect(prisma.books.update).toHaveBeenCalledTimes(0);
+      }
     });
 
     it('should successfully update book information', async () => {
@@ -246,7 +247,7 @@ describe('BooksService', () => {
       });
     });
 
-    it('should throw BadRequestException error if update is failes', async () => {
+    it('should throw an error if update is failes', async () => {
       const updateBookDto = {
         title: 'Updated Book Title',
         isbn: '1234567890123',
@@ -265,7 +266,7 @@ describe('BooksService', () => {
       try {
         await service.update(bookId, updateBookDto, authorId);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book informations could not be updated');
       }
     });
@@ -278,7 +279,7 @@ describe('BooksService', () => {
       try {
         await service.remove(bookId);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book could not be deleted');
       }
     });

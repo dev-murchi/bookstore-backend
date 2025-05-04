@@ -1,19 +1,12 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UserService } from '../user/user.service';
-
-import * as bcrypt from 'bcrypt';
 import { LoginDto } from '../user/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-
 import { EmailService } from '../email/email.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
+import { Password } from '../common/password';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +14,7 @@ export class AuthService {
     private readonly userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private passwordProvider: Password,
   ) {}
 
   async register(user: CreateUserDto, role: RoleEnum) {
@@ -33,7 +27,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid user credentials');
 
     // compare password
-    if (!(await bcrypt.compare(password, user.password)))
+    if (!(await this.passwordProvider.compare(password, user.password)))
       throw new UnauthorizedException('Invalid user credentials');
 
     // generate jwt token
@@ -46,37 +40,29 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
-    try {
-      const user = await this.userService.findBy(email);
+    const user = await this.userService.findBy(email);
 
-      if (user) {
-        const resetToken = await this.userService.createPasswordResetToken(
-          user.id,
-        );
+    if (user) {
+      const resetToken = await this.userService.createPasswordResetToken(
+        user.id,
+      );
 
-        // send password reset mail
-        const link = `http://localhost/reset-password?token=${resetToken}`;
+      // send password reset mail
+      const link = `http://localhost/reset-password?token=${resetToken}`;
 
-        await this.emailService.sendResetPasswordMail(
-          user.email,
-          user.name,
-          link,
-        );
-      }
-
-      return {
-        message: 'Please check your email for reset password link.',
-      };
-    } catch (error) {
-      throw new InternalServerErrorException('Something went wrong');
+      await this.emailService.sendResetPasswordMail(
+        user.email,
+        user.name,
+        link,
+      );
     }
+
+    return {
+      message: 'Please check your email for reset password link.',
+    };
   }
 
   async resetPassword({ email, token, newPassword }: PasswordResetDto) {
-    try {
-      return await this.userService.resetPassword(email, token, newPassword);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return await this.userService.resetPassword(email, token, newPassword);
   }
 }

@@ -1,12 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
-import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { RoleEnum } from '../common/role.enum';
+
+import { Password } from '../common/password';
+import { CustomAPIError } from '../common/errors/custom-api.error';
+
+const mockPasswordProvider = {
+  compare: jest.fn(),
+};
 
 const mockUserService = {
   create: jest.fn(),
@@ -47,6 +53,10 @@ describe('AuthService', () => {
           provide: EmailService,
           useValue: mockEmailService,
         },
+        {
+          provide: Password,
+          useValue: mockPasswordProvider,
+        },
       ],
     }).compile();
 
@@ -65,7 +75,7 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should hash the password and call the create method of userService', async () => {
+    it('should call the create method of userService', async () => {
       const user: CreateUserDto = {
         name: 'test user',
         email: 'testuser@email.com',
@@ -91,7 +101,7 @@ describe('AuthService', () => {
       };
 
       mockUserService.create.mockRejectedValueOnce(
-        new Error('User creation failed'),
+        new CustomAPIError('User creation failed'),
       );
 
       await expect(service.register(user, RoleEnum.User)).rejects.toThrow(
@@ -125,7 +135,7 @@ describe('AuthService', () => {
 
       jest.spyOn(userService, 'findBy').mockResolvedValue(user as never);
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(false as never);
+      mockPasswordProvider.compare.mockResolvedValueOnce(false);
 
       try {
         await service.login({
@@ -148,8 +158,7 @@ describe('AuthService', () => {
       };
 
       jest.spyOn(userService, 'findBy').mockResolvedValue(user as never);
-
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
+      mockPasswordProvider.compare.mockResolvedValueOnce(true);
 
       jest
         .spyOn(jwtService, 'signAsync')
@@ -200,18 +209,20 @@ describe('AuthService', () => {
       );
     });
     it('should handle unexpected errors gracefully in the userService', async () => {
-      mockUserService.findBy.mockRejectedValue(new Error('Service failure'));
+      mockUserService.findBy.mockRejectedValue(
+        new CustomAPIError('Service failure'),
+      );
 
       await expect(
         service.forgotPassword('testuser@email.com'),
-      ).rejects.toThrow('Something went wrong');
+      ).rejects.toThrow(new CustomAPIError('Service failure'));
     });
   });
 
   describe('resetPassword', () => {
     it('should throw an error if the password reset operation failes', async () => {
       mockUserService.resetPassword.mockRejectedValueOnce(
-        new Error('Something went wrong'),
+        new CustomAPIError('Something went wrong'),
       );
 
       try {
@@ -221,7 +232,7 @@ describe('AuthService', () => {
           newPassword: 'newpassword',
         });
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Something went wrong');
       }
     });
