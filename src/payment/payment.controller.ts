@@ -3,6 +3,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   Post,
   RawBodyRequest,
   Req,
@@ -20,6 +21,12 @@ export class PaymentController {
     @Req() request: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string,
   ) {
-    await this.paymentService.handleStripeWebhook(request.rawBody, signature);
+    try {
+      await this.paymentService.handleStripeWebhook(request.rawBody, signature);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to handle the stripe webhook events.',
+      );
+    }
   }
 }

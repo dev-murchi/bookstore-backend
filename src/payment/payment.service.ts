@@ -14,11 +14,16 @@ export class PaymentService {
   ) {}
 
   async createStripeCheckoutSession(data: Stripe.Checkout.SessionCreateParams) {
-    const session = await this.stripeService.createCheckoutSession(data);
-    return {
-      url: session.url,
-      expires: session.expires_at,
-    };
+    try {
+      const session = await this.stripeService.createCheckoutSession(data);
+      return {
+        url: session.url,
+        expires: session.expires_at,
+      };
+    } catch (error) {
+      console.error('Error:', error);
+      throw new Error('Stripe checkout session creation failed.');
+    }
   }
 
   async handleStripeWebhook(payload: Buffer, signature: string) {
@@ -34,6 +39,7 @@ export class PaymentService {
         eventData: event.data.object,
       });
     } catch (error) {
+      console.error('Stripe Webhook Error:', error);
       throw new Error(`Webhook Error: ${error.message}`);
     }
   }
