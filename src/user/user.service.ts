@@ -1,121 +1,144 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
-import * as bcrypt from 'bcrypt';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Password } from '../common/password';
 
-const roundsOfHashing = 10;
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private passwordProvider: Password,
+  ) {}
 
   async create(createUserDto: CreateUserDto, role: RoleEnum) {
-    // check user is exist or not
-    const user = await this.prisma.user.findUnique({
-      where: {
-        email: createUserDto.email,
-      },
-    });
+    try {
+      // check user is exist or not
+      const user = await this.prisma.user.findUnique({
+        where: {
+          email: createUserDto.email,
+        },
+      });
 
-    if (user) {
-      throw new BadRequestException('Email already in use');
-    }
+      if (user) {
+        throw new CustomAPIError('Email already in use');
+      }
 
-    // hash password
-    const hashedPassword = await bcrypt.hash(
-      createUserDto.password,
-      roundsOfHashing,
-    );
+      /// hash password
+      const hashedPassword = await this.passwordProvider.generate(
+        createUserDto.password,
+      );
 
-    // create new user
-    await this.prisma.user.create({
-      data: {
-        name: createUserDto.name,
-        email: createUserDto.email,
-        password: hashedPassword,
-        role: {
-          connectOrCreate: {
-            where: {
-              role_name: role,
-            },
-            create: {
-              role_name: role,
+      // create new user
+      await this.prisma.user.create({
+        data: {
+          name: createUserDto.name,
+          email: createUserDto.email,
+          password: hashedPassword,
+          role: {
+            connectOrCreate: {
+              where: {
+                role_name: role,
+              },
+              create: {
+                role_name: role,
+              },
             },
           },
+          is_active: true,
         },
-        is_active: true,
-      },
-    });
+      });
 
-    return { message: 'User registered successfully' };
+      return { message: 'User registered successfully' };
+    } catch (error) {
+      console.error('User creation failed. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
+      throw new CustomAPIError('User creation failed.');
+    }
   }
 
   async findAll() {
-    const users = await this.prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        roleid: true,
-        is_active: true,
-      },
-    });
+    try {
+      const users = await this.prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          roleid: true,
+          is_active: true,
+        },
+      });
 
-    if (!users) return [];
-    return users;
+      return users;
+    } catch (error) {
+      console.log('Users could not fetched. Error:', error);
+      throw new CustomAPIError('Users could not fetched');
+    }
   }
 
   async findOne(id: number) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        password: true,
-        role: {
-          select: {
-            id: true,
-            role_name: true,
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
           },
+          is_active: true,
+          cart: true,
         },
-        is_active: true,
-        cart: true,
-      },
-    });
-    if (!user) throw new Error('User not found.');
-    return user;
+      });
+
+      return user;
+    } catch (error) {
+      console.log('User could not be fetched. Error:', error);
+      throw new CustomAPIError('User could not be fetched.');
+    }
   }
 
   async findBy(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        password: true,
-        role: {
-          select: {
-            id: true,
-            role_name: true,
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          role: {
+            select: {
+              id: true,
+              role_name: true,
+            },
           },
+          is_active: true,
+          cart: true,
         },
-        is_active: true,
-      },
-    });
-    if (!user) throw new Error('User not found.');
-    return user;
+      });
+
+      return user;
+    } catch (error) {
+      console.log('User could not be fetched. Error:', error);
+      throw new CustomAPIError('User could not be fetched.');
+    }
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     try {
       const { name, email, role, password } = updateUserDto;
       if (!name && !email && !role && !password) {
-        throw new Error('No changes provided.');
+        throw new CustomAPIError('No changes provided.');
       }
 
       const userUpdateObject: Prisma.UserUpdateInput = {};
@@ -133,10 +156,8 @@ export class UserService {
       }
 
       if (password) {
-        userUpdateObject.password = await bcrypt.hash(
-          password,
-          roundsOfHashing,
-        );
+        userUpdateObject.password =
+          await this.passwordProvider.generate(password);
       }
 
       await this.prisma.user.update({
@@ -146,7 +167,8 @@ export class UserService {
       return { message: 'User updated successfully' };
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
-      throw new BadRequestException('User could not be updated');
+      if (error instanceof CustomAPIError) throw error;
+      throw new CustomAPIError('User could not be updated');
     }
   }
 
@@ -157,7 +179,8 @@ export class UserService {
       });
       return { message: 'User deleted successfully' };
     } catch (error) {
-      throw new BadRequestException('User could not be deleted');
+      console.error('user could not be deleted. Error:', error);
+      throw new CustomAPIError('User could not be deleted');
     }
   }
 
@@ -181,7 +204,7 @@ export class UserService {
       return disposableToken;
     } catch (error) {
       console.error('Password reset token could not be created. Error:', error);
-      throw new Error('Password reset token could not be created.');
+      throw new CustomAPIError('Password reset token could not be created.');
     }
   }
 
@@ -194,14 +217,14 @@ export class UserService {
         });
 
       // check token validty
-      if (!passwordResetToken) throw new BadRequestException('Invalid token');
+      if (!passwordResetToken) throw new CustomAPIError('Invalid token');
 
       // delete disposable password reset token
       await this.prisma.password_reset_tokens.delete({ where: { token } });
 
       // check token expiration
       if (passwordResetToken.expires_at < new Date(Date.now())) {
-        throw new BadRequestException('Expired token');
+        throw new CustomAPIError('Expired token');
       }
 
       // get user with email
@@ -209,27 +232,25 @@ export class UserService {
 
       // check user correctness
       if (user.id !== passwordResetToken.userid)
-        throw new BadRequestException('Invalid email');
+        throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
-      if (await bcrypt.compare(newPassword, user.password)) {
-        throw new BadRequestException(
+      if (await this.passwordProvider.compare(newPassword, user.password)) {
+        throw new CustomAPIError(
           'New password must be different from the current password. Please try again.',
         );
       }
-      // hash password
-      const hashedPassword = await bcrypt.hash(newPassword, roundsOfHashing);
 
       // update user password
-      await this.update(user.id, { password: hashedPassword });
+      await this.update(user.id, { password: newPassword });
 
       return { message: 'Password reset successfully' };
     } catch (error) {
       console.error('Password could not be reset. Error:', error);
 
-      if (error instanceof BadRequestException) throw error;
+      if (error instanceof CustomAPIError) throw error;
 
-      throw new Error('Password could not be reset.');
+      throw new CustomAPIError('Password could not be reset.');
     }
   }
 }

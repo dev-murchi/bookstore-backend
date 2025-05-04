@@ -8,11 +8,17 @@ import { RoleEnum } from '../common/role.enum';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
+import { Password } from '../common/password';
+import { CustomAPIError } from '../common/errors/custom-api.error';
+
+const mockPasswordProvider = {
+  generate: jest.fn(),
+  compare: jest.fn(),
+};
+
 jest.mock('uuid', () => ({
   v4: jest.fn(),
 }));
-
-jest.spyOn(bcrypt, 'hash').mockImplementation((pass, salt) => 'hashedPassword');
 
 const mockPrismaService = {
   user: {
@@ -31,17 +37,20 @@ const mockPrismaService = {
 describe('UserService', () => {
   let service: UserService;
   let prismaService: PrismaService;
+  let passwordProvider: Password;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: Password, useValue: mockPasswordProvider },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
     prismaService = module.get<PrismaService>(PrismaService);
+    passwordProvider = module.get<Password>(Password);
 
     jest.clearAllMocks();
 
@@ -61,6 +70,7 @@ describe('UserService', () => {
       user.password = 'password123';
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
 
       const result = await service.create(user, RoleEnum.User);
 
@@ -82,7 +92,7 @@ describe('UserService', () => {
           is_active: true,
         },
       });
-      expect(bcrypt.hash).toHaveBeenCalledWith(user.password, 10);
+      expect(passwordProvider.generate).toHaveBeenCalledWith(user.password);
 
       expect(result).toEqual({ message: 'User registered successfully' });
     });
@@ -108,7 +118,7 @@ describe('UserService', () => {
       try {
         await service.create(user, RoleEnum.User);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Email already in use');
       }
     });
@@ -116,7 +126,7 @@ describe('UserService', () => {
 
   describe('findAll', () => {
     it('should return empty array if  there is no users', async () => {
-      mockPrismaService.user.findMany.mockResolvedValueOnce(null);
+      mockPrismaService.user.findMany.mockResolvedValueOnce([]);
 
       expect(await service.findAll()).toEqual([]);
     });
@@ -201,11 +211,9 @@ describe('UserService', () => {
       });
     });
 
-    it('should throw an error if the user does not exist', async () => {
+    it('should return null if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      await expect(service.findOne(999)).rejects.toThrow(
-        new Error('User not found.'),
-      );
+      expect(await service.findOne(999)).toBeNull();
     });
   });
 
@@ -241,6 +249,7 @@ describe('UserService', () => {
             },
           },
           is_active: true,
+          cart: true,
         },
       });
 
@@ -259,9 +268,7 @@ describe('UserService', () => {
 
     it('should throw an error if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      await expect(service.findBy('invaliduser@email.com')).rejects.toThrow(
-        new Error('User not found.'),
-      );
+      expect(await service.findBy('invaliduser@email.com')).toBeNull();
     });
   });
 
@@ -283,6 +290,8 @@ describe('UserService', () => {
         },
         is_active: true,
       });
+
+      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
 
       const result = await service.update(1, updatedUserDto);
 
@@ -312,7 +321,7 @@ describe('UserService', () => {
       try {
         await service.update(999, user);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User could not be updated');
       }
     });
@@ -321,8 +330,8 @@ describe('UserService', () => {
       try {
         await service.update(999, {});
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message).toBe('User could not be updated');
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('No changes provided.');
       }
     });
   });
@@ -341,12 +350,12 @@ describe('UserService', () => {
         is_active: true,
       });
 
+      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+
       const result = await service.remove(1);
       expect(result).toEqual({ message: 'User deleted successfully' });
 
-      await expect(service.findOne(1)).rejects.toThrow(
-        new Error('User not found.'),
-      );
+      expect(await service.findOne(1)).toBeNull();
     });
     it('should throw an error if user does not exist', async () => {
       mockPrismaService.user.delete.mockRejectedValueOnce(
@@ -355,7 +364,7 @@ describe('UserService', () => {
       try {
         await service.remove(1);
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User could not be deleted');
       }
     });
@@ -398,7 +407,9 @@ describe('UserService', () => {
 
       await expect(
         service.createPasswordResetToken(mockUserId),
-      ).rejects.toThrow('Password reset token could not be created.');
+      ).rejects.toThrow(
+        new CustomAPIError('Password reset token could not be created.'),
+      );
     });
   });
 
@@ -415,7 +426,7 @@ describe('UserService', () => {
           'newpassword',
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Invalid token');
         expect(
           prismaService.password_reset_tokens.findUnique,
@@ -450,7 +461,7 @@ describe('UserService', () => {
           'newpassword',
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Expired token');
         expect(
           prismaService.password_reset_tokens.findUnique,
@@ -496,7 +507,7 @@ describe('UserService', () => {
           'newpassword',
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(Error);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Password could not be reset.');
       }
 
@@ -507,7 +518,7 @@ describe('UserService', () => {
           'newpassword',
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Invalid email');
       }
 
@@ -541,7 +552,7 @@ describe('UserService', () => {
           'oldpassword',
         );
       } catch (error) {
-        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe(
           'New password must be different from the current password. Please try again.',
         );
@@ -566,10 +577,8 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      jest.spyOn(bcrypt, 'compare').mockResolvedValueOnce(false as never);
-      jest
-        .spyOn(bcrypt, 'hash')
-        .mockResolvedValueOnce('hashedPassword' as never);
+      mockPasswordProvider.compare.mockResolvedValue(false);
+      mockPasswordProvider.generate.mockResolvedValue('hashedPassword');
 
       const updateSpy = jest.spyOn(service, 'update');
 
@@ -580,7 +589,7 @@ describe('UserService', () => {
       );
 
       expect(updateSpy).toHaveBeenCalledWith(1, {
-        password: 'hashedPassword',
+        password: 'newpassword',
       });
 
       expect(mockPrismaService.user.update).toHaveBeenCalledTimes(1);
