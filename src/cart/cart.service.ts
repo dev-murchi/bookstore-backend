@@ -2,87 +2,104 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CartItemDto } from './dto/cart-item.dto';
 import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Injectable()
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
   async createCart(userId: number | null) {
-    // create a new cart for the guest user
-    if (!userId) {
-      const cart = await this.prisma.cart.create({
-        data: {
+    try {
+      // create a new cart for the guest user
+      if (!userId) {
+        const cart = await this.prisma.cart.create({
+          data: {
+            userid: userId,
+          },
+        });
+        return { cartId: cart.id };
+      }
+
+      // find or create the cart for the user
+      const cart = await this.prisma.cart.upsert({
+        where: { userid: userId },
+        update: {},
+        create: {
           userid: userId,
         },
       });
+
       return { cartId: cart.id };
+    } catch (error) {
+      console.error('Error:', error);
+      throw new Error('Cart creation failed.');
     }
-
-    // find or create the cart for the user
-    const cart = await this.prisma.cart.upsert({
-      where: { userid: userId },
-      update: {},
-      create: {
-        userid: userId,
-      },
-    });
-
-    return { cartId: cart.id };
   }
 
   async findCart(cartId: number) {
-    const cart = await this.prisma.cart.findUnique({
-      where: { id: cartId },
-      select: {
-        userid: true,
-        cart_items: {
-          orderBy: { bookid: 'asc' },
-          select: {
-            quantity: true,
-            book: {
-              select: {
-                id: true,
-                title: true,
-                price: true,
+    try {
+      const cart = await this.prisma.cart.findUnique({
+        where: { id: cartId },
+        select: {
+          userid: true,
+          cart_items: {
+            orderBy: { bookid: 'asc' },
+            select: {
+              quantity: true,
+              book: {
+                select: {
+                  id: true,
+                  title: true,
+                  price: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    if (!cart) throw Error('Cart is not exist.');
+      if (!cart) throw new CustomAPIError('Cart is not exist.');
 
-    const cartItems = cart.cart_items.map((item) => ({
-      bookId: item.book.id,
-      bookTitle: item.book.title,
-      price: Number(item.book.price.toFixed(2)),
-      quantity: item.quantity,
-    }));
+      const cartItems = cart.cart_items.map((item) => ({
+        bookId: item.book.id,
+        bookTitle: item.book.title,
+        price: Number(item.book.price.toFixed(2)),
+        quantity: item.quantity,
+      }));
 
-    const totalPrice = Number(
-      cartItems.reduce((p, c) => p + c.price * c.quantity, 0).toFixed(2),
-    );
+      const totalPrice = Number(
+        cartItems.reduce((p, c) => p + c.price * c.quantity, 0).toFixed(2),
+      );
 
-    return {
-      cartId,
-      userId: cart.userid,
-      cartItems,
-      totalPrice,
-    };
+      return {
+        cartId,
+        userId: cart.userid,
+        cartItems,
+        totalPrice,
+      };
+    } catch (error) {
+      console.error('Failed to fetch the cart. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
+      throw new Error('Failed to fetch the cart.');
+    }
   }
 
   async addItem(data: CartItemDto) {
-    await this.prisma.cart_items.create({
-      data: {
-        cart: { connect: { id: data.cartId } },
-        book: { connect: { id: data.bookId } },
-        quantity: data.quantity,
-      },
-    });
+    try {
+      await this.prisma.cart_items.create({
+        data: {
+          cart: { connect: { id: data.cartId } },
+          book: { connect: { id: data.bookId } },
+          quantity: data.quantity,
+        },
+      });
 
-    return {
-      message: 'Item successfully added.',
-    };
+      return {
+        message: 'Item successfully added.',
+      };
+    } catch (error) {
+      console.error('Failed to add the item. Error:', error);
+      throw new Error('Failed to add the item.');
+    }
   }
 
   async updateItem(userId: number | null, data: CartItemDto) {
@@ -96,9 +113,13 @@ export class CartService {
         },
       });
 
-      if (!book) throw new Error('Not found');
+      if (!book)
+        throw new CustomAPIError(`Book ID #${data.bookId} is not exist.`);
+
       if (book.stock_quantity < data.quantity) {
-        throw new Error('Not enough stock');
+        throw new CustomAPIError(
+          `Not enough stock for book ID: ${data.bookId}`,
+        );
       }
 
       // user can only update items from its own cart
@@ -117,13 +138,7 @@ export class CartService {
         message: 'Item successfully updated.',
       };
     } catch (error) {
-      if (error.message === 'Not found') {
-        throw new Error(`Book ID #${data.bookId} is not exist.`);
-      }
-
-      if (error.message === 'Not enough stock') {
-        throw new Error(`Not enough stock for book ID: ${data.bookId}`);
-      }
+      if (error instanceof CustomAPIError) throw error;
       throw Error(
         'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
       );
@@ -147,6 +162,7 @@ export class CartService {
         message: 'Item successfully deleted.',
       };
     } catch (error) {
+      console.error('Error occurred while deleting the item. Error:', error);
       throw Error(
         'An error occurred while deleting the item. Please check if the cart ID and book ID are correct.',
       );
@@ -164,9 +180,13 @@ export class CartService {
         },
       });
 
-      if (!book) throw new Error('Not found');
+      if (!book)
+        throw new CustomAPIError(`Book ID #${data.bookId} is not exist.`);
+
       if (book.stock_quantity < data.quantity) {
-        throw new Error('Not enough stock');
+        throw new CustomAPIError(
+          `Not enough stock for book ID: ${data.bookId}`,
+        );
       }
 
       // user can update/create items for its own cart
@@ -190,13 +210,8 @@ export class CartService {
         message: 'Item successfully updated.',
       };
     } catch (error) {
-      if (error.message === 'Not found') {
-        throw new Error(`Book ID #${data.bookId} is not exist.`);
-      }
-
-      if (error.message === 'Not enough stock') {
-        throw new Error(`Not enough stock for book ID: ${data.bookId}`);
-      }
+      console.error('Error occurred while updating the item. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
       throw Error(
         'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
       );
@@ -214,7 +229,7 @@ export class CartService {
         });
 
         if (oldCart && oldCart.cart_items.length > 0) {
-          throw new Error('Cart is exist');
+          throw new CustomAPIError('User alredy has a cart.');
         }
 
         // remove user's empty cart
@@ -231,9 +246,8 @@ export class CartService {
 
       return { message: 'User is attached to the cart.' };
     } catch (error) {
-      if (error.message === 'Cart is exist') {
-        throw new Error('User alredy has a cart.');
-      }
+      console.error('Failed to claim the cart. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
       throw new Error('User can only claim the cart created by the guest.');
     }
   }
@@ -251,6 +265,7 @@ export class CartService {
 
       return { carts };
     } catch (error) {
+      console.error('Failed to remove inactive guest carts. Error:', error);
       throw new Error('Failed to remove inactive guest carts');
     }
   }

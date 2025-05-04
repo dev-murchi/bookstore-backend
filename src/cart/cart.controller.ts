@@ -9,6 +9,8 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
@@ -19,6 +21,7 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Controller('cart')
 @UseGuards(UserAccessGuard)
@@ -31,8 +34,14 @@ export class CartController {
   @Post()
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
   async createCart(@Req() request: Request) {
-    const userId = request.user ? request.user['id'] : null;
-    return await this.cartService.createCart(userId);
+    try {
+      const userId = request.user ? request.user['id'] : null;
+      return await this.cartService.createCart(userId);
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to create the cart due to an unexpected error.',
+      );
+    }
   }
 
   @Post('checkout')
@@ -47,13 +56,17 @@ export class CartController {
 
       return await this.checkoutService.checkout(userId, createCheckoutDto);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Failed to checkout due to an unexpected error.',
+      );
     }
   }
 
   @Get(':id')
   @Roles([RoleEnum.Admin, RoleEnum.User, RoleEnum.GuestUser])
-  async reviewCart(
+  async viewCart(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: Request,
   ) {
@@ -63,7 +76,7 @@ export class CartController {
       // guest user access
       if (!request.user) {
         if (cart.userId !== null) {
-          throw new Error('Unable to access this cart.');
+          throw new UnauthorizedException('Unable to access this cart.');
         }
         return cart;
       }
@@ -73,11 +86,16 @@ export class CartController {
 
       // authenticated user access
       if (cart.userId != request.user['id'])
-        throw new Error('Unable to access this cart.');
+        throw new UnauthorizedException('Unable to access this cart.');
 
       return cart;
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof UnauthorizedException) throw error;
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Failed to fetch the cart due to an unexpected error.',
+      );
     }
   }
 
@@ -87,7 +105,11 @@ export class CartController {
     try {
       return await this.cartService.claim(request.user['id'], id);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Failed to calim the cart due to an unexpected error.',
+      );
     }
   }
 
@@ -96,14 +118,19 @@ export class CartController {
   async addOrUpdateItem(@Req() request: Request, @Body() data: CartItemDto) {
     try {
       if (request.user && request.user['cartId'] === null) {
-        throw new Error('Please create a cart.');
+        throw new BadRequestException('Please create a cart.');
       }
 
       const userId = request.user ? request.user['id'] : null;
 
       return await this.cartService.upsertItem(userId, data);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof BadRequestException) throw error;
+      if (error instanceof CustomAPIError)
+        throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Failed to add the item to the cart due to an unexpected error.',
+      );
     }
   }
 
@@ -112,7 +139,7 @@ export class CartController {
   async removeItem(@Req() request: Request, @Body() data: DeleteCartItemDto) {
     try {
       if (request.user && request.user['cartId'] === null) {
-        throw new Error(
+        throw new BadRequestException(
           'Item could not deleted. Please be sure you have a cart!',
         );
       }
@@ -120,7 +147,10 @@ export class CartController {
 
       return await this.cartService.removeItem(userId, data);
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        'Failed to delete the cart due to an unexpected error.',
+      );
     }
   }
 
@@ -130,7 +160,9 @@ export class CartController {
     try {
       return this.cartService.removeInactiveGuestCarts();
     } catch (error) {
-      throw new BadRequestException(error.message);
+      throw new InternalServerErrorException(
+        'Failed to remove inactive guest carts due to an unexpected error.',
+      );
     }
   }
 }

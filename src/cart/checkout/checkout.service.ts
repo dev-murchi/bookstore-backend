@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateCheckoutDto } from '../dto/create-checkout.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
+import { CustomAPIError } from '../../common/errors/custom-api.error';
 
 @Injectable()
 export class CheckoutService {
@@ -37,19 +38,24 @@ export class CheckoutService {
           },
         });
 
-        if (!cart) throw new Error('Cart is not exist');
+        if (!cart)
+          throw new CustomAPIError('Please check if the cart ID is correct.');
 
         const cartItems = cart.cart_items;
 
         if (cartItems.length === 0) {
-          throw new Error('Cart is empty.');
+          throw new CustomAPIError(
+            'Your cart is empty. Please add items to your cart.',
+          );
         }
 
         // check stock availability for each cart item
         let totalPrice = 0;
         for (const item of cartItems) {
           if (item.book.stock_quantity < item.quantity) {
-            throw new Error(`Not enough stock for book ID: ${item.book.id}`);
+            throw new CustomAPIError(
+              `Not enough stock for book ID: ${item.book.id}`,
+            );
           }
           // Calculate the total price for each item and accumulate it
           totalPrice += Number(item.book.price.toNumber() * item.quantity);
@@ -164,19 +170,8 @@ export class CheckoutService {
         };
       });
     } catch (error) {
-      console.error(error);
-      if (error.message === 'Cart is not exist') {
-        throw new Error('Please check if the cart ID is correct.');
-      }
-
-      if (error.message === 'Cart is empty.') {
-        throw new Error('Your cart is empty. Please add items to your cart.');
-      }
-
-      if (error.message.startsWith('Not enough stock')) {
-        throw new Error(error.message);
-      }
-
+      console.error('Checkout failed. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
       throw new Error('Checkout failed. Please try again later.');
     }
   }
