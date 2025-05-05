@@ -10,7 +10,7 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
   ) {}
-  async checkout(userId: number | null, data: CreateCheckoutDto) {
+  async checkout(userId: string | null, data: CreateCheckoutDto) {
     try {
       return await this.prisma.$transaction(async (pr) => {
         const cart = await pr.cart.findUnique({

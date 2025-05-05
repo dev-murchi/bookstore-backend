@@ -25,6 +25,7 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { User } from '../common/types';
 
 @Controller('books')
 export class BooksController {
@@ -171,7 +172,7 @@ export class BooksController {
           'The book you are trying to update does not exist.',
         );
 
-      if (book.author.id !== targetAuthor.id) {
+      if (book.author.userid !== targetAuthor.id) {
         throw new UnauthorizedException(
           `You are not authorized to update this book. Only the original author or an admin specifying the original author can update it.`,
         );
@@ -180,7 +181,7 @@ export class BooksController {
       const updatedBook = await this.booksService.update(
         bookId,
         updateBookDto,
-        book.author.id,
+        book.author.userid,
       );
 
       return {
@@ -205,15 +206,15 @@ export class BooksController {
     requestUser: { email: string; role: RoleEnum },
     authorIdentifier: string,
     operation: 'create' | 'update',
-  ): Promise<{ targetAuthor: any }> {
+  ): Promise<{ targetAuthor: User }> {
     try {
-      const targetAuthor = await this.userService.findBy(authorIdentifier);
+      const targetAuthor = await this.userService.findByEmail(authorIdentifier);
       if (!targetAuthor)
         throw new BadRequestException(
           `Please ensure the author exists before ${operation}ing a book.`,
         );
 
-      const isAuthorRole = targetAuthor.role.role_name === RoleEnum.Author;
+      const isAuthorRole = targetAuthor.role.value === RoleEnum.Author;
       if (!isAuthorRole) {
         throw new BadRequestException(
           'Books can only belong to registered authors.',

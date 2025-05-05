@@ -7,7 +7,7 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 @Injectable()
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
-  async createCart(userId: number | null) {
+  async createCart(userId: string | null) {
     try {
       // create a new cart for the guest user
       if (!userId) {
@@ -24,7 +24,7 @@ export class CartService {
         where: { userid: userId },
         update: {},
         create: {
-          userid: userId,
+          user: { connect: { userid: userId } },
         },
       });
 
@@ -102,7 +102,7 @@ export class CartService {
     }
   }
 
-  async updateItem(userId: number | null, data: CartItemDto) {
+  async updateItem(userId: string | null, data: CartItemDto) {
     try {
       // check book stock
       const book = await this.prisma.books.findUnique({
@@ -145,7 +145,7 @@ export class CartService {
     }
   }
 
-  async removeItem(userId: number | null, data: DeleteCartItemDto) {
+  async removeItem(userId: string | null, data: DeleteCartItemDto) {
     try {
       // user can only remove items from its own cart
       await this.prisma.cart_items.delete({
@@ -169,7 +169,7 @@ export class CartService {
     }
   }
 
-  async upsertItem(userId: number | null, data: CartItemDto) {
+  async upsertItem(userId: string | null, data: CartItemDto) {
     try {
       // check book stock
       const book = await this.prisma.books.findUnique({
@@ -218,7 +218,7 @@ export class CartService {
     }
   }
 
-  async claim(userId: number, cartId: number) {
+  async claim(userId: string, cartId: number) {
     try {
       await this.prisma.$transaction(async (pr) => {
         const oldCart = await pr.cart.findUnique({
@@ -240,7 +240,7 @@ export class CartService {
         // user can only claim the cart created by the guest
         await pr.cart.update({
           where: { id: cartId, AND: [{ userid: null }] },
-          data: { user: { connect: { id: userId } } },
+          data: { user: { connect: { userid: userId } } },
         });
       });
 

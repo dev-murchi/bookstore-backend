@@ -27,8 +27,6 @@ const mockPaymentService = {
   createStripeCheckoutSession: jest.fn(),
 };
 
-const userId = 1;
-
 describe('CheckoutService', () => {
   let service: CheckoutService;
 
@@ -54,7 +52,7 @@ describe('CheckoutService', () => {
 
   it('should throw an error if the cart is not exist', async () => {
     mockPrismaService.cart.findUnique.mockReturnValueOnce(null);
-    await expect(service.checkout(userId, { cartId: 1 })).rejects.toThrow(
+    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
       'Please check if the cart ID is correct.',
     );
   });
@@ -62,7 +60,7 @@ describe('CheckoutService', () => {
     mockPrismaService.cart.findUnique.mockReturnValueOnce({
       cart_items: [],
     });
-    await expect(service.checkout(userId, { cartId: 1 })).rejects.toThrow(
+    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
       'Your cart is empty. Please add items to your cart.',
     );
   });
@@ -80,7 +78,7 @@ describe('CheckoutService', () => {
       ],
     });
 
-    await expect(service.checkout(userId, { cartId: 1 })).rejects.toThrow(
+    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
       'Not enough stock for book ID: 1',
     );
   });
@@ -89,7 +87,7 @@ describe('CheckoutService', () => {
     mockPrismaService.cart.findUnique.mockRejectedValueOnce(
       new Error('DB error'),
     );
-    await expect(service.checkout(userId, { cartId: 1 })).rejects.toThrow(
+    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
       'Checkout failed. Please try again later.',
     );
   });
@@ -154,11 +152,11 @@ describe('CheckoutService', () => {
       session,
     );
 
-    const result = await service.checkout(userId, { cartId: 1 });
+    const result = await service.checkout('user-1', { cartId: 1 });
 
     // check cart.findUnique called with correct data
     expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-      where: { id: 1, AND: [{ userid: 1 }] },
+      where: { id: 1, AND: [{ userid: 'user-1' }] },
       select: {
         cart_items: {
           select: {
@@ -187,7 +185,7 @@ describe('CheckoutService', () => {
       data: {
         totalPrice: 22.97,
         status: 'pending',
-        userid: 1,
+        userid: 'user-1',
         order_items: {
           createMany: {
             data: [

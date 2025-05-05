@@ -6,7 +6,7 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(userId: number, createReviewDTO: CreateReviewDTO) {
+  async create(userId: string, createReviewDTO: CreateReviewDTO) {
     // save the user reviews about the book to the database.
     try {
       const { bookId, data, rating } = createReviewDTO;
@@ -34,7 +34,7 @@ export class ReviewsService {
 
       await this.prisma.reviews.create({
         data: {
-          user: { connect: { id: userId } },
+          user: { connect: { userid: userId } },
           book: { connect: { id: bookId } },
           data: data,
           rating: rating,

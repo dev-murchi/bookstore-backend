@@ -6,7 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
 import { PasswordResetDto } from '../user/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
-import { Password } from '../common/password';
+import { CustomAPIError } from '../common/errors/custom-api.error';
+import { User } from '../common/types';
 
 @Injectable()
 export class AuthService {
@@ -14,33 +15,36 @@ export class AuthService {
     private readonly userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
-    private passwordProvider: Password,
   ) {}
 
-  async register(user: CreateUserDto, role: RoleEnum) {
+  async register(user: CreateUserDto, role: RoleEnum): Promise<User> {
     return await this.userService.create(user, role);
   }
 
-  async login({ email, password }: LoginDto) {
-    // check user existence
-    const user = await this.userService.findBy(email);
-    if (!user) throw new UnauthorizedException('Invalid user credentials');
+  async login({ email, password }: LoginDto): Promise<{ accessToken: string }> {
+    try {
+      const user = await this.userService.checkUserWithPassword(
+        email,
+        password,
+      );
 
-    // compare password
-    if (!(await this.passwordProvider.compare(password, user.password)))
-      throw new UnauthorizedException('Invalid user credentials');
+      // generate jwt token
+      const payload = {
+        id: user.id,
+        role: user.role.value,
+      };
+      const accessToken = await this.jwtService.signAsync(payload);
+      return { accessToken };
+    } catch (error) {
+      if (error instanceof CustomAPIError)
+        throw new UnauthorizedException(error.message);
 
-    // generate jwt token
-    const payload = {
-      id: user.id,
-      role: user.role.role_name,
-    };
-    const accessToken = await this.jwtService.signAsync(payload);
-    return { accessToken };
+      throw error;
+    }
   }
 
-  async forgotPassword(email: string) {
-    const user = await this.userService.findBy(email);
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.userService.findByEmail(email);
 
     if (user) {
       const resetToken = await this.userService.createPasswordResetToken(
@@ -48,7 +52,7 @@ export class AuthService {
       );
 
       // send password reset mail
-      const link = `http://localhost/reset-password?token=${resetToken}`;
+      const link = `http://localhost/reset-password?token=${resetToken.token}`;
 
       await this.emailService.sendResetPasswordMail(
         user.email,
@@ -62,7 +66,11 @@ export class AuthService {
     };
   }
 
-  async resetPassword({ email, token, newPassword }: PasswordResetDto) {
+  async resetPassword({
+    email,
+    token,
+    newPassword,
+  }: PasswordResetDto): Promise<{ message: string }> {
     return await this.userService.resetPassword(email, token, newPassword);
   }
 }

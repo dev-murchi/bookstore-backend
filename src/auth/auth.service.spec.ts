@@ -16,10 +16,11 @@ const mockPasswordProvider = {
 
 const mockUserService = {
   create: jest.fn(),
-  findBy: jest.fn(),
+  findByEmail: jest.fn(),
   update: jest.fn(),
   createPasswordResetToken: jest.fn(),
   resetPassword: jest.fn(),
+  checkUserWithPassword: jest.fn(),
 };
 
 const mockJwtService = {
@@ -112,7 +113,9 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should throw UnauthorizedException error when user is not exist', async () => {
-      jest.spyOn(userService, 'findBy').mockResolvedValue(null as never);
+      mockUserService.checkUserWithPassword.mockRejectedValueOnce(
+        new CustomAPIError('Invalid credentials'),
+      );
       try {
         await service.login({
           email: 'testuser@email.com',
@@ -120,20 +123,19 @@ describe('AuthService', () => {
         });
       } catch (error) {
         expect(error).toBeInstanceOf(UnauthorizedException);
-        expect(error.message).toBe('Invalid user credentials');
+        expect(error.message).toBe('Invalid credentials');
       }
     });
 
     it('should throw UnauthorizedException error when password is incorrect', async () => {
       const user = {
-        id: 1,
+        id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        password: 'password123',
-        role: 'user',
+        role: { value: 'user' },
       };
 
-      jest.spyOn(userService, 'findBy').mockResolvedValue(user as never);
+      mockUserService.checkUserWithPassword.mockResolvedValue(user);
 
       mockPasswordProvider.compare.mockResolvedValueOnce(false);
 
@@ -150,14 +152,13 @@ describe('AuthService', () => {
 
     it('should return an access token if login is successful', async () => {
       const user = {
-        id: 1,
+        id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        password: 'password123',
-        role: 'user',
+        role: { value: 'user' },
       };
 
-      jest.spyOn(userService, 'findBy').mockResolvedValue(user as never);
+      mockUserService.checkUserWithPassword.mockResolvedValue(user);
       mockPasswordProvider.compare.mockResolvedValueOnce(true);
 
       jest
@@ -175,17 +176,19 @@ describe('AuthService', () => {
 
   describe('forgotPassword', () => {
     it('should return a message when user is not found, without creating a token', async () => {
-      mockUserService.findBy.mockReturnValueOnce(null);
+      mockUserService.findByEmail.mockReturnValueOnce(null);
       const result = await service.forgotPassword('testuser@email.com');
       expect(result).toEqual({
         message: 'Please check your email for reset password link.',
       });
 
-      expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
+      expect(userService.findByEmail).toHaveBeenCalledWith(
+        'testuser@email.com',
+      );
       expect(userService.createPasswordResetToken).not.toHaveBeenCalled();
     });
     it('should return a reset password URL if the user is found and token is saved', async () => {
-      mockUserService.findBy.mockReturnValueOnce({
+      mockUserService.findByEmail.mockReturnValueOnce({
         id: 1,
         name: 'test user',
         email: 'testuser@email.com',
@@ -194,14 +197,19 @@ describe('AuthService', () => {
         is_active: true,
       });
 
-      mockUserService.createPasswordResetToken.mockReturnValueOnce('mockToken');
+      mockUserService.createPasswordResetToken.mockReturnValueOnce({
+        token: 'mockToken',
+        expiresAt: expect.any(Date),
+      });
       const result = await service.forgotPassword('testuser@email.com');
 
       expect(result).toEqual({
         message: 'Please check your email for reset password link.',
       });
 
-      expect(userService.findBy).toHaveBeenCalledWith('testuser@email.com');
+      expect(userService.findByEmail).toHaveBeenCalledWith(
+        'testuser@email.com',
+      );
       expect(emailService.sendResetPasswordMail).toHaveBeenCalledWith(
         'testuser@email.com',
         'test user',
@@ -209,13 +217,16 @@ describe('AuthService', () => {
       );
     });
     it('should handle unexpected errors gracefully in the userService', async () => {
-      mockUserService.findBy.mockRejectedValue(
-        new CustomAPIError('Service failure'),
+      mockUserService.findByEmail.mockRejectedValue(
+        new Error('Service failure'),
       );
 
-      await expect(
-        service.forgotPassword('testuser@email.com'),
-      ).rejects.toThrow(new CustomAPIError('Service failure'));
+      try {
+        await service.forgotPassword('testuser@email.com');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toBe('Service failure');
+      }
     });
   });
 

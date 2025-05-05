@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Password } from '../common/password';
+import { PasswordResetToken, User } from '../common/types';
 
 @Injectable()
 export class UserService {
@@ -15,16 +16,12 @@ export class UserService {
     private passwordProvider: Password,
   ) {}
 
-  async create(createUserDto: CreateUserDto, role: RoleEnum) {
+  async create(createUserDto: CreateUserDto, role: RoleEnum): Promise<User> {
     try {
       // check user is exist or not
-      const user = await this.prisma.user.findUnique({
-        where: {
-          email: createUserDto.email,
-        },
-      });
+      const existingUser = await this.findUser({ email: createUserDto.email });
 
-      if (user) {
+      if (existingUser) {
         throw new CustomAPIError('Email already in use');
       }
 
@@ -33,12 +30,14 @@ export class UserService {
         createUserDto.password,
       );
 
+      const userId = uuidv4();
       // create new user
-      await this.prisma.user.create({
+      const user = await this.prisma.user.create({
         data: {
           name: createUserDto.name,
           email: createUserDto.email,
           password: hashedPassword,
+          userid: userId,
           role: {
             connectOrCreate: {
               where: {
@@ -51,9 +50,20 @@ export class UserService {
           },
           is_active: true,
         },
+        select: {
+          userid: true,
+          name: true,
+          email: true,
+          role: { select: { role_name: true } },
+        },
       });
 
-      return { message: 'User registered successfully' };
+      return {
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        role: { value: user.role.role_name },
+      };
     } catch (error) {
       console.error('User creation failed. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -61,80 +71,89 @@ export class UserService {
     }
   }
 
-  async findAll() {
+  async findAll(): Promise<User[]> {
     try {
       const users = await this.prisma.user.findMany({
         select: {
-          id: true,
+          userid: true,
           name: true,
           email: true,
-          roleid: true,
-          is_active: true,
+          role: { select: { role_name: true } },
         },
       });
 
-      return users;
+      return users.map(
+        (user): User => ({
+          id: user.userid,
+          name: user.name,
+          email: user.email,
+          role: { value: user.role.role_name },
+        }),
+      );
     } catch (error) {
       console.error('Users could not fetched. Error:', error);
       throw new Error('Users could not fetched');
     }
   }
 
-  async findOne(id: number) {
+  async findById(id: string): Promise<User | null> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          password: true,
-          role: {
-            select: {
-              id: true,
-              role_name: true,
-            },
-          },
-          is_active: true,
-          cart: true,
-        },
-      });
+      const user = await this.findUser({ userid: id });
 
-      return user;
+      if (!user) return null;
+
+      return {
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        role: { value: user.role.role_name },
+      };
     } catch (error) {
       console.error('User could not be fetched. Error:', error);
       throw new Error('User could not be fetched.');
     }
   }
 
-  async findBy(email: string) {
+  async findByEmail(email: string): Promise<User | null> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { email },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          password: true,
-          role: {
-            select: {
-              id: true,
-              role_name: true,
-            },
-          },
-          is_active: true,
-          cart: true,
-        },
-      });
+      const user = await this.findUser({ email });
 
-      return user;
+      if (!user) return null;
+
+      return {
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        role: { value: user.role.role_name },
+      };
     } catch (error) {
       console.error('User could not be fetched. Error:', error);
       throw new Error('User could not be fetched.');
     }
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto) {
+  private async findUser(where: Prisma.UserWhereUniqueInput) {
+    return await this.prisma.user.findUnique({
+      where,
+      select: {
+        id: true,
+        userid: true,
+        name: true,
+        email: true,
+        password: true,
+        role: {
+          select: {
+            id: true,
+            role_name: true,
+          },
+        },
+        is_active: true,
+        cart: true,
+      },
+    });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     try {
       const { name, email, role, password } = updateUserDto;
       if (!name && !email && !role && !password) {
@@ -160,11 +179,23 @@ export class UserService {
           await this.passwordProvider.generate(password);
       }
 
-      await this.prisma.user.update({
-        where: { id },
+      const user = await this.prisma.user.update({
+        where: { userid: id },
         data: userUpdateObject,
+        select: {
+          userid: true,
+          name: true,
+          email: true,
+          role: { select: { role_name: true } },
+        },
       });
-      return { message: 'User updated successfully' };
+
+      return {
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        role: { value: user.role.role_name },
+      };
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -172,10 +203,10 @@ export class UserService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       await this.prisma.user.delete({
-        where: { id },
+        where: { userid: id },
       });
       return { message: 'User deleted successfully' };
     } catch (error) {
@@ -184,31 +215,36 @@ export class UserService {
     }
   }
 
-  async createPasswordResetToken(userId: number) {
+  async createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
     try {
       const disposableToken = uuidv4();
 
       const tenMinutes = 10 * 60 * 1000;
 
+      const expiresAt = new Date(Date.now() + tenMinutes);
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { userid: userId },
         data: {
           password_reset_tokens: {
             create: {
               token: disposableToken,
-              expires_at: new Date(Date.now() + tenMinutes),
+              expires_at: expiresAt,
             },
           },
         },
       });
-      return disposableToken;
+      return { token: disposableToken, expiresAt: expiresAt };
     } catch (error) {
       console.error('Password reset token could not be created. Error:', error);
       throw new CustomAPIError('Password reset token could not be created.');
     }
   }
 
-  async resetPassword(email: string, token: string, newPassword: string) {
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     try {
       // get password_reset_tokens
       const passwordResetToken =
@@ -228,10 +264,10 @@ export class UserService {
       }
 
       // get user with email
-      const user = await this.findBy(email);
+      const user = await this.findUser({ email });
 
       // check user correctness
-      if (!user || user.id !== passwordResetToken.userid)
+      if (!user || user.userid !== passwordResetToken.userid)
         throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
@@ -242,7 +278,7 @@ export class UserService {
       }
 
       // update user password
-      await this.update(user.id, { password: newPassword });
+      await this.update(user.userid, { password: newPassword });
 
       return { message: 'Password reset successfully' };
     } catch (error) {
@@ -251,6 +287,34 @@ export class UserService {
       if (error instanceof CustomAPIError) throw error;
 
       throw new Error('Password could not be reset.');
+    }
+  }
+
+  async checkUserWithPassword(email: string, password: string): Promise<User> {
+    try {
+      const user = await this.findUser({ email });
+
+      if (!user) throw new CustomAPIError('Invalid user credentials');
+
+      const isCorrect = await this.passwordProvider.compare(
+        password,
+        user.password,
+      );
+
+      if (!isCorrect) throw new CustomAPIError('Invalid user credentials');
+
+      return {
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        role: { value: user.role.role_name },
+      };
+    } catch (error) {
+      console.error('User password check failed. Error:', error);
+
+      if (error instanceof CustomAPIError) throw error;
+
+      throw new Error('User password check failed.');
     }
   }
 }

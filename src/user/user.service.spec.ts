@@ -67,7 +67,14 @@ describe('UserService', () => {
       user.email = 'testuser@email.com';
       user.password = 'password123';
 
+      (uuidv4 as jest.Mock).mockReturnValueOnce('user-1');
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.user.create.mockResolvedValueOnce({
+        userid: 'user-1',
+        name: 'test user',
+        email: 'testuser@email.com',
+        role: { role_name: 'user' },
+      });
       mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
 
       const result = await service.create(user, RoleEnum.User);
@@ -77,6 +84,7 @@ describe('UserService', () => {
           name: 'test user',
           email: 'testuser@email.com',
           password: 'hashedPassword',
+          userid: 'user-1',
           role: {
             connectOrCreate: {
               where: {
@@ -89,10 +97,21 @@ describe('UserService', () => {
           },
           is_active: true,
         },
+        select: {
+          userid: true,
+          name: true,
+          email: true,
+          role: { select: { role_name: true } },
+        },
       });
       expect(passwordProvider.generate).toHaveBeenCalledWith(user.password);
 
-      expect(result).toEqual({ message: 'User registered successfully' });
+      expect(result).toEqual({
+        id: 'user-1',
+        name: 'test user',
+        email: 'testuser@email.com',
+        role: { value: 'user' },
+      });
     });
 
     it('should throw an error if email is already in use', async () => {
@@ -133,6 +152,7 @@ describe('UserService', () => {
       mockPrismaService.user.findMany.mockResolvedValueOnce([
         {
           id: 1,
+          userid: 'user-1',
           name: 'test user',
           email: 'testuser@email.com',
           role: {
@@ -145,23 +165,20 @@ describe('UserService', () => {
 
       expect(await service.findAll()).toEqual([
         {
-          id: 1,
+          id: 'user-1',
           name: 'test user',
           email: 'testuser@email.com',
-          role: {
-            id: 1,
-            role_name: 'user',
-          },
-          is_active: true,
+          role: { value: 'user' },
         },
       ]);
     });
   });
 
-  describe('findOne', () => {
+  describe('findById', () => {
     it('should return a user by id', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
         id: 1,
+        userid: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -173,14 +190,15 @@ describe('UserService', () => {
         cart: null,
       });
 
-      const user = await service.findOne(1);
+      const user = await service.findById('user-1');
 
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: {
-          id: 1,
+          userid: 'user-1',
         },
         select: {
           id: true,
+          userid: true,
           name: true,
           email: true,
           password: true,
@@ -196,29 +214,24 @@ describe('UserService', () => {
       });
 
       expect(user).toEqual({
-        id: 1,
+        id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        password: 'password123',
-        role: {
-          id: 1,
-          role_name: 'user',
-        },
-        is_active: true,
-        cart: null,
+        role: { value: 'user' },
       });
     });
 
     it('should return null if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      expect(await service.findOne(999)).toBeNull();
+      expect(await service.findById('user-999')).toBeNull();
     });
   });
 
-  describe('findBy', () => {
+  describe('findByEmail', () => {
     it('should return a user by email', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
         id: 1,
+        userid: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -229,7 +242,7 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      const user = await service.findBy('testuser@email.com');
+      const user = await service.findByEmail('testuser@email.com');
 
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: {
@@ -237,6 +250,7 @@ describe('UserService', () => {
         },
         select: {
           id: true,
+          userid: true,
           name: true,
           email: true,
           password: true,
@@ -252,21 +266,16 @@ describe('UserService', () => {
       });
 
       expect(user).toEqual({
-        id: 1,
+        id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        password: 'password123',
-        role: {
-          id: 1,
-          role_name: 'user',
-        },
-        is_active: true,
+        role: { value: 'user' },
       });
     });
 
     it('should throw an error if the user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      expect(await service.findBy('invaliduser@email.com')).toBeNull();
+      expect(await service.findByEmail('invaliduser@email.com')).toBeNull();
     });
   });
 
@@ -280,6 +289,7 @@ describe('UserService', () => {
 
       mockPrismaService.user.update.mockResolvedValueOnce({
         id: 1,
+        userid: 'user-1',
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         role: {
@@ -291,18 +301,29 @@ describe('UserService', () => {
 
       mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
 
-      const result = await service.update(1, updatedUserDto);
+      const result = await service.update('user-1', updatedUserDto);
 
       expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { userid: 'user-1' },
         data: {
           name: 'updated test user',
           email: 'updatedtestuser@email.com',
           password: 'hashedPassword',
         },
+        select: {
+          userid: true,
+          name: true,
+          email: true,
+          role: { select: { role_name: true } },
+        },
       });
 
-      expect(result).toEqual({ message: 'User updated successfully' });
+      expect(result).toEqual({
+        id: 'user-1',
+        name: 'updated test user',
+        email: 'updatedtestuser@email.com',
+        role: { value: 'user' },
+      });
     });
 
     it('should throw an error if user does not exist', async () => {
@@ -317,7 +338,7 @@ describe('UserService', () => {
       );
 
       try {
-        await service.update(999, user);
+        await service.update('user-999', user);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('User could not be updated');
@@ -326,7 +347,7 @@ describe('UserService', () => {
 
     it('should throw an error if no changes provided', async () => {
       try {
-        await service.update(999, {});
+        await service.update('user-999', {});
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('No changes provided.');
@@ -338,6 +359,7 @@ describe('UserService', () => {
     it('should successfully delete a user', async () => {
       mockPrismaService.user.delete.mockResolvedValueOnce({
         id: 1,
+        user: 'user-1',
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
@@ -350,17 +372,17 @@ describe('UserService', () => {
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.remove(1);
+      const result = await service.remove('user-1');
       expect(result).toEqual({ message: 'User deleted successfully' });
 
-      expect(await service.findOne(1)).toBeNull();
+      expect(await service.findById('user-1')).toBeNull();
     });
     it('should throw an error if user does not exist', async () => {
       mockPrismaService.user.delete.mockRejectedValueOnce(
         'User to delete not found',
       );
       try {
-        await service.remove(1);
+        await service.remove('user-1');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('User could not be deleted');
@@ -370,10 +392,9 @@ describe('UserService', () => {
 
   describe('createPasswordResetToken', () => {
     it('should create and return a disposable token', async () => {
-      const mockUserId = 1;
-      const mockToken = 'mock-uuid-token';
+      const mockUserId = 'user-1';
 
-      (uuidv4 as jest.Mock).mockReturnValueOnce(mockToken);
+      (uuidv4 as jest.Mock).mockReturnValueOnce('mock-uuid-token');
 
       mockPrismaService.user.update.mockResolvedValueOnce({});
 
@@ -381,21 +402,24 @@ describe('UserService', () => {
 
       expect(uuidv4).toHaveBeenCalled();
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: mockUserId },
+        where: { userid: mockUserId },
         data: {
           password_reset_tokens: {
             create: {
-              token: mockToken,
+              token: 'mock-uuid-token',
               expires_at: expect.any(Date),
             },
           },
         },
       });
-      expect(result).toBe(mockToken);
+      expect(result).toEqual({
+        token: 'mock-uuid-token',
+        expiresAt: expect.any(Date),
+      });
     });
 
     it('should throw an error if Prisma update fails', async () => {
-      const mockUserId = 1;
+      const mockUserId = 'user-1';
 
       (uuidv4 as jest.Mock).mockReturnValueOnce('mock-uuid-token');
 
@@ -479,7 +503,7 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       const mockPasswordResetData = {
         token_id: 1,
-        userid: 1,
+        userid: 'user-1',
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       };
@@ -492,6 +516,7 @@ describe('UserService', () => {
         .mockReturnValueOnce({
           name: 'second user',
           id: 2,
+          userid: 'user-2',
           email: 'seconduser@email.com',
           password: 'oldpassword',
           role: { id: 1, role_name: 'user' },
@@ -527,7 +552,7 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
         token_id: 1,
-        userid: 1,
+        userid: 'user-1',
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
@@ -535,6 +560,7 @@ describe('UserService', () => {
       mockPrismaService.user.findUnique.mockReturnValueOnce({
         name: 'test user',
         id: 1,
+        userid: 'user-1',
         email: 'testuser@email.com',
         password: 'oldpassword',
         role: { id: 1, role_name: 'user' },
@@ -561,7 +587,7 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
         token_id: 1,
-        userid: 1,
+        userid: 'user-1',
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
@@ -569,10 +595,18 @@ describe('UserService', () => {
       mockPrismaService.user.findUnique.mockReturnValueOnce({
         name: 'test user',
         id: 1,
+        userid: 'user-1',
         email: 'testuser@email.com',
         password: 'oldpassword',
         role: { id: 1, role_name: 'user' },
         is_active: true,
+      });
+
+      mockPrismaService.user.update.mockResolvedValueOnce({
+        name: 'test user',
+        userid: 'user-1',
+        email: 'testuser@email.com',
+        role: { role_name: 'user' },
       });
 
       mockPasswordProvider.compare.mockResolvedValueOnce(false);
@@ -586,7 +620,7 @@ describe('UserService', () => {
         'newpassword',
       );
 
-      expect(updateSpy).toHaveBeenCalledWith(1, {
+      expect(updateSpy).toHaveBeenCalledWith('user-1', {
         password: 'newpassword',
       });
 

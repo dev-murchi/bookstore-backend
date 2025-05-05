@@ -3,5 +3,5 @@ export enum PaymentStatus {
   Failed = 'failed',
   Unpaid = 'unpaid',
   Refunded = 'refunded',
-  RefundCreated = 'refud-created',
+  RefundCreated = 'refund-created',
 }

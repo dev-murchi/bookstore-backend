@@ -68,7 +68,7 @@ describe('CartService', () => {
 
     it('should find or create a cart for a user with userId is provided', async () => {
       const cartId = 1;
-      const userId = 2;
+      const userId = 'user-2';
       mockPrismaService.cart.upsert.mockResolvedValueOnce({
         id: cartId,
         userid: userId,
@@ -79,7 +79,7 @@ describe('CartService', () => {
       expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
         where: { userid: userId },
         update: {},
-        create: { userid: userId },
+        create: { user: { connect: { userid: userId } } },
       });
     });
   });
@@ -96,7 +96,7 @@ describe('CartService', () => {
     });
     it('should handle empty cart items', async () => {
       const cartId = 1;
-      const userId = 1;
+      const userId = 'user-1';
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
         userid: userId,
         cart_items: [],
@@ -113,7 +113,7 @@ describe('CartService', () => {
 
     it('should return cart data with items', async () => {
       const cartId = 1;
-      const userId = 1;
+      const userId = 'user-1';
 
       const cartItems = [
         {
@@ -183,7 +183,7 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 1,
       };
-      const userId = 1;
+      const userId = 'user-1';
 
       try {
         await service.updateItem(userId, data);
@@ -198,7 +198,7 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 10,
       };
-      const userId = 1;
+      const userId = 'user-1';
       mockPrismaService.books.findUnique.mockReturnValueOnce({
         id: 1,
         stock_quantity: 1,
@@ -219,7 +219,7 @@ describe('CartService', () => {
         id: 1,
         stock_quantity: 10,
       });
-      const userId = 1;
+      const userId = 'user-1';
       const data = {
         cartId: 2,
         bookId: 1,
@@ -238,7 +238,7 @@ describe('CartService', () => {
       const data = { cartId: 1, bookId: 1, quantity: 3 };
       const updatedItem = { bookid: 1, quantity: 3 };
       const book = { id: 1, stock_quantity: 10 };
-      const userId = 1;
+      const userId = 'user-1';
 
       mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
       mockPrismaService.cart_items.update.mockResolvedValue(updatedItem);
@@ -253,7 +253,7 @@ describe('CartService', () => {
 
   describe('removeItem', () => {
     it('should throw an error if a database error occurs when the user tries to remove a product from the cart', async () => {
-      const userId = 1;
+      const userId = 'user-1';
       const data = {
         cartId: 2,
         bookId: 1,
@@ -272,7 +272,7 @@ describe('CartService', () => {
     it('should remove an item from the cart', async () => {
       const data = { cartId: 1, bookId: 1 };
       const deletedItem = { bookid: 1 };
-      const userId = 1;
+      const userId = 'user-1';
       mockPrismaService.cart_items.delete.mockResolvedValue(deletedItem);
 
       const result = await service.removeItem(userId, data);
@@ -291,7 +291,7 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 1,
       };
-      const userId = 1;
+      const userId = 'user-1';
 
       try {
         await service.upsertItem(userId, data);
@@ -306,7 +306,7 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 10,
       };
-      const userId = 1;
+      const userId = 'user-1';
       mockPrismaService.books.findUnique.mockReturnValueOnce({
         id: 1,
         stock_quantity: 1,
@@ -327,7 +327,7 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
         'This is not your cart.',
       );
-      const userId = 1;
+      const userId = 'user-1';
       const data = {
         cartId: 2,
         bookId: 1,
@@ -346,7 +346,7 @@ describe('CartService', () => {
       const data = { cartId: 1, bookId: 1, quantity: 5 };
       const upsertedItem = { bookid: 1, quantity: 5 };
       const book = { id: 1, stock_quantity: 10 };
-      const userId = 1;
+      const userId = 'user-1';
 
       mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
 
@@ -360,7 +360,7 @@ describe('CartService', () => {
 
   describe('attachUser', () => {
     it('should throw an error if the user already has items in the cart', async () => {
-      const userId = 1;
+      const userId = 'user-1';
       const cartId = 1;
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
         cart_items: [
@@ -379,7 +379,7 @@ describe('CartService', () => {
     });
 
     it('should throw an error if the user tries to claim a cart that is not created by guest user', async () => {
-      const userId = 1;
+      const userId = 'user-1';
       const cartId = 1;
       mockPrismaService.cart.findUnique.mockRejectedValueOnce(
         'cart owner is not guest',
@@ -395,7 +395,7 @@ describe('CartService', () => {
     });
 
     it('should attach the user to the cart', async () => {
-      const userId = 1;
+      const userId = 'user-1';
       const cartId = 1;
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
         cart_items: [],

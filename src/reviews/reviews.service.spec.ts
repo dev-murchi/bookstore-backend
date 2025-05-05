@@ -38,7 +38,6 @@ describe('ReviewsService', () => {
   });
 
   describe('create', () => {
-    const userId = 1;
     const createReviewDTO: CreateReviewDTO = {
       bookId: 10,
       data: 'This is a great book!',
@@ -49,11 +48,11 @@ describe('ReviewsService', () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
       mockPrismaService.reviews.create.mockResolvedValueOnce({});
 
-      const result = await service.create(userId, createReviewDTO);
+      const result = await service.create('user-1', createReviewDTO);
 
       expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
         data: {
-          user: { connect: { id: userId } },
+          user: { connect: { userid: 'user-1' } },
           book: { connect: { id: createReviewDTO.bookId } },
           data: createReviewDTO.data,
           rating: createReviewDTO.rating,
@@ -73,13 +72,13 @@ describe('ReviewsService', () => {
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       try {
-        await service.create(userId, createReviewDTO);
+        await service.create('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User can create only one review per book.');
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
-            user: { connect: { id: userId } },
+            user: { connect: { userid: 'user-1' } },
             book: { connect: { id: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
@@ -92,7 +91,7 @@ describe('ReviewsService', () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
 
       try {
-        await service.create(userId, createReviewDTO);
+        await service.create('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe(
@@ -113,7 +112,7 @@ describe('ReviewsService', () => {
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       try {
-        await service.create(userId, createReviewDTO);
+        await service.create('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe(
@@ -122,7 +121,7 @@ describe('ReviewsService', () => {
 
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
-            user: { connect: { id: userId } },
+            user: { connect: { userid: 'user-1' } },
             book: { connect: { id: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
@@ -137,7 +136,7 @@ describe('ReviewsService', () => {
       mockPrismaService.reviews.create.mockRejectedValueOnce(error);
 
       try {
-        await service.create(userId, createReviewDTO);
+        await service.create('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Review creation failed.');

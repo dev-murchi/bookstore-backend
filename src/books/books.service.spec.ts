@@ -49,7 +49,7 @@ describe('BooksService', () => {
         id: 1,
       });
 
-      const userId = 1;
+      const userId = 'user-1';
       const bookDto: CreateBookDto = {
         title: 'The Test Book',
         categoryId: 1,
@@ -72,7 +72,7 @@ describe('BooksService', () => {
     });
 
     it('should successfully create a book if ISBN is not taken', async () => {
-      const userId = 1;
+      const userId = 'user-1';
       const bookDto: CreateBookDto = {
         title: 'The Test Book',
         categoryId: 1,
@@ -171,7 +171,7 @@ describe('BooksService', () => {
       const updateBookDto: UpdateBookDto = {
         author: 'testauthor@email.com',
       };
-      const authorId = 1;
+      const authorId = 'author-1';
       try {
         await service.update(1, updateBookDto, authorId);
       } catch (error) {
@@ -194,7 +194,7 @@ describe('BooksService', () => {
       };
 
       const bookId = 1;
-      const authorId = 1;
+      const authorId = 'author-1';
 
       const result = await service.update(bookId, updateBookDto, authorId);
 
@@ -231,7 +231,7 @@ describe('BooksService', () => {
       };
 
       const bookId = 1;
-      const authorId = 1;
+      const authorId = 'author-1';
 
       const result = await service.update(bookId, updateBookDto, authorId);
 
@@ -261,7 +261,7 @@ describe('BooksService', () => {
       };
 
       const bookId = 1;
-      const authorId = 1;
+      const authorId = 'author-1';
       mockPrismaService.books.update.mockRejectedValueOnce('Update failed.');
       try {
         await service.update(bookId, updateBookDto, authorId);
@@ -349,7 +349,7 @@ describe('BooksService', () => {
           title: true,
           author: {
             select: {
-              id: true,
+              userid: true,
               name: true,
             },
           },
@@ -511,7 +511,7 @@ describe('BooksService', () => {
         select: {
           id: true,
           title: true,
-          author: { select: { id: true, name: true } },
+          author: { select: { userid: true, name: true } },
           category: { select: { category_name: true } },
           isbn: true,
           price: true,
@@ -557,7 +557,7 @@ describe('BooksService', () => {
         select: {
           id: true,
           title: true,
-          author: { select: { id: true, name: true } },
+          author: { select: { userid: true, name: true } },
           category: { select: { category_name: true } },
           isbn: true,
           price: true,
@@ -627,7 +627,7 @@ describe('BooksService', () => {
         select: {
           id: true,
           title: true,
-          author: { select: { id: true, name: true } },
+          author: { select: { userid: true, name: true } },
           category: { select: { category_name: true } },
           isbn: true,
           price: true,
@@ -687,7 +687,7 @@ describe('BooksService', () => {
         select: {
           id: true,
           title: true,
-          author: { select: { id: true, name: true } },
+          author: { select: { userid: true, name: true } },
           category: { select: { category_name: true } },
           isbn: true,
           price: true,

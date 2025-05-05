@@ -101,7 +101,7 @@ export class UserController {
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
   async updateUser(
-    @Param('userId', ParseIntPipe) userId: number,
+    @Param('userId') userId: string,
     @Body()
     updateUserDto: UpdateUserDto,
   ) {
@@ -118,7 +118,7 @@ export class UserController {
   @Delete(':id')
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
-  async deleteUser(@Param('userId', ParseIntPipe) userId: number) {
+  async deleteUser(@Param('userId') userId: string) {
     try {
       return await this.userService.remove(userId);
     } catch (error) {

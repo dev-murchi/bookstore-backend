@@ -12,7 +12,7 @@ const selectedBookInformations = {
   title: true,
   author: {
     select: {
-      id: true,
+      userid: true,
       name: true,
     },
   },
@@ -28,7 +28,7 @@ const selectedBookInformations = {
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(authorId: number, createBookDto: CreateBookDto) {
+  async create(authorId: string, createBookDto: CreateBookDto) {
     try {
       // check book is exist or not
       const book = await this.prisma.books.findUnique({
@@ -45,7 +45,7 @@ export class BooksService {
           title: createBookDto.title,
           author: {
             connect: {
-              id: authorId,
+              userid: authorId,
             },
           },
           category: {
@@ -101,7 +101,7 @@ export class BooksService {
     }
   }
 
-  async update(id: number, updateBookDto: UpdateBookDto, authorId: number) {
+  async update(id: number, updateBookDto: UpdateBookDto, authorId: string) {
     try {
       const {
         title,
