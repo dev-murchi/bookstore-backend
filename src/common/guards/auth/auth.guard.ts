@@ -32,9 +32,10 @@ export class AuthGuard implements CanActivate {
 
       // get user
       const user = await this.prisma.user.findUnique({
-        where: { id: payload.id },
+        where: { userid: payload.id },
         select: {
           id: true,
+          userid: true,
           name: true,
           email: true,
           password: true,
@@ -53,7 +54,7 @@ export class AuthGuard implements CanActivate {
 
       // attach user to the request object
       request.user = {
-        id: user.id,
+        id: user.userid,
         name: user.name,
         email: user.email,
         password: user.password,

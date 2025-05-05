@@ -47,9 +47,10 @@ export class UserAccessGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, { secret });
 
       const user = await this.prisma.user.findUnique({
-        where: { id: payload.id },
+        where: { userid: payload.id },
         select: {
           id: true,
+          userid: true,
           name: true,
           email: true,
           password: true,
@@ -71,7 +72,7 @@ export class UserAccessGuard implements CanActivate {
       if (!roles.includes(userRole)) throw new Error('Access denied.');
 
       request.user = {
-        id: user.id,
+        id: user.userid,
         email: user.email,
         role: user.role.role_name,
         cartId: user.cart ? user.cart.id : null,
