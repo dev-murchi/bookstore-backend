@@ -16,12 +16,12 @@ import { Request } from 'express';
 import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { UserDto } from './dto/user.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { Password } from '../common/password';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { User } from '../common/types';
 
 @Controller('users')
 export class UserController {
@@ -32,15 +32,13 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get('profile')
-  async profile(@Req() request: Request) {
-    const user: UserDto = {
+  async profile(@Req() request: Request): Promise<User> {
+    return {
       id: request.user['id'],
       name: request.user['name'],
       email: request.user['email'],
-      role: request.user['role']['name'],
+      role: { value: request.user['role']['name'] },
     };
-
-    return user;
   }
 
   @UseGuards(AuthGuard)
@@ -48,7 +46,7 @@ export class UserController {
   async updateProfile(
     @Req() request: Request,
     @Body() updateUserProfileDto: UpdateProfileDto,
-  ) {
+  ): Promise<User> {
     try {
       const { name, email, password, newPassword } = updateUserProfileDto;
 
@@ -86,7 +84,7 @@ export class UserController {
   @Get()
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
-  async viewAllRegisteredUsers() {
+  async viewAllRegisteredUsers(): Promise<User[]> {
     try {
       return await this.userService.findAll();
     } catch (error) {
@@ -104,7 +102,7 @@ export class UserController {
     @Param('userId') userId: string,
     @Body()
     updateUserDto: UpdateUserDto,
-  ) {
+  ): Promise<User> {
     try {
       return await this.userService.update(userId, updateUserDto);
     } catch (error) {
@@ -118,7 +116,9 @@ export class UserController {
   @Delete(':id')
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
-  async deleteUser(@Param('userId') userId: string) {
+  async deleteUser(
+    @Param('userId') userId: string,
+  ): Promise<{ message: string }> {
     try {
       return await this.userService.remove(userId);
     } catch (error) {
