@@ -47,7 +47,7 @@ export class CartService {
               quantity: true,
               book: {
                 select: {
-                  id: true,
+                  bookid: true,
                   title: true,
                   price: true,
                 },
@@ -60,7 +60,7 @@ export class CartService {
       if (!cart) throw new CustomAPIError('Cart is not exist.');
 
       const cartItems = cart.cart_items.map((item) => ({
-        bookId: item.book.id,
+        bookId: item.book.bookid,
         bookTitle: item.book.title,
         price: Number(item.book.price.toFixed(2)),
         quantity: item.quantity,
@@ -88,7 +88,7 @@ export class CartService {
       await this.prisma.cart_items.create({
         data: {
           cart: { connect: { id: data.cartId } },
-          book: { connect: { id: data.bookId } },
+          book: { connect: { bookid: data.bookId } },
           quantity: data.quantity,
         },
       });
@@ -106,7 +106,7 @@ export class CartService {
     try {
       // check book stock
       const book = await this.prisma.books.findUnique({
-        where: { id: data.bookId },
+        where: { bookid: data.bookId },
         select: {
           id: true,
           stock_quantity: true,
@@ -173,7 +173,7 @@ export class CartService {
     try {
       // check book stock
       const book = await this.prisma.books.findUnique({
-        where: { id: data.bookId },
+        where: { bookid: data.bookId },
         select: {
           id: true,
           stock_quantity: true,
@@ -201,7 +201,7 @@ export class CartService {
         update: { quantity: data.quantity },
         create: {
           cart: { connect: { id: data.cartId, AND: [{ userid: userId }] } },
-          book: { connect: { id: data.bookId } },
+          book: { connect: { bookid: data.bookId } },
           quantity: data.quantity,
         },
       });

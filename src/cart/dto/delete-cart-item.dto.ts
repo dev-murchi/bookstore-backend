@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString } from 'class-validator';
 
 export class DeleteCartItemDto {
   @ApiProperty()
@@ -7,6 +7,7 @@ export class DeleteCartItemDto {
   cartId: number;
 
   @ApiProperty()
-  @IsInt()
-  bookId: number;
+  @IsNotEmpty()
+  @IsString()
+  bookId: string;
 }

@@ -102,6 +102,7 @@ describe('AuthGuard', () => {
       name: 'test user',
       password: 'password',
       id: 1,
+      userid: 'user-uuid-1',
       email: 'testuser@email.com',
       role: {
         id: 1,
@@ -117,7 +118,7 @@ describe('AuthGuard', () => {
 
     expect(mockRequest['user']).toEqual({
       name: 'test user',
-      id: 1,
+      id: 'user-uuid-1',
       email: 'testuser@email.com',
       password: 'password',
       role: {

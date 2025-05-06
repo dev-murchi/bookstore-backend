@@ -56,6 +56,7 @@ model category {
 
 model books {
   id            Int      @id @default(autoincrement())
+  bookid        String   @unique
   title         String 
   author        User  @relation(fields: [authorid], references: [userid])
   authorid      String
@@ -74,6 +75,8 @@ model books {
   cart_items cart_items[]
   order_items order_items[]
   reviews reviews[]
+
+  @@unique([bookid, authorid])
 }
 
 model cart {
@@ -88,10 +91,10 @@ model cart {
 model cart_items {
   id       Int    @id @default(autoincrement())
   cartid   Int
-  bookid   Int
+  bookid   String
   quantity Int
   cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 
-  book     books  @relation(fields: [bookid], references: [id])
+  book     books  @relation(fields: [bookid], references: [bookid])
   
   @@unique([cartid, bookid])
 }
@@ -111,12 +114,12 @@ model orders {
 model order_items {
   id  Int @id @default(autoincrement())
   orderid Int
-  bookid Int
+  bookid String
   quantity  Int
   price Float @default(0)
 
   order orders @relation(fields: [orderid], references: [id])
-  book  books @relation(fields: [bookid], references: [id])
+  book  books @relation(fields: [bookid], references: [bookid])
 }
 
 model address {
@@ -159,10 +162,10 @@ model reviews {
   id  Int @id @default(autoincrement())
   rating Float
   data String
-  bookid  Int
+  bookid  String
   userid String
 
   user  User @relation(fields: [userid], references: [userid])
-  book books @relation(fields: [bookid], references: [id])
+  book books @relation(fields: [bookid], references: [bookid])
   @@unique([bookid, userid])
 }

@@ -70,7 +70,7 @@ describe('CheckoutService', () => {
         {
           quantity: 20,
           book: {
-            id: 1,
+            bookid: 'book-uuid-1',
             price: 10.0,
             stock_quantity: 10,
           },
@@ -79,7 +79,7 @@ describe('CheckoutService', () => {
     });
 
     await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Not enough stock for book ID: 1',
+      'Not enough stock for book ID: book-uuid-1',
     );
   });
 
@@ -101,7 +101,7 @@ describe('CheckoutService', () => {
       {
         quantity: 1,
         book: {
-          id: 1,
+          bookid: 'book-uuid-1',
           price: new Prisma.Decimal(10.99),
           stock_quantity: 10,
           title: 'Book One',
@@ -110,7 +110,7 @@ describe('CheckoutService', () => {
       {
         quantity: 2,
         book: {
-          id: 2,
+          bookid: 'book-uuid-2',
           price: new Prisma.Decimal(5.99),
           stock_quantity: 10,
           title: 'Book Two',
@@ -119,7 +119,7 @@ describe('CheckoutService', () => {
     ];
 
     const user = {
-      id: 1,
+      userid: 'user-uuid-1',
       name: 'user one',
       email: 'userone@email.com',
     };
@@ -130,7 +130,7 @@ describe('CheckoutService', () => {
         return {
           quantity: item.quantity,
           book: {
-            id: item.book.id,
+            bookid: item.book.bookid,
             price: item.book.price,
             title: item.book.title,
           },
@@ -162,7 +162,7 @@ describe('CheckoutService', () => {
           select: {
             book: {
               select: {
-                id: true,
+                bookid: true,
                 title: true,
                 price: true,
                 stock_quantity: true,
@@ -173,8 +173,9 @@ describe('CheckoutService', () => {
         },
         user: {
           select: {
-            id: true,
+            userid: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -189,8 +190,8 @@ describe('CheckoutService', () => {
         order_items: {
           createMany: {
             data: [
-              { bookid: 1, quantity: 1 },
-              { bookid: 2, quantity: 2 },
+              { bookid: 'book-uuid-1', quantity: 1 },
+              { bookid: 'book-uuid-2', quantity: 2 },
             ],
           },
         },
@@ -203,7 +204,7 @@ describe('CheckoutService', () => {
           select: {
             book: {
               select: {
-                id: true,
+                bookid: true,
                 title: true,
                 price: true,
               },
@@ -213,9 +214,9 @@ describe('CheckoutService', () => {
         },
         user: {
           select: {
-            id: true,
-            name: true,
+            userid: true,
             email: true,
+            name: true,
           },
         },
       },
@@ -230,7 +231,7 @@ describe('CheckoutService', () => {
       expect(mockPrismaService.books.update).toHaveBeenNthCalledWith(
         index + 1,
         {
-          where: { id: item.book.id },
+          where: { bookid: item.book.bookid },
           data: { stock_quantity: { decrement: item.quantity } },
         },
       );
@@ -278,20 +279,20 @@ describe('CheckoutService', () => {
       order: {
         id: 1,
         user: {
-          id: 1,
+          userid: 'user-uuid-1',
           name: 'user one',
           email: 'userone@email.com',
         },
         items: [
           {
             quantity: 1,
-            bookId: 1,
+            bookId: 'book-uuid-1',
             price: 10.99,
             bookTitle: 'Book One',
           },
           {
             quantity: 2,
-            bookId: 2,
+            bookId: 'book-uuid-2',
             price: 5.99,
             bookTitle: 'Book Two',
           },

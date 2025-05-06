@@ -97,7 +97,7 @@ export class OrdersService {
       await this.prisma.$transaction(async () => {
         for (const item of orderItems) {
           await this.prisma.books.update({
-            where: { id: item.bookid },
+            where: { bookid: item.bookid },
             data: { stock_quantity: { increment: item.quantity } },
           });
         }

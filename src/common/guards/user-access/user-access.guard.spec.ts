@@ -109,6 +109,7 @@ describe('UserAccessGuard', () => {
       name: 'test user',
       password: 'password',
       id: 1,
+      userid: 'user-uuid-1',
       email: 'test@example.com',
       role: {
         id: 1,
@@ -123,7 +124,7 @@ describe('UserAccessGuard', () => {
     );
     expect(result).toBe(true);
     expect(mockRequest.user).toEqual({
-      id: 1,
+      id: 'user-uuid-1',
       email: 'test@example.com',
       role: RoleEnum.User,
       cartId: 10,
@@ -166,6 +167,7 @@ describe('UserAccessGuard', () => {
       name: 'test user',
       password: 'password',
       id: 1,
+      userid: 'user-uuid-1',
       email: 'test@example.com',
       role: {
         id: 2,

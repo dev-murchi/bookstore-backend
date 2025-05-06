@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
+import { HelperService } from '../common/helper.service';
 
 const mockPrismaService = {
   books: {
@@ -72,7 +73,6 @@ describe('BooksService', () => {
     });
 
     it('should successfully create a book if ISBN is not taken', async () => {
-      const userId = 'user-1';
       const bookDto: CreateBookDto = {
         title: 'The Test Book',
         categoryId: 1,
@@ -85,28 +85,44 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
+      jest
+        .spyOn(HelperService, 'generateUUID')
+        .mockReturnValueOnce('book-uuid');
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.books.create.mockResolvedValueOnce({
-        id: 1,
+        bookid: 'book-uuid',
         title: bookDto.title,
-        authorid: userId,
-        categoryid: bookDto.categoryId,
+        author: {
+          userid: 'author-id-1',
+          name: 'test author',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
+        category: { category_name: 'category 1' },
         isbn: bookDto.isbn,
         price: bookDto.price,
         description: bookDto.description,
         stock_quantity: bookDto.stockQuantity,
         rating: 5,
         image_url: bookDto.imageUrl,
-        is_active: bookDto.isActive,
-        created_at: new Date(),
-        updated_at: new Date(),
       });
 
-      const result = await service.create(userId, bookDto);
+      const result = await service.create('author-id-1', bookDto);
 
       expect(result).toEqual({
-        message: 'Book is created successfully',
-        id: 1,
+        id: 'book-uuid',
+        title: 'The Test Book',
+        description: 'Test book description.',
+        isbn: '9780743273565',
+        author: {
+          name: 'test author',
+        },
+        category: {
+          value: 'category 1',
+        },
+        price: 1,
+        rating: 5,
+        imageUrl: 'testbook-image-url',
       });
     });
   });
@@ -119,9 +135,14 @@ describe('BooksService', () => {
 
     it('should return all books', async () => {
       const book = {
-        id: 1,
+        bookid: 'book-uuid',
         title: 'The Test Book',
-        author: { id: 1, name: 'test user' },
+        author: {
+          userid: 'author-id-1',
+          name: 'test author',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
         category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
@@ -129,51 +150,77 @@ describe('BooksService', () => {
         stock_quantity: 1,
         rating: 5,
         image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
-      expect(await service.findAll()).toEqual([book]);
+      expect(await service.findAll()).toEqual([
+        {
+          id: 'book-uuid',
+          title: 'The Test Book',
+          description: 'Test book description.',
+          isbn: '9780743273565',
+          author: {
+            name: 'test author',
+          },
+          category: { value: 'test-category' },
+          price: 1,
+          rating: 5,
+          imageUrl: 'testbook-image-url',
+        },
+      ]);
     });
   });
 
   describe('findOne', () => {
     it('should return null if there is no book', async () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
-      const id = 1;
+      const id = 'book-id-1';
       expect(await service.findOne(id)).toBeNull();
     });
     it('should a book by id', async () => {
-      const bookId = 1;
       const book = {
-        id: bookId,
-        title: 'The Test Book',
-        author: { id: 1, name: 'test user' },
-        category: { category_name: 'test-category' },
+        bookid: 'book-uuid-2',
+        title: 'The Test Book 2',
+        author: {
+          userid: 'author-id-2',
+          name: 'test author 2',
+          email: 'testauthor2@email.com',
+          role: { role_name: 'author' },
+        },
+        category: { category_name: 'test-category-2' },
         isbn: '9780743273565',
-        price: 1,
+        price: 2,
         description: 'Test book description.',
-        stock_quantity: 1,
-        rating: 5,
-        image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
+        stock_quantity: 2,
+        rating: 4.5,
+        image_url: 'testbook-image-url-2',
       };
       mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
-      expect(await service.findOne(bookId)).toEqual(book);
+      expect(await service.findOne('book-uuid-2')).toEqual({
+        id: 'book-uuid-2',
+        title: 'The Test Book 2',
+        description: 'Test book description.',
+        isbn: '9780743273565',
+        author: {
+          name: 'test author 2',
+        },
+        category: {
+          value: 'test-category-2',
+        },
+        price: 2,
+        rating: 4.5,
+        imageUrl: 'testbook-image-url-2',
+      });
     });
   });
 
   describe('update', () => {
-    it('should return a message when no fields are provided for update', async () => {
+    it('should throw an error when no fields are provided for update', async () => {
       const updateBookDto: UpdateBookDto = {
         author: 'testauthor@email.com',
       };
       const authorId = 'author-1';
       try {
-        await service.update(1, updateBookDto, authorId);
+        await service.update('book-id-1', updateBookDto, authorId);
       } catch (error) {
         expect(error).toEqual(new CustomAPIError('No changes provided.'));
         expect(prisma.books.update).toHaveBeenCalledTimes(0);
@@ -193,16 +240,48 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const bookId = 1;
+      const bookId = 'book-id-1';
       const authorId = 'author-1';
 
+      mockPrismaService.books.update.mockResolvedValueOnce({
+        bookid: 'book-uuid',
+        title: 'Updated Book Title',
+        author: {
+          userid: 'author-id-1',
+          name: 'test author',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
+        category: { category_name: 'test-category' },
+        isbn: '1234567890123',
+        price: 20,
+        description: 'Updated description.',
+        stock_quantity: 10,
+        rating: 5,
+        image_url: 'testbook-image-url',
+      });
       const result = await service.update(bookId, updateBookDto, authorId);
 
       expect(result).toEqual({
-        message: 'Book informations updated successfully',
+        id: 'book-uuid',
+        title: 'Updated Book Title',
+        description: 'Updated description.',
+        isbn: '1234567890123',
+        author: {
+          name: 'test author',
+        },
+        category: { value: 'test-category' },
+        price: 20,
+        rating: 5,
+        imageUrl: 'testbook-image-url',
       });
       expect(prisma.books.update).toHaveBeenCalledWith({
-        where: { id: bookId, authorid: authorId },
+        where: {
+          bookid_authorid: {
+            authorid: 'author-1',
+            bookid: 'book-id-1',
+          },
+        },
         data: {
           title: updateBookDto.title,
           isbn: updateBookDto.isbn,
@@ -213,6 +292,25 @@ describe('BooksService', () => {
           description: updateBookDto.description,
           stock_quantity: updateBookDto.stockQuantity,
           image_url: updateBookDto.imageUrl,
+        },
+        select: {
+          bookid: true,
+          title: true,
+          author: {
+            select: {
+              userid: true,
+              name: true,
+              email: true,
+              role: { select: { role_name: true } },
+            },
+          },
+          category: { select: { category_name: true } },
+          isbn: true,
+          price: true,
+          description: true,
+          stock_quantity: true,
+          rating: true,
+          image_url: true,
         },
       });
     });
@@ -230,20 +328,55 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const bookId = 1;
-      const authorId = 'author-1';
+      mockPrismaService.books.update.mockResolvedValueOnce({
+        bookid: 'book-id-1',
+        title: 'Updated Book Title',
+        author: {
+          userid: 'author-id-1',
+          name: 'test author',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
+        category: { category_name: 'test-category' },
+        isbn: '1234567890123',
+        price: 10,
+        description: 'Updated description.',
+        stock_quantity: 50,
+        rating: 5,
+        image_url: 'testbook-image-url',
+      });
 
-      const result = await service.update(bookId, updateBookDto, authorId);
+      const result = await service.update(
+        'book-id-1',
+        updateBookDto,
+        'author-id-1',
+      );
 
       expect(result).toEqual({
-        message: 'Book informations updated successfully',
+        id: 'book-id-1',
+        title: 'Updated Book Title',
+        description: 'Updated description.',
+        isbn: '1234567890123',
+        author: {
+          name: 'test author',
+        },
+        category: { value: 'test-category' },
+        price: 10,
+        rating: 5,
+        imageUrl: 'testbook-image-url',
       });
       expect(prisma.books.update).toHaveBeenCalledWith({
-        where: { id: bookId, authorid: authorId },
+        where: {
+          bookid_authorid: {
+            authorid: 'author-id-1',
+            bookid: 'book-id-1',
+          },
+        },
         data: {
           price: updateBookDto.price,
           stock_quantity: updateBookDto.stockQuantity,
         },
+        select: expect.any(Object),
       });
     });
 
@@ -260,7 +393,7 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const bookId = 1;
+      const bookId = 'book-id-1';
       const authorId = 'author-1';
       mockPrismaService.books.update.mockRejectedValueOnce('Update failed.');
       try {
@@ -275,7 +408,7 @@ describe('BooksService', () => {
   describe('remove', () => {
     it('should throw an error if book does not exist', async () => {
       mockPrismaService.books.delete.mockRejectedValueOnce('Delete failed');
-      const bookId = 1;
+      const bookId = 'book-id-1';
       try {
         await service.remove(bookId);
       } catch (error) {
@@ -285,35 +418,23 @@ describe('BooksService', () => {
     });
 
     it('should successfully delete a book', async () => {
-      const bookId = 1;
-      const book = {
-        id: bookId,
-        title: 'The Test Book',
-        authorid: 1,
-        categoryid: 1,
-        isbn: '9780743273565',
-        price: 1,
-        description: 'Test book description.',
-        stock_quantity: 1,
-        rating: 5,
-        image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      mockPrismaService.books.delete.mockResolvedValueOnce(book);
-      const result = await service.remove(bookId);
+      mockPrismaService.books.delete.mockResolvedValueOnce({});
+      const result = await service.remove('book-id-1');
       expect(result).toEqual({ message: 'Book deleted successfully' });
     });
   });
 
   describe('search', () => {
     it('should return books matching the search query in title', async () => {
-      const bookId = 1;
       const book = {
-        id: bookId,
+        bookid: 'book-uuid',
         title: 'The Test Title Book',
-        author: { id: 1, name: 'test user' },
+        author: {
+          userid: 'author-id-1',
+          name: 'test author',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
         category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
@@ -321,16 +442,29 @@ describe('BooksService', () => {
         stock_quantity: 1,
         rating: 5,
         image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('title');
 
-      expect(result).toEqual([book]);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid',
+          title: 'The Test Title Book',
+          description: 'Test book description.',
+          isbn: '9780743273565',
+          author: {
+            name: 'test author',
+          },
+          category: {
+            value: 'test-category',
+          },
+          price: 1,
+          rating: 5,
+          imageUrl: 'testbook-image-url',
+        },
+      ]);
       expect(prisma.books.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
@@ -344,34 +478,23 @@ describe('BooksService', () => {
             },
           ],
         },
-        select: {
-          id: true,
-          title: true,
-          author: {
-            select: {
-              userid: true,
-              name: true,
-            },
-          },
-          category: { select: { category_name: true } },
-          isbn: true,
-          price: true,
-          description: true,
-          stock_quantity: true,
-          rating: true,
-          image_url: true,
-        },
+        select: expect.any(Object),
+        orderBy: {},
       });
 
       expect(mockPrismaService.books.findMany).toHaveBeenCalledTimes(1);
     });
 
     it('should return books matching the search query in author', async () => {
-      const bookId = 1;
       const book = {
-        id: bookId,
+        bookid: 'book-uuid',
         title: 'The Test Book',
-        author: { id: 1, name: 'test author user' },
+        author: {
+          userid: 'author-id-1',
+          name: 'test author user',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
         category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
@@ -379,24 +502,41 @@ describe('BooksService', () => {
         stock_quantity: 1,
         rating: 5,
         image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('author');
 
-      expect(result).toEqual([book]);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid',
+          title: 'The Test Book',
+          description: 'Test book description.',
+          isbn: '9780743273565',
+          author: {
+            name: 'test author user',
+          },
+          category: {
+            value: 'test-category',
+          },
+          price: 1,
+          rating: 5,
+          imageUrl: 'testbook-image-url',
+        },
+      ]);
     });
 
     it('should return books matching the search query in isbn', async () => {
-      const bookId = 1;
       const book = {
-        id: bookId,
+        bookid: 'book-uuid',
         title: 'The Test Book',
-        author: { id: 1, name: 'test user' },
+        author: {
+          userid: 'author-id-1',
+          name: 'test author user',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
         category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
@@ -404,24 +544,41 @@ describe('BooksService', () => {
         stock_quantity: 1,
         rating: 5,
         image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('9780743273565');
 
-      expect(result).toEqual([book]);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid',
+          title: 'The Test Book',
+          description: 'Test book description.',
+          isbn: '9780743273565',
+          author: {
+            name: 'test author user',
+          },
+          category: {
+            value: 'test-category',
+          },
+          price: 1,
+          rating: 5,
+          imageUrl: 'testbook-image-url',
+        },
+      ]);
     });
 
     it('should return books matching the search query in category', async () => {
-      const bookId = 1;
       const book = {
-        id: bookId,
+        bookid: 'book-uuid',
         title: 'The Test Book',
-        author: { id: 1, name: 'test user' },
+        author: {
+          userid: 'author-id-1',
+          name: 'test author user',
+          email: 'testauthor@email.com',
+          role: { role_name: 'author' },
+        },
         category: { category_name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
@@ -429,16 +586,29 @@ describe('BooksService', () => {
         stock_quantity: 1,
         rating: 5,
         image_url: 'testbook-image-url',
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('test-category');
 
-      expect(result).toEqual([book]);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid',
+          title: 'The Test Book',
+          description: 'Test book description.',
+          isbn: '9780743273565',
+          author: {
+            name: 'test author user',
+          },
+          category: {
+            value: 'test-category',
+          },
+          price: 1,
+          rating: 5,
+          imageUrl: 'testbook-image-url',
+        },
+      ]);
     });
 
     it('should return an empty array when no books match the search query', async () => {
@@ -461,9 +631,14 @@ describe('BooksService', () => {
 
       const books = [
         {
-          id: 1,
+          bookid: 'book-uuid-1',
           title: 'Book One',
-          author: { id: 1, name: 'User One' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author one',
+            email: 'author1@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category one' },
           isbn: '0123456789',
           price: 11,
@@ -473,9 +648,14 @@ describe('BooksService', () => {
           image_url: 'book-one.image.url',
         },
         {
-          id: 2,
+          bookid: 'book-uuid-2',
           title: 'Book Two',
-          author: { id: 2, name: 'User Two' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author two',
+            email: 'author2@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category two' },
           isbn: '0987654321',
           price: 11,
@@ -485,9 +665,14 @@ describe('BooksService', () => {
           image_url: 'book-two.image.url',
         },
         {
-          id: 3,
+          bookid: 'book-uuid-3',
           title: 'Book Three',
-          author: { id: 1, name: 'User Three' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author three',
+            email: 'author3@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category three' },
           isbn: '0123456789',
           price: 99,
@@ -501,7 +686,47 @@ describe('BooksService', () => {
       mockPrismaService.books.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
-      expect(result).toEqual(books);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid-1',
+          title: 'Book One',
+          author: {
+            name: 'author one',
+          },
+          category: { value: 'category one' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book one',
+          rating: 4.1,
+          imageUrl: 'book-one.image.url',
+        },
+        {
+          id: 'book-uuid-2',
+          title: 'Book Two',
+          author: {
+            name: 'author two',
+          },
+          category: { value: 'category two' },
+          isbn: '0987654321',
+          price: 11,
+          description: 'Description of book two',
+          rating: 5,
+          imageUrl: 'book-two.image.url',
+        },
+        {
+          id: 'book-uuid-3',
+          title: 'Book Three',
+          author: {
+            name: 'author three',
+          },
+          category: { value: 'category three' },
+          isbn: '0123456789',
+          price: 99,
+          description: 'Description of book three',
+          rating: 4.5,
+          imageUrl: 'book-three.image.url',
+        },
+      ]);
       expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
         where: {
           price: { gte: 10, lte: 100 },
@@ -509,9 +734,16 @@ describe('BooksService', () => {
           stock_quantity: { gt: 0 },
         },
         select: {
-          id: true,
+          bookid: true,
           title: true,
-          author: { select: { userid: true, name: true } },
+          author: {
+            select: {
+              userid: true,
+              name: true,
+              email: true,
+              role: { select: { role_name: true } },
+            },
+          },
           category: { select: { category_name: true } },
           isbn: true,
           price: true,
@@ -531,9 +763,14 @@ describe('BooksService', () => {
 
       const books = [
         {
-          id: 1,
+          bookid: 'book-uuid-1',
           title: 'Book One',
-          author: { id: 1, name: 'User One' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author one',
+            email: 'author1@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category one' },
           isbn: '0123456789',
           price: 11,
@@ -547,25 +784,28 @@ describe('BooksService', () => {
       mockPrismaService.books.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
-      expect(result).toEqual(books);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid-1',
+          title: 'Book One',
+          author: {
+            name: 'author one',
+          },
+          category: { value: 'category one' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book one',
+          rating: 4.1,
+          imageUrl: 'book-one.image.url',
+        },
+      ]);
       expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
         where: {
           price: {},
           rating: {},
           stock_quantity: { gt: 0 },
         },
-        select: {
-          id: true,
-          title: true,
-          author: { select: { userid: true, name: true } },
-          category: { select: { category_name: true } },
-          isbn: true,
-          price: true,
-          description: true,
-          stock_quantity: true,
-          rating: true,
-          image_url: true,
-        },
+        select: expect.any(Object),
         orderBy: [{ price: 'asc' }, { rating: 'asc' }],
       });
     });
@@ -577,9 +817,14 @@ describe('BooksService', () => {
 
       const books = [
         {
-          id: 5,
+          bookid: 'book-uuid-5',
           title: 'Book Five',
-          author: { id: 5, name: 'User five' },
+          author: {
+            userid: 'author-id-5',
+            name: 'author five',
+            email: 'author5@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category five' },
           isbn: '0123456789',
           price: 99,
@@ -589,9 +834,14 @@ describe('BooksService', () => {
           image_url: 'book-five.image.url',
         },
         {
-          id: 7,
+          bookid: 'book-uuid-7',
           title: 'Book Seven',
-          author: { id: 7, name: 'User Seven' },
+          author: {
+            userid: 'author-id-7',
+            name: 'author seven',
+            email: 'author7@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category seven' },
           isbn: '0987654321',
           price: 11,
@@ -601,9 +851,14 @@ describe('BooksService', () => {
           image_url: 'book-seven.image.url',
         },
         {
-          id: 6,
+          bookid: 'book-uuid-6',
           title: 'Book Six',
-          author: { id: 6, name: 'User Six' },
+          author: {
+            userid: 'author-id-6',
+            name: 'author six',
+            email: 'author6@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category six' },
           isbn: '0123456789',
           price: 11,
@@ -617,25 +872,54 @@ describe('BooksService', () => {
       mockPrismaService.books.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
-      expect(result).toEqual(books);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid-5',
+          title: 'Book Five',
+          author: {
+            name: 'author five',
+          },
+          category: { value: 'category five' },
+          isbn: '0123456789',
+          price: 99,
+          description: 'Description of book five',
+          rating: 4.5,
+          imageUrl: 'book-five.image.url',
+        },
+        {
+          id: 'book-uuid-7',
+          title: 'Book Seven',
+          author: {
+            name: 'author seven',
+          },
+          category: { value: 'category seven' },
+          isbn: '0987654321',
+          price: 11,
+          description: 'Description of book seven',
+          rating: 5,
+          imageUrl: 'book-seven.image.url',
+        },
+        {
+          id: 'book-uuid-6',
+          title: 'Book Six',
+          author: {
+            name: 'author six',
+          },
+          category: { value: 'category six' },
+          isbn: '0123456789',
+          price: 11,
+          description: 'Description of book six',
+          rating: 4.1,
+          imageUrl: 'book-six.image.url',
+        },
+      ]);
       expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
         where: {
           price: {},
           rating: {},
           stock_quantity: { equals: 0 },
         },
-        select: {
-          id: true,
-          title: true,
-          author: { select: { userid: true, name: true } },
-          category: { select: { category_name: true } },
-          isbn: true,
-          price: true,
-          description: true,
-          stock_quantity: true,
-          rating: true,
-          image_url: true,
-        },
+        select: expect.any(Object),
         orderBy: [{ price: 'desc' }, { rating: 'desc' }],
       });
     });
@@ -648,9 +932,14 @@ describe('BooksService', () => {
 
       const books = [
         {
-          id: 1,
+          bookid: 'book-uuid-1',
           title: 'Book One',
-          author: { id: 1, name: 'User One' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author one',
+            email: 'author1@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category one' },
           isbn: '0123456789',
           price: 35,
@@ -661,9 +950,14 @@ describe('BooksService', () => {
         },
 
         {
-          id: 2,
+          bookid: 'book-uuid-2',
           title: 'Book Two',
-          author: { id: 2, name: 'User Two' },
+          author: {
+            userid: 'author-id-1',
+            name: 'author two',
+            email: 'author2@email.com',
+            role: { role_name: 'author' },
+          },
           category: { category_name: 'category two' },
           isbn: '0123456789',
           price: 35,
@@ -677,25 +971,42 @@ describe('BooksService', () => {
       mockPrismaService.books.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
-      expect(result).toEqual(books);
+      expect(result).toEqual([
+        {
+          id: 'book-uuid-1',
+          title: 'Book One',
+          author: {
+            name: 'author one',
+          },
+          category: { value: 'category one' },
+          isbn: '0123456789',
+          price: 35,
+          description: 'Description of book one',
+          rating: 4.1,
+          imageUrl: 'book-one.image.url',
+        },
+
+        {
+          id: 'book-uuid-2',
+          title: 'Book Two',
+          author: {
+            name: 'author two',
+          },
+          category: { value: 'category two' },
+          isbn: '0123456789',
+          price: 35,
+          description: 'Description of book two',
+          rating: 4.1,
+          imageUrl: 'book-two.image.url',
+        },
+      ]);
       expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
         where: {
           price: { gte: 20, lte: 50 },
           rating: {},
           stock_quantity: {},
         },
-        select: {
-          id: true,
-          title: true,
-          author: { select: { userid: true, name: true } },
-          category: { select: { category_name: true } },
-          isbn: true,
-          price: true,
-          description: true,
-          stock_quantity: true,
-          rating: true,
-          image_url: true,
-        },
+        select: expect.any(Object),
         orderBy: [{ price: 'asc' }, { rating: 'asc' }],
       });
     });

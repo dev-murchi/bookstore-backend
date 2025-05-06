@@ -20,7 +20,7 @@ export class CheckoutService {
               select: {
                 book: {
                   select: {
-                    id: true,
+                    bookid: true,
                     title: true,
                     price: true,
                     stock_quantity: true,
@@ -31,8 +31,9 @@ export class CheckoutService {
             },
             user: {
               select: {
-                id: true,
+                userid: true,
                 email: true,
+                name: true,
               },
             },
           },
@@ -54,7 +55,7 @@ export class CheckoutService {
         for (const item of cartItems) {
           if (item.book.stock_quantity < item.quantity) {
             throw new CustomAPIError(
-              `Not enough stock for book ID: ${item.book.id}`,
+              `Not enough stock for book ID: ${item.book.bookid}`,
             );
           }
           // Calculate the total price for each item and accumulate it
@@ -72,7 +73,7 @@ export class CheckoutService {
             order_items: {
               createMany: {
                 data: cartItems.map((item) => ({
-                  bookid: item.book.id,
+                  bookid: item.book.bookid,
                   quantity: item.quantity,
                 })),
               },
@@ -86,7 +87,7 @@ export class CheckoutService {
               select: {
                 book: {
                   select: {
-                    id: true,
+                    bookid: true,
                     title: true,
                     price: true,
                   },
@@ -96,7 +97,7 @@ export class CheckoutService {
             },
             user: {
               select: {
-                id: true,
+                userid: true,
                 name: true,
                 email: true,
               },
@@ -108,7 +109,7 @@ export class CheckoutService {
         await Promise.all(
           order.order_items.map((item) => {
             return pr.books.update({
-              where: { id: item.book.id },
+              where: { bookid: item.book.bookid },
               data: { stock_quantity: { decrement: item.quantity } },
             });
           }),
@@ -157,7 +158,7 @@ export class CheckoutService {
             user: order.user,
             items: order.order_items.map((item) => ({
               quantity: item.quantity,
-              bookId: item.book.id,
+              bookId: item.book.bookid,
               price: Number(item.book.price.toFixed(2)),
               bookTitle: item.book.title,
             })),

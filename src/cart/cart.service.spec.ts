@@ -119,7 +119,7 @@ describe('CartService', () => {
         {
           quantity: 1,
           book: {
-            id: 1,
+            bookid: 'book-uuid-1',
             title: 'Book Title',
             price: 10.99,
           },
@@ -127,7 +127,7 @@ describe('CartService', () => {
         {
           quantity: 1,
           book: {
-            id: 2,
+            bookid: 'book-uuid-2',
             title: 'Book Title 2',
             price: 10.99,
           },
@@ -144,13 +144,13 @@ describe('CartService', () => {
         userId,
         cartItems: [
           {
-            bookId: 1,
+            bookId: 'book-uuid-1',
             bookTitle: 'Book Title',
             price: 10.99,
             quantity: 1,
           },
           {
-            bookId: 2,
+            bookId: 'book-uuid-2',
             bookTitle: 'Book Title 2',
             price: 10.99,
             quantity: 1,
@@ -163,8 +163,8 @@ describe('CartService', () => {
 
   describe('addItem', () => {
     it('should add a new item to the cart', async () => {
-      const data = { cartId: 1, bookId: 1, quantity: 2 };
-      const newItem = { bookid: 1, quantity: 2 };
+      const data = { cartId: 1, bookId: 'book-uuid-1', quantity: 2 };
+      const newItem = { bookid: 'book-uuid-1', quantity: 2 };
       mockPrismaService.cart_items.create.mockResolvedValue(newItem);
 
       const result = await service.addItem(data);
@@ -179,7 +179,7 @@ describe('CartService', () => {
     it('it should throw an error if the book with the specified id does not exist', async () => {
       mockPrismaService.books.findUnique.mockReturnValueOnce(null);
       const data = {
-        bookId: 1,
+        bookId: 'book-uuid-1',
         cartId: 1,
         quantity: 1,
       };
@@ -188,13 +188,13 @@ describe('CartService', () => {
       try {
         await service.updateItem(userId, data);
       } catch (error) {
-        expect(error.message).toBe('Book ID #1 is not exist.');
+        expect(error.message).toBe('Book ID #book-uuid-1 is not exist.');
       }
     });
 
     it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
       const data = {
-        bookId: 1,
+        bookId: 'book-uuid-1',
         cartId: 1,
         quantity: 10,
       };
@@ -207,7 +207,7 @@ describe('CartService', () => {
       try {
         await service.updateItem(userId, data);
       } catch (error) {
-        expect(error.message).toBe('Not enough stock for book ID: 1');
+        expect(error.message).toBe('Not enough stock for book ID: book-uuid-1');
       }
     });
 
@@ -222,7 +222,7 @@ describe('CartService', () => {
       const userId = 'user-1';
       const data = {
         cartId: 2,
-        bookId: 1,
+        bookId: 'book-uuid-1',
         quantity: 1,
       };
 
@@ -235,8 +235,8 @@ describe('CartService', () => {
       }
     });
     it('should update the quantity of an item in the cart', async () => {
-      const data = { cartId: 1, bookId: 1, quantity: 3 };
-      const updatedItem = { bookid: 1, quantity: 3 };
+      const data = { cartId: 1, bookId: 'book-uuid-1', quantity: 3 };
+      const updatedItem = { bookid: 'book-uuid-1', quantity: 3 };
       const book = { id: 1, stock_quantity: 10 };
       const userId = 'user-1';
 
@@ -256,7 +256,7 @@ describe('CartService', () => {
       const userId = 'user-1';
       const data = {
         cartId: 2,
-        bookId: 1,
+        bookId: 'book-uuid-1',
       };
       mockPrismaService.cart_items.delete.mockRejectedValueOnce('DB error.');
 
@@ -270,8 +270,8 @@ describe('CartService', () => {
     });
 
     it('should remove an item from the cart', async () => {
-      const data = { cartId: 1, bookId: 1 };
-      const deletedItem = { bookid: 1 };
+      const data = { cartId: 1, bookId: 'book-uuid-1' };
+      const deletedItem = { bookid: 'book-uuid-1' };
       const userId = 'user-1';
       mockPrismaService.cart_items.delete.mockResolvedValue(deletedItem);
 
@@ -287,7 +287,7 @@ describe('CartService', () => {
     it('it should throw an error if the book with the specified id does not exist', async () => {
       mockPrismaService.books.findUnique.mockReturnValueOnce(null);
       const data = {
-        bookId: 1,
+        bookId: 'book-uuid-1',
         cartId: 1,
         quantity: 1,
       };
@@ -296,13 +296,13 @@ describe('CartService', () => {
       try {
         await service.upsertItem(userId, data);
       } catch (error) {
-        expect(error.message).toBe('Book ID #1 is not exist.');
+        expect(error.message).toBe('Book ID #book-uuid-1 is not exist.');
       }
     });
 
     it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
       const data = {
-        bookId: 1,
+        bookId: 'book-uuid-1',
         cartId: 1,
         quantity: 10,
       };
@@ -315,7 +315,7 @@ describe('CartService', () => {
       try {
         await service.upsertItem(userId, data);
       } catch (error) {
-        expect(error.message).toBe('Not enough stock for book ID: 1');
+        expect(error.message).toBe('Not enough stock for book ID: book-uuid-1');
       }
     });
 
@@ -330,7 +330,7 @@ describe('CartService', () => {
       const userId = 'user-1';
       const data = {
         cartId: 2,
-        bookId: 1,
+        bookId: 'book-uuid-1',
         quantity: 1,
       };
 
@@ -343,8 +343,8 @@ describe('CartService', () => {
       }
     });
     it('should upsert an item in the cart (create or update)', async () => {
-      const data = { cartId: 1, bookId: 1, quantity: 5 };
-      const upsertedItem = { bookid: 1, quantity: 5 };
+      const data = { cartId: 1, bookId: 'book-uuid-1', quantity: 5 };
+      const upsertedItem = { bookid: 'book-uuid-1', quantity: 5 };
       const book = { id: 1, stock_quantity: 10 };
       const userId = 'user-1';
 
@@ -366,7 +366,7 @@ describe('CartService', () => {
         cart_items: [
           {
             id: 1,
-            bookid: 1,
+            bookid: 'book-uuid-1',
             cartid: 1,
             quantity: 1,
           },

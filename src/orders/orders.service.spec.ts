@@ -5,7 +5,7 @@ import { OrderStatus } from './enum/order-status.enum';
 
 const mockOrder = {
   id: 1,
-  userid: 101,
+  userid: 'user-uuid-101',
   totalPrice: 42.5,
   status: 'pending',
   shipping_details: { email: 'user@example.com' },
@@ -14,7 +14,7 @@ const mockOrder = {
       id: 1,
       quantity: 2,
       book: {
-        id: 10,
+        bookid: 'book-uuid-10',
         title: 'Book Title',
         author: { name: 'Author Name' },
       },
@@ -143,7 +143,7 @@ describe('OrdersService', () => {
     it('should revert stocks successfully for valid order items', async () => {
       mockPrismaService.order_items.findMany.mockResolvedValueOnce([
         {
-          bookid: 10,
+          bookid: 'booki-uuid-10',
           quantity: 2,
         },
       ]);
@@ -156,7 +156,7 @@ describe('OrdersService', () => {
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({
-        where: { id: 10 },
+        where: { bookid: 'booki-uuid-10' },
         data: { stock_quantity: { increment: 2 } },
       });
     });
@@ -164,7 +164,7 @@ describe('OrdersService', () => {
     it('should throw an error if updating the stock fails', async () => {
       mockPrismaService.order_items.findMany.mockResolvedValueOnce([
         {
-          bookid: 10,
+          bookid: 'booki-uuid-10',
           quantity: 2,
         },
       ]);
@@ -179,7 +179,7 @@ describe('OrdersService', () => {
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({
-        where: { id: 10 },
+        where: { bookid: 'booki-uuid-10' },
         data: { stock_quantity: { increment: 2 } },
       });
     });

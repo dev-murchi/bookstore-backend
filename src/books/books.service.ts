@@ -4,16 +4,20 @@ import { UpdateBookDto } from './dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Book } from '../common/types';
+import { HelperService } from '../common/helper.service';
 
 export type SortType = 'asc' | 'desc';
 
-const selectedBookInformations = {
-  id: true,
+const selectedBookInformations: Prisma.booksSelect = {
+  bookid: true,
   title: true,
   author: {
     select: {
       userid: true,
       name: true,
+      email: true,
+      role: { select: { role_name: true } },
     },
   },
   category: { select: { category_name: true } },
@@ -25,16 +29,17 @@ const selectedBookInformations = {
   image_url: true,
 };
 
+type SelectedBook = Prisma.booksGetPayload<{
+  select: typeof selectedBookInformations;
+}>;
+
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(authorId: string, createBookDto: CreateBookDto) {
+  async create(authorId: string, createBookDto: CreateBookDto): Promise<Book> {
     try {
       // check book is exist or not
-      const book = await this.prisma.books.findUnique({
-        where: { isbn: createBookDto.isbn },
-        select: { id: true },
-      });
+      const book = await this.findBook({ isbn: createBookDto.isbn });
 
       if (book)
         throw new CustomAPIError('The book with same ISBN is already exist');
@@ -42,6 +47,7 @@ export class BooksService {
       // save the book
       const savedBook = await this.prisma.books.create({
         data: {
+          bookid: HelperService.generateUUID(),
           title: createBookDto.title,
           author: {
             connect: {
@@ -60,12 +66,10 @@ export class BooksService {
           image_url: createBookDto.imageUrl,
           is_active: createBookDto.isActive,
         },
+        select: selectedBookInformations,
       });
 
-      return {
-        message: 'Book is created successfully',
-        id: savedBook.id,
-      };
+      return this.transformBookData(savedBook);
     } catch (error) {
       console.error('Book creation failed. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -73,35 +77,33 @@ export class BooksService {
     }
   }
 
-  async findAll() {
+  async findAll(): Promise<Book[]> {
     try {
-      const books = await this.prisma.books.findMany({
-        orderBy: { id: 'asc' },
-        select: selectedBookInformations,
-      });
+      const books = await this.findBooks({}, [{ title: 'asc' }]);
 
-      return books;
+      return books.map((book) => this.transformBookData(book));
     } catch (error) {
       console.error('Books could not fetched. Error:', error);
       throw new CustomAPIError('Books could not fetched.');
     }
   }
 
-  async findOne(id: number) {
+  async findOne(id: string): Promise<Book | null> {
     try {
-      const book = await this.prisma.books.findUnique({
-        where: { id },
-        select: selectedBookInformations,
-      });
-
-      return book;
+      const book = await this.findBook({ bookid: id });
+      if (!book) return null;
+      return this.transformBookData(book);
     } catch (error) {
       console.error('Book could be fetched. Error:', error);
       throw new CustomAPIError('Book could be fetched.');
     }
   }
 
-  async update(id: number, updateBookDto: UpdateBookDto, authorId: string) {
+  async update(
+    id: string,
+    updateBookDto: UpdateBookDto,
+    authorId: string,
+  ): Promise<Book> {
     try {
       const {
         title,
@@ -141,11 +143,18 @@ export class BooksService {
 
       if (imageUrl) data.image_url = imageUrl;
 
-      await this.prisma.books.update({
-        where: { id, authorid: authorId },
+      const book = await this.prisma.books.update({
+        where: {
+          bookid_authorid: {
+            bookid: id,
+            authorid: authorId,
+          },
+        },
         data: data,
+        select: selectedBookInformations,
       });
-      return { message: 'Book informations updated successfully' };
+
+      return this.transformBookData(book);
     } catch (error) {
       console.error('Book informations could not be updated. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -153,10 +162,10 @@ export class BooksService {
     }
   }
 
-  async remove(id: number) {
+  async remove(id: string): Promise<{ message: string }> {
     try {
       await this.prisma.books.delete({
-        where: { id },
+        where: { bookid: id },
       });
       return { message: 'Book deleted successfully' };
     } catch (error) {
@@ -165,25 +174,25 @@ export class BooksService {
     }
   }
 
-  async search(searchQuery: string) {
+  async search(searchQuery: string): Promise<Book[]> {
     try {
-      return await this.prisma.books.findMany({
-        where: {
-          OR: [
-            { title: { contains: searchQuery, mode: 'insensitive' } },
-            {
-              author: { name: { contains: searchQuery, mode: 'insensitive' } },
+      const condditions: Prisma.booksWhereInput = {
+        OR: [
+          { title: { contains: searchQuery, mode: 'insensitive' } },
+          {
+            author: { name: { contains: searchQuery, mode: 'insensitive' } },
+          },
+          { isbn: { contains: searchQuery, mode: 'insensitive' } },
+          {
+            category: {
+              category_name: { contains: searchQuery, mode: 'insensitive' },
             },
-            { isbn: { contains: searchQuery, mode: 'insensitive' } },
-            {
-              category: {
-                category_name: { contains: searchQuery, mode: 'insensitive' },
-              },
-            },
-          ],
-        },
-        select: selectedBookInformations,
-      });
+          },
+        ],
+      };
+      const books = await this.findBooks(condditions);
+
+      return books.map((book) => this.transformBookData(book));
     } catch (error) {
       console.error('Search for the book(s) failed. Error:', error);
       throw new CustomAPIError('Search for the book(s) failed.');
@@ -231,14 +240,51 @@ export class BooksService {
         stock_quantity,
       };
 
-      return await this.prisma.books.findMany({
-        where: conditions,
-        select: selectedBookInformations,
-        orderBy: [{ price: orderBy }, { rating: orderBy }],
-      });
+      const books = await this.findBooks(conditions, [
+        { price: orderBy },
+        { rating: orderBy },
+      ]);
+
+      return books.map((book) => this.transformBookData(book));
     } catch (error) {
       console.error('Filter operation for book(s) failed. Error:', error);
       throw new CustomAPIError('Filter operation for book(s) failed.');
     }
+  }
+
+  private async findBook(conditions: Prisma.booksWhereUniqueInput) {
+    return await this.prisma.books.findUnique({
+      where: conditions,
+      select: selectedBookInformations,
+    });
+  }
+
+  private async findBooks(
+    conditions: Prisma.booksWhereInput,
+    orderBy?: Prisma.booksOrderByWithRelationInput[],
+  ) {
+    return await this.prisma.books.findMany({
+      where: conditions,
+      select: selectedBookInformations,
+      orderBy: orderBy ? orderBy : {},
+    });
+  }
+
+  private transformBookData(book: SelectedBook): Book {
+    return {
+      id: book.bookid,
+      title: book.title,
+      description: book.description,
+      isbn: book.isbn,
+      author: {
+        name: book.author.name,
+      },
+      category: {
+        value: book.category.category_name,
+      },
+      price: Number(book.price.toFixed(2)),
+      rating: book.rating,
+      imageUrl: book.image_url,
+    };
   }
 }

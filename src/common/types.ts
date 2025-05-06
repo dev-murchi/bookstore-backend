@@ -41,12 +41,14 @@ export interface PasswordResetToken {
 }
 
 export interface Book {
+  id: string;
   title: string;
   description: string;
   isbn: string;
   author: {
     name: string;
   };
+  category: Category;
   price: number;
   rating: number;
   imageUrl: string;

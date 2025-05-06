@@ -25,7 +25,7 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { User } from '../common/types';
+import { Book } from '../common/types';
 
 @Controller('books')
 export class BooksController {
@@ -37,19 +37,23 @@ export class BooksController {
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Post()
-  async create(@Req() request: Request, @Body() createBookDto: CreateBookDto) {
+  async create(
+    @Req() request: Request,
+    @Body() createBookDto: CreateBookDto,
+  ): Promise<{ data: Book }> {
     try {
-      const { targetAuthor } = await this.validateAuthorAndAuthorize(
-        { email: request.user['email'], role: request.user['role'] },
+      const { authorId } = await this.validateAuthorOrThrow(
+        {
+          id: request.user['id'],
+          email: request.user['email'],
+          role: request.user['role'],
+        },
         createBookDto.author,
-        'create',
       );
-
       const createdBook = await this.booksService.create(
-        targetAuthor.id,
+        authorId,
         createBookDto,
       );
-
       return { data: createdBook };
     } catch (error) {
       console.error('Unexpected error during book creation:', error);
@@ -66,7 +70,7 @@ export class BooksController {
   }
 
   @Get()
-  async findAll() {
+  async findAll(): Promise<{ data: Book[] }> {
     try {
       return { data: await this.booksService.findAll() };
     } catch (error) {
@@ -78,7 +82,7 @@ export class BooksController {
   }
 
   @Get('search')
-  async search(@Query('search') query: string) {
+  async search(@Query('search') query: string): Promise<{ data: Book[] }> {
     try {
       if (!query) return { data: [] };
       if (query.length < 3)
@@ -108,7 +112,7 @@ export class BooksController {
     @Query('rating', ParseIntPipe) rating?: number,
     @Query('stock', ParseBoolPipe) stock?: boolean,
     @Query('sort') sort?: 'asc' | 'desc',
-  ) {
+  ): Promise<{ data: Book[] }> {
     try {
       const orderBy = sort === 'desc' ? 'desc' : 'asc';
       const filteredBooks = await this.booksService.filter({
@@ -136,7 +140,7 @@ export class BooksController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id') id: string): Promise<{ data: Book }> {
     try {
       const book = await this.booksService.findOne(id);
       return { data: book };
@@ -155,33 +159,23 @@ export class BooksController {
   @Patch(':id')
   async update(
     @Req() request: Request,
-    @Param('id', ParseIntPipe) bookId: number,
+    @Param('id', ParseIntPipe) bookId: string,
     @Body() updateBookDto: UpdateBookDto,
-  ) {
+  ): Promise<{ data: Book }> {
     try {
-      const { targetAuthor } = await this.validateAuthorAndAuthorize(
-        { email: request.user['email'], role: request.user['role'] },
+      const { authorId } = await this.validateAuthorOrThrow(
+        {
+          id: request.user['id'],
+          email: request.user['email'],
+          role: request.user['role'],
+        },
         updateBookDto.author,
-        'update',
       );
-
-      const book = await this.booksService.findOne(bookId);
-
-      if (!book)
-        throw new NotFoundException(
-          'The book you are trying to update does not exist.',
-        );
-
-      if (book.author.userid !== targetAuthor.id) {
-        throw new UnauthorizedException(
-          `You are not authorized to update this book. Only the original author or an admin specifying the original author can update it.`,
-        );
-      }
 
       const updatedBook = await this.booksService.update(
         bookId,
         updateBookDto,
-        book.author.userid,
+        authorId,
       );
 
       return {
@@ -202,38 +196,32 @@ export class BooksController {
     }
   }
 
-  private async validateAuthorAndAuthorize(
-    requestUser: { email: string; role: RoleEnum },
-    authorIdentifier: string,
-    operation: 'create' | 'update',
-  ): Promise<{ targetAuthor: User }> {
-    try {
-      const targetAuthor = await this.userService.findByEmail(authorIdentifier);
-      if (!targetAuthor)
-        throw new BadRequestException(
-          `Please ensure the author exists before ${operation}ing a book.`,
-        );
-
-      const isAuthorRole = targetAuthor.role.value === RoleEnum.Author;
-      if (!isAuthorRole) {
-        throw new BadRequestException(
-          'Books can only belong to registered authors.',
-        );
-      }
-
-      const isAdmin = requestUser.role === RoleEnum.Admin;
-      const isSelf = requestUser.email === targetAuthor.email;
-
-      if (!isAdmin && !isSelf) {
+  private async validateAuthorOrThrow(
+    requestUser: { id: string; email: string; role: RoleEnum },
+    authorEmail: string,
+  ): Promise<{ authorId: string }> {
+    if (requestUser.role === RoleEnum.Author) {
+      if (requestUser.email !== authorEmail) {
         throw new UnauthorizedException(
-          `You are not authorized to ${operation} a book for this author.`,
+          'You are not authorized to perform this action.',
         );
       }
-
-      return { targetAuthor };
-    } catch (error) {
-      console.error('Failed to validate author and authorize action.', error);
-      throw error;
+      return { authorId: requestUser.id };
     }
+
+    const targetAuthor = await this.userService.findByEmail(authorEmail);
+    if (!targetAuthor) {
+      throw new BadRequestException(
+        'Please ensure the author exists before proceeding.',
+      );
+    }
+
+    if (targetAuthor.role.value !== RoleEnum.Author) {
+      throw new BadRequestException(
+        'Books can only belong to registered authors.',
+      );
+    }
+
+    return { authorId: targetAuthor.id };
   }
 }
