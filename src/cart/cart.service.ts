@@ -3,270 +3,243 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CartItemDto } from './dto/cart-item.dto';
 import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Cart, CartItem } from '../common/types';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CartService {
   constructor(private readonly prisma: PrismaService) {}
-  async createCart(userId: string | null) {
+
+  // selection objects
+  private readonly bookSelect = {
+    bookid: true,
+    title: true,
+    description: true,
+    isbn: true,
+    price: true,
+    rating: true,
+    image_url: true,
+    author: { select: { name: true } },
+    category: { select: { category_name: true } },
+  };
+
+  private readonly cartSelect = {
+    id: true,
+    userid: true,
+    cart_items: {
+      orderBy: { bookid: Prisma.SortOrder.asc },
+      select: {
+        quantity: true,
+        book: { select: this.bookSelect },
+      },
+    },
+  };
+
+  async createCart(userId: string | null): Promise<Cart> {
     try {
-      // create a new cart for the guest user
-      if (!userId) {
-        const cart = await this.prisma.cart.create({
-          data: {
-            userid: userId,
-          },
-        });
-        return { cartId: cart.id };
-      }
-
-      // find or create the cart for the user
-      const cart = await this.prisma.cart.upsert({
-        where: { userid: userId },
-        update: {},
-        create: {
-          user: { connect: { userid: userId } },
-        },
-      });
-
-      return { cartId: cart.id };
+      const cart = userId
+        ? await this.cartUpsert(userId)
+        : await this.cartCreate(userId);
+      return this.transformCartData(cart);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error creating cart. Error:', error);
       throw new Error('Cart creation failed.');
     }
   }
 
-  async findCart(cartId: number) {
+  async findCart(cartId: number): Promise<Cart | null> {
     try {
-      const cart = await this.prisma.cart.findUnique({
-        where: { id: cartId },
-        select: {
-          userid: true,
-          cart_items: {
-            orderBy: { bookid: 'asc' },
-            select: {
-              quantity: true,
-              book: {
-                select: {
-                  bookid: true,
-                  title: true,
-                  price: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      if (!cart) throw new CustomAPIError('Cart is not exist.');
-
-      const cartItems = cart.cart_items.map((item) => ({
-        bookId: item.book.bookid,
-        bookTitle: item.book.title,
-        price: Number(item.book.price.toFixed(2)),
-        quantity: item.quantity,
-      }));
-
-      const totalPrice = Number(
-        cartItems.reduce((p, c) => p + c.price * c.quantity, 0).toFixed(2),
-      );
-
-      return {
-        cartId,
-        userId: cart.userid,
-        cartItems,
-        totalPrice,
-      };
+      const cart = await this.findCartBy({ id: cartId });
+      return cart ? this.transformCartData(cart) : null;
     } catch (error) {
       console.error('Failed to fetch the cart. Error:', error);
-      if (error instanceof CustomAPIError) throw error;
       throw new Error('Failed to fetch the cart.');
     }
   }
 
-  async addItem(data: CartItemDto) {
+  async removeItem(data: DeleteCartItemDto): Promise<{ message: string }> {
     try {
-      await this.prisma.cart_items.create({
-        data: {
-          cart: { connect: { id: data.cartId } },
-          book: { connect: { bookid: data.bookId } },
-          quantity: data.quantity,
-        },
-      });
-
-      return {
-        message: 'Item successfully added.',
-      };
-    } catch (error) {
-      console.error('Failed to add the item. Error:', error);
-      throw new Error('Failed to add the item.');
-    }
-  }
-
-  async updateItem(userId: string | null, data: CartItemDto) {
-    try {
-      // check book stock
-      const book = await this.prisma.books.findUnique({
-        where: { bookid: data.bookId },
-        select: {
-          id: true,
-          stock_quantity: true,
-        },
-      });
-
-      if (!book)
-        throw new CustomAPIError(`Book ID #${data.bookId} is not exist.`);
-
-      if (book.stock_quantity < data.quantity) {
-        throw new CustomAPIError(
-          `Not enough stock for book ID: ${data.bookId}`,
-        );
-      }
-
-      // user can only update items from its own cart
-      const item = await this.prisma.cart_items.update({
-        where: {
-          cartid_bookid: {
-            bookid: data.bookId,
-            cartid: data.cartId,
-          },
-          AND: [{ cart: { userid: userId } }],
-        },
-        data: { quantity: data.quantity },
-      });
-
-      return {
-        message: 'Item successfully updated.',
-      };
-    } catch (error) {
-      if (error instanceof CustomAPIError) throw error;
-      throw Error(
-        'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
-      );
-    }
-  }
-
-  async removeItem(userId: string | null, data: DeleteCartItemDto) {
-    try {
-      // user can only remove items from its own cart
       await this.prisma.cart_items.delete({
         where: {
           cartid_bookid: {
             cartid: data.cartId,
             bookid: data.bookId,
           },
-          AND: [{ cart: { userid: userId } }],
         },
       });
 
-      return {
-        message: 'Item successfully deleted.',
-      };
+      return { message: 'Item successfully deleted.' };
     } catch (error) {
-      console.error('Error occurred while deleting the item. Error:', error);
-      throw Error(
-        'An error occurred while deleting the item. Please check if the cart ID and book ID are correct.',
-      );
+      console.error('Error deleting item. Error:', error);
+      throw new Error('Failed to delete item. Check cart and book IDs.');
     }
   }
 
-  async upsertItem(userId: string | null, data: CartItemDto) {
+  async upsertItem(data: CartItemDto): Promise<CartItem> {
     try {
-      // check book stock
       const book = await this.prisma.books.findUnique({
         where: { bookid: data.bookId },
-        select: {
-          id: true,
-          stock_quantity: true,
-        },
+        select: { stock_quantity: true },
       });
 
-      if (!book)
-        throw new CustomAPIError(`Book ID #${data.bookId} is not exist.`);
+      if (!book) {
+        throw new CustomAPIError(`Book ID #${data.bookId} does not exist.`);
+      }
 
       if (book.stock_quantity < data.quantity) {
         throw new CustomAPIError(
-          `Not enough stock for book ID: ${data.bookId}`,
+          `Insufficient stock for book ID: ${data.bookId}`,
         );
       }
 
-      // user can update/create items for its own cart
-      await this.prisma.cart_items.upsert({
+      const cartItem = await this.prisma.cart_items.upsert({
         where: {
           cartid_bookid: {
             cartid: data.cartId,
             bookid: data.bookId,
           },
-          AND: [{ cart: { userid: userId } }],
         },
         update: { quantity: data.quantity },
         create: {
-          cart: { connect: { id: data.cartId, AND: [{ userid: userId }] } },
+          cart: { connect: { id: data.cartId } },
           book: { connect: { bookid: data.bookId } },
           quantity: data.quantity,
         },
+        select: {
+          quantity: true,
+          book: { select: this.bookSelect },
+        },
       });
 
-      return {
-        message: 'Item successfully updated.',
-      };
+      return this.transformCartItemData(cartItem);
     } catch (error) {
-      console.error('Error occurred while updating the item. Error:', error);
+      console.error('Error updating item. Error:', error);
       if (error instanceof CustomAPIError) throw error;
-      throw Error(
-        'An error occurred while updating the item. Please check if the cart ID and book ID are correct, and ensure the quantity is valid',
-      );
+      throw new Error('Failed to update item. Check input data.');
     }
   }
 
-  async claim(userId: string, cartId: number) {
+  async claim(userId: string, cartId: number): Promise<Cart> {
     try {
-      await this.prisma.$transaction(async (pr) => {
-        const oldCart = await pr.cart.findUnique({
-          where: { userid: userId },
-          select: {
-            cart_items: true,
-          },
-        });
+      const cart = await this.prisma.$transaction(async () => {
+        const usersCart = await this.findCartBy({ userid: userId });
 
-        if (oldCart && oldCart.cart_items.length > 0) {
-          throw new CustomAPIError('User alredy has a cart.');
+        if (usersCart.cart_items.length) {
+          throw new CustomAPIError('User already has a cart.');
         }
 
-        // remove user's empty cart
-        if (oldCart) {
-          await pr.cart.delete({ where: { userid: userId } });
+        const guestCart = await this.findCartBy({ id: cartId });
+        if (!guestCart) throw new CustomAPIError('Cart does not exist.');
+        if (guestCart.userid)
+          throw new CustomAPIError('Cart is not a guest cart.');
+
+        if (usersCart) {
+          await this.prisma.cart.delete({ where: { userid: userId } });
         }
 
-        // user can only claim the cart created by the guest
-        await pr.cart.update({
-          where: { id: cartId, AND: [{ userid: null }] },
-          data: { user: { connect: { userid: userId } } },
-        });
+        const updatedCart = await this.cartUpdate(
+          { id: cartId },
+          { user: { connect: { userid: userId } } },
+        );
+
+        return this.transformCartData(updatedCart);
       });
 
-      return { message: 'User is attached to the cart.' };
+      return cart as Cart;
     } catch (error) {
-      console.error('Failed to claim the cart. Error:', error);
+      console.error('Failed to claim cart. Error:', error);
       if (error instanceof CustomAPIError) throw error;
-      throw new Error('User can only claim the cart created by the guest.');
+      throw new Error('Only guest carts can be claimed.');
     }
   }
 
-  async removeInactiveGuestCarts() {
+  async removeInactiveGuestCarts(): Promise<{ removed: number }> {
     try {
       // remove the inactive carts
       // the cart is inactive if it was created less than 1 day ago.
       const currentDateTime = new Date().getTime();
       const expirationDate = new Date(currentDateTime - 24 * 60 * 60 * 1000);
 
-      const carts = await this.prisma.cart.deleteMany({
+      const result = await this.prisma.cart.deleteMany({
         where: { userid: null, created_at: { lt: expirationDate } },
       });
 
-      return { carts };
+      return { removed: result.count };
     } catch (error) {
       console.error('Failed to remove inactive guest carts. Error:', error);
       throw new Error('Failed to remove inactive guest carts');
     }
+  }
+
+  private async cartCreate(userId: string | null) {
+    return this.prisma.cart.create({
+      data: { userid: userId },
+      select: this.cartSelect,
+    });
+  }
+
+  private async cartUpsert(userId: string) {
+    return this.prisma.cart.upsert({
+      where: { userid: userId },
+      update: {},
+      create: { user: { connect: { userid: userId } } },
+      select: this.cartSelect,
+    });
+  }
+
+  private async cartUpdate(
+    condition: Prisma.cartWhereUniqueInput,
+    data: Prisma.cartUpdateInput,
+  ) {
+    return this.prisma.cart.update({
+      where: condition,
+      data,
+      select: this.cartSelect,
+    });
+  }
+
+  private async findCartBy(condition: Prisma.cartWhereUniqueInput) {
+    const data = await this.prisma.cart.findUnique({
+      where: condition,
+      select: {
+        ...this.cartSelect,
+        user: { select: { id: true, name: true } },
+      },
+    });
+
+    return data;
+  }
+
+  private transformCartItemData(cartItem: any): CartItem {
+    return {
+      quantity: cartItem.quantity,
+      item: {
+        id: cartItem.book.bookid,
+        title: cartItem.book.title,
+        description: cartItem.book.description,
+        isbn: cartItem.book.isbn,
+        price: Number(cartItem.book.price.toFixed(2)),
+        rating: Number(cartItem.book.rating.toFixed(2)),
+        imageUrl: cartItem.book.image_url,
+        author: { name: cartItem.book.author.name },
+        category: { value: cartItem.book.category.category_name },
+      },
+    };
+  }
+
+  private transformCartData(cartData: any): Cart {
+    const cartItems = cartData.cart_items.map(this.transformCartItemData);
+    const totalPrice = Number(
+      cartItems
+        .reduce((sum, item) => sum + item.item.price * item.quantity, 0)
+        .toFixed(2),
+    );
+
+    return {
+      id: cartData.id,
+      owner: cartData.userid,
+      items: cartItems,
+      totalPrice,
+    };
   }
 }

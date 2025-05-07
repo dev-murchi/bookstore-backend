@@ -22,6 +22,7 @@ import { UserAccessGuard } from '../common/guards/user-access/user-access.guard'
 import { CreateCheckoutDto } from './dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Cart, CartItem } from '../common/types';
 
 @Controller('cart')
 @UseGuards(UserAccessGuard)
@@ -33,7 +34,7 @@ export class CartController {
 
   @Post()
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
-  async createCart(@Req() request: Request) {
+  async createCart(@Req() request: Request): Promise<Cart> {
     try {
       const userId = request.user ? request.user['id'] : null;
       return await this.cartService.createCart(userId);
@@ -49,7 +50,7 @@ export class CartController {
   async checkout(
     @Req() request: Request,
     @Body() createCheckoutDto: CreateCheckoutDto,
-  ) {
+  ): Promise<any> {
     try {
       // guest user can also checkout
       const userId = request.user ? request.user['id'] : null;
@@ -69,30 +70,24 @@ export class CartController {
   async viewCart(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: Request,
-  ) {
+  ): Promise<{ data: Cart | null }> {
     try {
       const cart = await this.cartService.findCart(id);
 
-      // guest user access
-      if (!request.user) {
-        if (cart.userId !== null) {
-          throw new UnauthorizedException('Unable to access this cart.');
-        }
-        return cart;
+      // admin access
+      if (request.user && request.user['role'] === RoleEnum.Admin) {
+        return { data: cart };
       }
 
-      // admin access
-      if (request.user['role'] === RoleEnum.Admin) return cart;
+      const userId = request.user ? request.user['id'] : null;
 
-      // authenticated user access
-      if (cart.userId != request.user['id'])
+      if (!cart || cart.owner !== userId) {
         throw new UnauthorizedException('Unable to access this cart.');
+      }
 
-      return cart;
+      return { data: cart };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
-      if (error instanceof CustomAPIError)
-        throw new BadRequestException(error.message);
       throw new InternalServerErrorException(
         'Failed to fetch the cart due to an unexpected error.',
       );
@@ -101,7 +96,10 @@ export class CartController {
 
   @Post(':id/claim')
   @Roles([RoleEnum.User])
-  async claim(@Param('id', ParseIntPipe) id: number, @Req() request: Request) {
+  async claim(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() request: Request,
+  ): Promise<Cart> {
     try {
       return await this.cartService.claim(request.user['id'], id);
     } catch (error) {
@@ -115,7 +113,10 @@ export class CartController {
 
   @Post('item')
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
-  async addOrUpdateItem(@Req() request: Request, @Body() data: CartItemDto) {
+  async addOrUpdateItem(
+    @Req() request: Request,
+    @Body() data: CartItemDto,
+  ): Promise<CartItem> {
     try {
       if (request.user && request.user['cartId'] === null) {
         throw new BadRequestException('Please create a cart.');
@@ -123,11 +124,22 @@ export class CartController {
 
       const userId = request.user ? request.user['id'] : null;
 
-      return await this.cartService.upsertItem(userId, data);
+      const cart = await this.cartService.findCart(data.cartId);
+      if (!cart) {
+        throw new UnauthorizedException('Unable to access this cart1.');
+      }
+
+      if (cart.owner !== userId) {
+        throw new UnauthorizedException('Unable to access this cart.');
+      }
+
+      return await this.cartService.upsertItem(data);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      if (error instanceof CustomAPIError)
+      if (error instanceof UnauthorizedException) throw error;
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
       throw new InternalServerErrorException(
         'Failed to add the item to the cart due to an unexpected error.',
       );
@@ -136,16 +148,30 @@ export class CartController {
 
   @Delete('item')
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
-  async removeItem(@Req() request: Request, @Body() data: DeleteCartItemDto) {
+  async removeItem(
+    @Req() request: Request,
+    @Body() data: DeleteCartItemDto,
+  ): Promise<{ message: string }> {
     try {
       if (request.user && request.user['cartId'] === null) {
         throw new BadRequestException(
           'Item could not deleted. Please be sure you have a cart!',
         );
       }
+
       const userId = request.user ? request.user['id'] : null;
 
-      return await this.cartService.removeItem(userId, data);
+      const cart = await this.cartService.findCart(data.cartId);
+
+      if (!cart || cart.owner !== userId) {
+        throw new Error('Unable to access this cart.');
+      }
+
+      if (cart.items.length === 0) {
+        throw new BadRequestException('Cart is empty!');
+      }
+
+      return await this.cartService.removeItem(data);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(
@@ -156,7 +182,7 @@ export class CartController {
 
   @Post('clear')
   @Roles([RoleEnum.Admin])
-  removeInactiveGuestCarts() {
+  removeInactiveGuestCarts(): Promise<{ removed: number }> {
     try {
       return this.cartService.removeInactiveGuestCarts();
     } catch (error) {

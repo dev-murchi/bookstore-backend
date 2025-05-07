@@ -61,7 +61,9 @@ export interface CartItem {
 
 export interface Cart {
   id: number;
+  owner: string;
   items: CartItem[];
+  totalPrice: number;
 }
 
 export interface Review {
@@ -72,7 +74,6 @@ export interface Review {
 export interface OrderItem {
   item: Book;
   quantity: number;
-  price: number;
 }
 
 export interface Order {
@@ -80,6 +81,13 @@ export interface Order {
   items: OrderItem[];
   status: string;
   price: number;
-  shipping: Shipping | null;
-  payment: Payment | null;
+  shipping?: Shipping;
+  payment?: Payment;
+}
+
+export interface CheckoutData {
+  order: Order;
+  message: string;
+  expiresAt: number;
+  url: string;
 }

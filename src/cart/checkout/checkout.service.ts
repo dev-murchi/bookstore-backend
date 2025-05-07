@@ -3,6 +3,8 @@ import { CreateCheckoutDto } from '../dto/create-checkout.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
+import { CheckoutData, OrderItem } from '../../common/types';
+import Stripe from 'stripe';
 
 @Injectable()
 export class CheckoutService {
@@ -10,11 +12,14 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
   ) {}
-  async checkout(userId: string | null, data: CreateCheckoutDto) {
+  async checkout(
+    userId: string | null,
+    data: CreateCheckoutDto,
+  ): Promise<CheckoutData> {
     try {
       return await this.prisma.$transaction(async (pr) => {
         const cart = await pr.cart.findUnique({
-          where: { id: data.cartId, AND: [{ userid: userId }] },
+          where: { id: data.cartId },
           select: {
             cart_items: {
               select: {
@@ -24,6 +29,12 @@ export class CheckoutService {
                     title: true,
                     price: true,
                     stock_quantity: true,
+                    description: true,
+                    isbn: true,
+                    rating: true,
+                    image_url: true,
+                    author: { select: { name: true } },
+                    category: { select: { category_name: true } },
                   },
                 },
                 quantity: true,
@@ -39,32 +50,49 @@ export class CheckoutService {
           },
         });
 
-        if (!cart)
+        if (!cart) {
           throw new CustomAPIError('Please check if the cart ID is correct.');
-
-        const cartItems = cart.cart_items;
-
-        if (cartItems.length === 0) {
-          throw new CustomAPIError(
-            'Your cart is empty. Please add items to your cart.',
-          );
         }
 
-        // check stock availability for each cart item
         let totalPrice = 0;
-        for (const item of cartItems) {
-          if (item.book.stock_quantity < item.quantity) {
+        const orderItems = [];
+        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+
+        const orderItemsToCreate = [];
+        const updateStockPromises = [];
+
+        for (const cartItem of cart.cart_items) {
+          if (cartItem.book.stock_quantity < cartItem.quantity) {
             throw new CustomAPIError(
-              `Not enough stock for book ID: ${item.book.bookid}`,
+              `Not enough stock for book ID: ${cartItem.book.bookid}`,
             );
           }
-          // Calculate the total price for each item and accumulate it
-          totalPrice += Number(item.book.price.toNumber() * item.quantity);
+
+          totalPrice += Number(
+            cartItem.book.price.toNumber() * cartItem.quantity,
+          );
+
+          orderItems.push(this.transformToOrderItem(cartItem));
+          lineItems.push(this.transformToStripeLineItem(cartItem));
+
+          updateStockPromises.push(
+            pr.books.update({
+              where: { bookid: cartItem.book.bookid },
+              data: {
+                stock_quantity: { decrement: cartItem.quantity },
+              },
+            }),
+          );
+
+          orderItemsToCreate.push({
+            bookid: cartItem.book.bookid,
+            quantity: cartItem.quantity,
+          });
         }
 
         totalPrice = Number(totalPrice.toFixed(2));
 
-        // create the order and order items in a single transaction
+        // Create the order
         const order = await pr.orders.create({
           data: {
             totalPrice,
@@ -72,101 +100,57 @@ export class CheckoutService {
             userid: userId,
             order_items: {
               createMany: {
-                data: cartItems.map((item) => ({
-                  bookid: item.book.bookid,
-                  quantity: item.quantity,
-                })),
-              },
-            },
-          },
-          select: {
-            id: true,
-            totalPrice: true,
-            status: true,
-            order_items: {
-              select: {
-                book: {
-                  select: {
-                    bookid: true,
-                    title: true,
-                    price: true,
-                  },
-                },
-                quantity: true,
-              },
-            },
-            user: {
-              select: {
-                userid: true,
-                name: true,
-                email: true,
+                data: orderItemsToCreate,
               },
             },
           },
         });
 
-        // update book stock quantities
-        await Promise.all(
-          order.order_items.map((item) => {
-            return pr.books.update({
-              where: { bookid: item.book.bookid },
-              data: { stock_quantity: { decrement: item.quantity } },
-            });
-          }),
-        );
+        // Update stock
+        await Promise.all(updateStockPromises);
 
-        // remove the cart session
+        // Delete the cart
         await pr.cart.delete({ where: { id: data.cartId } });
 
-        // create payment checkout session
-        const session = await this.paymentService.createStripeCheckoutSession({
-          mode: 'payment',
-          payment_method_types: ['card'],
-          shipping_address_collection: {
-            allowed_countries: ['TR', 'GB', 'US', 'JP'],
-          },
-          metadata: {
-            orderId: order.id,
-          },
-          payment_intent_data: {
+        // Create Stripe session
+        let session;
+        try {
+          session = await this.paymentService.createStripeCheckoutSession({
+            mode: 'payment',
+            payment_method_types: ['card'],
+            shipping_address_collection: {
+              allowed_countries: ['TR', 'GB', 'US', 'JP'],
+            },
             metadata: {
               orderId: order.id,
             },
-          },
-          customer_email: cart.user ? cart.user.email : undefined,
-          line_items: cartItems.map((item) => ({
-            price_data: {
-              product_data: {
-                name: item.book.title,
+            payment_intent_data: {
+              metadata: {
+                orderId: order.id,
               },
-              unit_amount: Number(
-                (item.book.price.toNumber() * 100).toFixed(0),
-              ),
-              currency: 'usd',
             },
-            quantity: item.quantity,
-          })),
-          success_url: 'http://localhost:8080/success',
-          cancel_url: 'http://localhost:8080/cancel',
-          expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
-        });
+            customer_email: cart.user ? cart.user.email : undefined,
+            line_items: lineItems,
+            success_url: 'http://localhost:8080/success',
+            cancel_url: 'http://localhost:8080/cancel',
+            expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
+          });
+        } catch (stripeError) {
+          console.error('Error creating Stripe session:', stripeError);
+          throw new CustomAPIError(
+            'Failed to create payment session. Please try again later.',
+          );
+        }
 
-        // return relevant data
         return {
           order: {
             id: order.id,
-            user: order.user,
-            items: order.order_items.map((item) => ({
-              quantity: item.quantity,
-              bookId: item.book.bookid,
-              price: Number(item.book.price.toFixed(2)),
-              bookTitle: item.book.title,
-            })),
+            items: orderItems,
             status: order.status,
-            totalPrice: Number(order.totalPrice.toFixed(2)),
+            price: Number(order.totalPrice.toFixed(2)),
           },
-          message: 'Checkout successfull.',
-          expires: session.expires,
+          message: 'Checkout successful.',
+          expiresAt: session.expires,
           url: session.url,
         };
       });
@@ -175,5 +159,38 @@ export class CheckoutService {
       if (error instanceof CustomAPIError) throw error;
       throw new Error('Checkout failed. Please try again later.');
     }
+  }
+
+  private transformToOrderItem(cartItem: any): OrderItem {
+    return {
+      quantity: cartItem.quantity,
+      item: {
+        id: cartItem.book.bookid,
+        title: cartItem.book.title,
+        description: cartItem.book.description,
+        isbn: cartItem.book.isbn,
+        price: Number(cartItem.book.price.toFixed(2)),
+        rating: Number(cartItem.book.rating.toFixed(2)),
+        imageUrl: cartItem.book.image_url,
+        author: { name: cartItem.book.author.name },
+        category: { value: cartItem.book.category.category_name },
+      },
+    };
+  }
+
+  private transformToStripeLineItem(
+    cartItem: any,
+  ): Stripe.Checkout.SessionCreateParams.LineItem {
+    return {
+      price_data: {
+        product_data: {
+          name: cartItem.book.title,
+          images: [],
+        },
+        unit_amount: Number((cartItem.book.price.toNumber() * 100).toFixed(0)),
+        currency: 'usd',
+      },
+      quantity: cartItem.quantity,
+    };
   }
 }

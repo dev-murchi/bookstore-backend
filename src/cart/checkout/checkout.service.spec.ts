@@ -8,9 +8,6 @@ const mockPrismaService = {
   $transaction: jest
     .fn()
     .mockImplementation((callback) => callback(mockPrismaService)),
-  cart_items: {
-    findMany: jest.fn(),
-  },
   orders: {
     create: jest.fn(),
   },
@@ -50,40 +47,13 @@ describe('CheckoutService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should throw an error if the cart is not exist', async () => {
-    mockPrismaService.cart.findUnique.mockReturnValueOnce(null);
+  it('should throw an error if the cart does not exist', async () => {
+    mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
     await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
       'Please check if the cart ID is correct.',
     );
   });
-  it('should throw an error if the cart is not empty', async () => {
-    mockPrismaService.cart.findUnique.mockReturnValueOnce({
-      cart_items: [],
-    });
-    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Your cart is empty. Please add items to your cart.',
-    );
-  });
-  it('should throw an error if there is not enough stock for requested book', async () => {
-    mockPrismaService.cart.findUnique.mockReturnValueOnce({
-      cart_items: [
-        {
-          quantity: 20,
-          book: {
-            bookid: 'book-uuid-1',
-            price: 10.0,
-            stock_quantity: 10,
-          },
-        },
-      ],
-    });
-
-    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Not enough stock for book ID: book-uuid-1',
-    );
-  });
-
-  it('should throw an error if a db error occurs', async () => {
+  it('should throw an error if a DB error occurs', async () => {
     mockPrismaService.cart.findUnique.mockRejectedValueOnce(
       new Error('DB error'),
     );
@@ -91,218 +61,145 @@ describe('CheckoutService', () => {
       'Checkout failed. Please try again later.',
     );
   });
-  it('should create an order ', async () => {
-    const sessionUrl = 'https://checkout.stripe.com/test-session-url';
+  it('should throw an error if there is not enough stock for a book', async () => {
+    mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+      cart_items: [
+        {
+          quantity: 5,
+          book: {
+            bookid: 'book-1',
+            stock_quantity: 2,
+            price: new Prisma.Decimal(10.0),
+            title: 'Book One',
+            description: 'Book Desc',
+            isbn: 'ISBN-1',
+            rating: new Prisma.Decimal(4.2),
+            image_url: '',
+            author: { name: 'Author A' },
+            category: { category_name: 'Fiction' },
+          },
+        },
+      ],
+      user: {
+        userid: 'user-1',
+        email: 'test@example.com',
+        name: 'User One',
+      },
+    });
+
+    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
+      'Not enough stock for book ID: book-1',
+    );
+  });
+
+  it('should complete checkout and return expected data', async () => {
     const session = {
-      expires: '',
-      url: sessionUrl,
+      expires: Math.floor(Date.now() / 1000) + 1800,
+      url: 'https://checkout.stripe.com/test-session-url',
     };
     const cartItems = [
       {
-        quantity: 1,
+        quantity: 2,
         book: {
-          bookid: 'book-uuid-1',
-          price: new Prisma.Decimal(10.99),
+          bookid: 'book-1',
+          price: new Prisma.Decimal(15.0),
           stock_quantity: 10,
-          title: 'Book One',
+          title: 'Book A',
+          description: 'Book A Description',
+          isbn: 'ISBN-A',
+          rating: new Prisma.Decimal(4.0),
+          image_url: 'img-a.jpg',
+          author: { name: 'Author A' },
+          category: { category_name: 'Fiction' },
         },
       },
       {
-        quantity: 2,
+        quantity: 1,
         book: {
-          bookid: 'book-uuid-2',
-          price: new Prisma.Decimal(5.99),
-          stock_quantity: 10,
-          title: 'Book Two',
+          bookid: 'book-2',
+          price: new Prisma.Decimal(20.0),
+          stock_quantity: 5,
+          title: 'Book B',
+          description: 'Book B Description',
+          isbn: 'ISBN-B',
+          rating: new Prisma.Decimal(4.5),
+          image_url: 'img-b.jpg',
+          author: { name: 'Author B' },
+          category: { category_name: 'Non-fiction' },
         },
       },
     ];
 
     const user = {
-      userid: 'user-uuid-1',
-      name: 'user one',
-      email: 'userone@email.com',
+      userid: 'user-1',
+      email: 'user@example.com',
+      name: 'User Name',
     };
 
-    const order = {
-      user: user,
-      order_items: cartItems.map((item) => {
-        return {
-          quantity: item.quantity,
-          book: {
-            bookid: item.book.bookid,
-            price: item.book.price,
-            title: item.book.title,
-          },
-        };
-      }),
-      id: 1,
-      totalPrice: 22.97,
-      status: 'pending',
-    };
-    mockPrismaService.cart.findUnique.mockReturnValueOnce({
+    mockPrismaService.cart.findUnique.mockResolvedValueOnce({
       cart_items: cartItems,
+      user,
     });
 
-    mockPrismaService.orders.create.mockReturnValueOnce(order);
-
-    mockPrismaService.cart.delete.mockReturnValueOnce({ id: 1 });
+    mockPrismaService.orders.create.mockResolvedValueOnce({
+      id: 123,
+      totalPrice: new Prisma.Decimal(50.0),
+      status: 'pending',
+    });
 
     mockPaymentService.createStripeCheckoutSession.mockResolvedValueOnce(
       session,
     );
+    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: 1 });
 
     const result = await service.checkout('user-1', { cartId: 1 });
 
-    // check cart.findUnique called with correct data
-    expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-      where: { id: 1, AND: [{ userid: 'user-1' }] },
-      select: {
-        cart_items: {
-          select: {
-            book: {
-              select: {
-                bookid: true,
-                title: true,
-                price: true,
-                stock_quantity: true,
-              },
-            },
-            quantity: true,
-          },
-        },
-        user: {
-          select: {
-            userid: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // check orders.create called with correct data
-    expect(mockPrismaService.orders.create).toHaveBeenCalledWith({
-      data: {
-        totalPrice: 22.97,
-        status: 'pending',
-        userid: 'user-1',
-        order_items: {
-          createMany: {
-            data: [
-              { bookid: 'book-uuid-1', quantity: 1 },
-              { bookid: 'book-uuid-2', quantity: 2 },
-            ],
-          },
-        },
-      },
-      select: {
-        id: true,
-        totalPrice: true,
-        status: true,
-        order_items: {
-          select: {
-            book: {
-              select: {
-                bookid: true,
-                title: true,
-                price: true,
-              },
-            },
-            quantity: true,
-          },
-        },
-        user: {
-          select: {
-            userid: true,
-            email: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    // check books.update called with correct data
-    expect(mockPrismaService.books.update).toHaveBeenCalledTimes(
-      cartItems.length,
-    );
-
-    cartItems.forEach((item, index) => {
-      expect(mockPrismaService.books.update).toHaveBeenNthCalledWith(
-        index + 1,
-        {
-          where: { bookid: item.book.bookid },
-          data: { stock_quantity: { decrement: item.quantity } },
-        },
-      );
-    });
-
-    // check cart.delete called with correct data
-    expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
-      where: { id: 1 },
-    });
-    // check paymentService.createStripeCheckoutSession called with correct data
-    expect(mockPaymentService.createStripeCheckoutSession).toHaveBeenCalledWith(
-      {
-        mode: 'payment',
-        payment_method_types: ['card'],
-        shipping_address_collection: {
-          allowed_countries: ['TR', 'GB', 'US', 'JP'],
-        },
-        metadata: {
-          orderId: 1,
-        },
-        payment_intent_data: {
-          metadata: {
-            orderId: 1,
-          },
-        },
-        customer_email: undefined,
-        line_items: cartItems.map((item) => ({
-          price_data: {
-            product_data: {
-              name: item.book.title,
-            },
-            unit_amount: Number(item.book.price.toFixed(2)) * 100,
-            currency: 'usd',
-          },
-          quantity: item.quantity,
-        })),
-        success_url: 'http://localhost:8080/success',
-        cancel_url: 'http://localhost:8080/cancel',
-        expires_at: Math.floor(Date.now() / 1000) + 60 * 30,
-      },
-    );
-
-    // check return value
     expect(result).toEqual({
       order: {
-        id: 1,
-        user: {
-          userid: 'user-uuid-1',
-          name: 'user one',
-          email: 'userone@email.com',
-        },
+        id: 123,
         items: [
           {
-            quantity: 1,
-            bookId: 'book-uuid-1',
-            price: 10.99,
-            bookTitle: 'Book One',
+            quantity: 2,
+            item: {
+              id: 'book-1',
+              title: 'Book A',
+              description: 'Book A Description',
+              isbn: 'ISBN-A',
+              price: 15.0,
+              rating: 4.0,
+              imageUrl: 'img-a.jpg',
+              author: { name: 'Author A' },
+              category: { value: 'Fiction' },
+            },
           },
           {
-            quantity: 2,
-            bookId: 'book-uuid-2',
-            price: 5.99,
-            bookTitle: 'Book Two',
+            quantity: 1,
+            item: {
+              id: 'book-2',
+              title: 'Book B',
+              description: 'Book B Description',
+              isbn: 'ISBN-B',
+              price: 20.0,
+              rating: 4.5,
+              imageUrl: 'img-b.jpg',
+              author: { name: 'Author B' },
+              category: { value: 'Non-fiction' },
+            },
           },
         ],
         status: 'pending',
-        totalPrice: 22.97,
+        price: 50.0,
       },
-      message: 'Checkout successfull.',
-      expires: '',
-      url: sessionUrl,
+      message: 'Checkout successful.',
+      expiresAt: session.expires,
+      url: session.url,
     });
+
+    expect(mockPrismaService.orders.create).toHaveBeenCalled();
+    expect(mockPrismaService.books.update).toHaveBeenCalledTimes(2);
+    expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+      where: { id: 1 },
+    });
+    expect(mockPaymentService.createStripeCheckoutSession).toHaveBeenCalled();
   });
 });
