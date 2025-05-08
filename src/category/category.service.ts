@@ -2,31 +2,38 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Category } from '../common/types';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
-  async getAll() {
+  async getAll(): Promise<Category[]> {
     try {
       const categories = await this.prisma.category.findMany({
         select: { id: true, category_name: true },
       });
 
-      return categories;
+      return categories.map((category) => ({
+        id: category.id,
+        value: category.category_name,
+      }));
     } catch (error) {
       console.error('Categories could not be fetched. Error:', error);
       throw new Error('Categories could not be fetched.');
     }
   }
 
-  async create(createCategoryDTO: CreateCategoryDTO) {
+  async create(createCategoryDTO: CreateCategoryDTO): Promise<Category> {
     try {
       const category = await this.prisma.category.create({
         data: { category_name: createCategoryDTO.category },
         select: { id: true, category_name: true },
       });
 
-      return category;
+      return {
+        id: category.id,
+        value: category.category_name,
+      };
     } catch (error) {
       console.error('Category could not be created. Error:', error);
       // unique constraint
@@ -38,11 +45,16 @@ export class CategoryService {
 
   async update(categoryId: number, name: string) {
     try {
-      return await this.prisma.category.update({
+      const category = await this.prisma.category.update({
         where: { id: categoryId },
         data: { category_name: name },
         select: { id: true, category_name: true },
       });
+
+      return {
+        id: category.id,
+        value: category.category_name,
+      };
     } catch (error) {
       console.error('Category name could not be updated. Error:', error);
       throw new Error('Category name could not be updated.');

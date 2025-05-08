@@ -45,8 +45,8 @@ describe('CategoryService', () => {
       const result = await service.getAll();
 
       expect(result).toEqual([
-        { id: 1, category_name: 'Fiction' },
-        { id: 2, category_name: 'Non-fiction' },
+        { id: 1, value: 'Fiction' },
+        { id: 2, value: 'Non-fiction' },
       ]);
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
         select: { id: true, category_name: true },
@@ -72,7 +72,7 @@ describe('CategoryService', () => {
 
       const result = await service.create(createCategoryDTO);
 
-      expect(result).toEqual({ id: 1, category_name: 'Science' });
+      expect(result).toEqual({ id: 1, value: 'Science' });
       expect(mockPrismaService.category.create).toHaveBeenCalledWith({
         data: { category_name: createCategoryDTO.category },
         select: { id: true, category_name: true },
@@ -100,7 +100,7 @@ describe('CategoryService', () => {
 
       const category = await service.update(1, 'new-category');
 
-      expect(category).toEqual({ id: 1, category_name: 'new-category' });
+      expect(category).toEqual({ id: 1, value: 'new-category' });
     });
 
     it('should throw an error if the category name could not be updated', async () => {

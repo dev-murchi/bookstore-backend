@@ -280,6 +280,7 @@ export class BooksService {
         name: book.author.name,
       },
       category: {
+        id: book.category.id,
         value: book.category.category_name,
       },
       price: Number(book.price.toFixed(2)),

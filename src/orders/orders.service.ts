@@ -15,7 +15,7 @@ export class OrdersService {
     rating: true,
     image_url: true,
     author: { select: { name: true } },
-    category: { select: { category_name: true } },
+    category: { select: { id: true, category_name: true } },
   };
 
   private readonly addressSelect = {
@@ -147,7 +147,10 @@ export class OrdersService {
         rating: Number(orderItem.book.rating.toFixed(2)),
         imageUrl: orderItem.book.image_url,
         author: { name: orderItem.book.author.name },
-        category: { value: orderItem.book.category.category_name },
+        category: {
+          id: orderItem.book.category.id,
+          value: orderItem.book.category.category_name,
+        },
       },
     };
   }

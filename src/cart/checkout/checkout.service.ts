@@ -174,7 +174,10 @@ export class CheckoutService {
         rating: Number(cartItem.book.rating.toFixed(2)),
         imageUrl: cartItem.book.image_url,
         author: { name: cartItem.book.author.name },
-        category: { value: cartItem.book.category.category_name },
+        category: {
+          id: cartItem.book.category.id,
+          value: cartItem.book.category.category_name,
+        },
       },
     };
   }

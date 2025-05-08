@@ -26,39 +26,6 @@ const mockPrismaService = {
     .mockImplementation((callback) => callback(mockPrismaService)),
 };
 
-const testCart = {
-  id: 1,
-  userid: null,
-  cart_items: [
-    {
-      quantity: 1,
-      book: {
-        bookid: 'book-uuid-1',
-        title: 'Test Book',
-        description: 'test book description',
-        isbn: 'bookisbn',
-        price: 10.99,
-        rating: 4.5,
-        image_url: 'book-image-url',
-        author: { name: 'test author' },
-        category: { category_name: 'test category' },
-      },
-    },
-  ],
-};
-
-const bookSelect = {
-  bookid: true,
-  title: true,
-  description: true,
-  isbn: true,
-  price: true,
-  rating: true,
-  image_url: true,
-  author: { select: { name: true } },
-  category: { select: { category_name: true } },
-};
-
 const cartSelect = {
   id: true,
   userid: true,
@@ -76,7 +43,7 @@ const cartSelect = {
           rating: true,
           image_url: true,
           author: { select: { name: true } },
-          category: { select: { category_name: true } },
+          category: { select: { id: true, category_name: true } },
         },
       },
     },
@@ -128,7 +95,7 @@ describe('CartService', () => {
               rating: 4.5,
               image_url: 'book-image-url',
               author: { name: 'test author' },
-              category: { category_name: 'test category' },
+              category: { id: 1, category_name: 'test category' },
             },
           },
         ],
@@ -150,7 +117,7 @@ describe('CartService', () => {
               rating: 4.5,
               imageUrl: 'book-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
         ],
@@ -178,7 +145,7 @@ describe('CartService', () => {
               rating: 4.5,
               image_url: 'book-image-url',
               author: { name: 'test author' },
-              category: { category_name: 'test category' },
+              category: { id: 1, category_name: 'test category' },
             },
           },
         ],
@@ -200,7 +167,7 @@ describe('CartService', () => {
               rating: 4.5,
               imageUrl: 'book-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
         ],
@@ -251,7 +218,7 @@ describe('CartService', () => {
             rating: 4.5,
             image_url: 'book-image-url',
             author: { name: 'test author' },
-            category: { category_name: 'test category' },
+            category: { id: 1, category_name: 'test category' },
           },
         },
         {
@@ -265,7 +232,7 @@ describe('CartService', () => {
             rating: 5,
             image_url: 'book2-image-url',
             author: { name: 'test author two' },
-            category: { category_name: 'test category 2' },
+            category: { id: 1, category_name: 'test category 2' },
           },
         },
       ];
@@ -292,7 +259,7 @@ describe('CartService', () => {
               rating: 4.5,
               imageUrl: 'book-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
           {
@@ -306,7 +273,7 @@ describe('CartService', () => {
               rating: 5,
               imageUrl: 'book2-image-url',
               author: { name: 'test author two' },
-              category: { value: 'test category 2' },
+              category: { id: 1, value: 'test category 2' },
             },
           },
         ],
@@ -353,7 +320,6 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 1,
       };
-      const userId = 'user-1';
 
       try {
         await service.upsertItem(data);
@@ -368,7 +334,6 @@ describe('CartService', () => {
         cartId: 1,
         quantity: 10,
       };
-      const userId = 'user-1';
       mockPrismaService.books.findUnique.mockReturnValueOnce({
         id: 1,
         stock_quantity: 1,
@@ -391,7 +356,6 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
         'This is not your cart.',
       );
-      const userId = 'user-1';
       const data = {
         cartId: 2,
         bookId: 'book-uuid-1',
@@ -421,7 +385,7 @@ describe('CartService', () => {
           rating: 3.5,
           image_url: 'book-image-url',
           author: { name: 'test author' },
-          category: { category_name: 'test category' },
+          category: { id: 1, category_name: 'test category' },
         },
       });
 
@@ -442,7 +406,7 @@ describe('CartService', () => {
           rating: 3.5,
           imageUrl: 'book-image-url',
           author: { name: 'test author' },
-          category: { value: 'test category' },
+          category: { id: 1, value: 'test category' },
         },
       });
     });
@@ -465,7 +429,7 @@ describe('CartService', () => {
               rating: 4.5,
               image_url: 'book-image-url',
               author: { name: 'test author' },
-              category: { category_name: 'test category' },
+              category: { id: 1, category_name: 'test category' },
             },
           },
         ],
@@ -501,7 +465,7 @@ describe('CartService', () => {
                 rating: 4.5,
                 image_url: 'book2-image-url',
                 author: { name: 'test author' },
-                category: { category_name: 'test category' },
+                category: { id: 1, category_name: 'test category' },
               },
             },
           ],
@@ -537,7 +501,7 @@ describe('CartService', () => {
                 rating: 4.5,
                 image_url: 'book2-image-url',
                 author: { name: 'test author' },
-                category: { category_name: 'test category' },
+                category: { id: 1, category_name: 'test category' },
               },
             },
           ],
@@ -558,7 +522,7 @@ describe('CartService', () => {
               rating: 4.5,
               image_url: 'book2-image-url',
               author: { name: 'test author' },
-              category: { category_name: 'test category' },
+              category: { id: 1, category_name: 'test category' },
             },
           },
         ],
@@ -593,7 +557,7 @@ describe('CartService', () => {
               rating: 4.5,
               imageUrl: 'book2-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
         ],

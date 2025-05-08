@@ -20,7 +20,7 @@ export class CartService {
     rating: true,
     image_url: true,
     author: { select: { name: true } },
-    category: { select: { category_name: true } },
+    category: { select: { id: true, category_name: true } },
   };
 
   private readonly cartSelect = {
@@ -222,7 +222,10 @@ export class CartService {
         rating: Number(cartItem.book.rating.toFixed(2)),
         imageUrl: cartItem.book.image_url,
         author: { name: cartItem.book.author.name },
-        category: { value: cartItem.book.category.category_name },
+        category: {
+          id: cartItem.book.category.id,
+          value: cartItem.book.category.category_name,
+        },
       },
     };
   }
