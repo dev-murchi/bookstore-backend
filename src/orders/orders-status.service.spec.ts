@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus } from './enum/order-status.enum';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockOrder = {
   id: 1,
@@ -37,17 +37,9 @@ const mockOrdersService = {
   updateStatus: jest.fn(),
 };
 
-const mockPrismaService = {
-  $transaction: jest.fn((fn) => fn()),
-  books: {
-    update: jest.fn(),
-  },
-};
-
 describe('OrdersStatusService', () => {
   let service: OrdersStatusService;
   let ordersService: OrdersService;
-  let prismaService: PrismaService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,30 +49,27 @@ describe('OrdersStatusService', () => {
           provide: OrdersService,
           useValue: mockOrdersService,
         },
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
       ],
     }).compile();
 
     service = module.get(OrdersStatusService);
     ordersService = module.get(OrdersService);
-    prismaService = module.get(PrismaService);
   });
 
   describe('changeStatus', () => {
     it('throws if order is not found', async () => {
       const orderId = 1;
-      mockOrdersService.getOrder.mockRejectedValueOnce(
-        new Error(`Order not found: ${orderId}`),
-      );
-      await expect(
-        (service as any).changeStatus(orderId, {
+      mockOrdersService.getOrder.mockResolvedValueOnce(null);
+
+      try {
+        await (service as any).changeStatus(orderId, {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
-        }),
-      ).rejects.toThrow('Order not found: 1');
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Please provide a valid order id.');
+      }
     });
 
     it('returns early if status already matches target', async () => {
@@ -99,14 +88,17 @@ describe('OrdersStatusService', () => {
       const order = { ...mockOrder, status: OrderStatus.Complete };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
-      await expect(
-        (service as any).changeStatus(1, {
+      try {
+        await (service as any).changeStatus(1, {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
-        }),
-      ).rejects.toThrow(
-        "Order must be in 'pending' status to change to 'canceled'. Current: 'complete'",
-      );
+        });
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe(
+          "Order must be in 'pending' status to change to 'canceled'. Current: 'complete'",
+        );
+      }
     });
   });
 

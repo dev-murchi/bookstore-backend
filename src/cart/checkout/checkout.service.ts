@@ -145,6 +145,7 @@ export class CheckoutService {
         return {
           order: {
             id: order.id,
+            userId: order.userid,
             items: orderItems,
             status: order.status,
             price: Number(order.totalPrice.toFixed(2)),

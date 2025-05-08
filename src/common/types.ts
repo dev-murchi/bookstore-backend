@@ -78,6 +78,7 @@ export interface OrderItem {
 
 export interface Order {
   id: number;
+  userId: string;
   items: OrderItem[];
   status: string;
   price: number;

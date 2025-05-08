@@ -20,6 +20,7 @@ import { OrderStatusDto } from './dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
+import { Order } from '../common/types';
 
 @Controller('orders')
 @UseGuards(UserAccessGuard)
@@ -35,7 +36,7 @@ export class OrdersController {
   async updateOrderStatus(
     @Param('id', ParseIntPipe) orderId: number,
     @Body() orderStatusDTO: OrderStatusDto,
-  ) {
+  ): Promise<Order> {
     try {
       let order;
 
@@ -58,6 +59,8 @@ export class OrdersController {
         order.status,
         order.shipping_details.email,
       );
+
+      return order;
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -65,7 +68,7 @@ export class OrdersController {
 
   @Get()
   @Roles([RoleEnum.Admin, RoleEnum.User])
-  async viewAllOrders(@Req() request: Request) {
+  async viewAllOrders(@Req() request: Request): Promise<Order[]> {
     try {
       if (request.user['role'] === RoleEnum.User) {
         // user's orders
@@ -88,19 +91,18 @@ export class OrdersController {
   async viewOrder(
     @Req() request: Request,
     @Param('id', ParseIntPipe) orderId: number,
-  ) {
+  ): Promise<{ data: Order }> {
     try {
       const order = await this.ordersService.getOrder(orderId);
 
-      if (
-        request.user['role'] === RoleEnum.User &&
-        request.user['id'] !== order.userid
-      ) {
+      if (request.user['role'] === RoleEnum.Admin) return { data: order };
+
+      if (request.user['id'] !== order.userId) {
         throw new Error('Unauthorized access');
       }
 
       // admnin or the user who has the order can fetch it
-      return order;
+      return { data: order };
     } catch (error) {
       console.error(`Order #${orderId} could not be fetched`, error);
       throw new BadRequestException(`Order #${orderId} could not be fetched`);
