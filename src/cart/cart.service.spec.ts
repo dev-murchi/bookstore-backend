@@ -182,11 +182,11 @@ describe('CartService', () => {
     });
   });
 
-  describe('findCart', () => {
+  describe('findCartAndTransformData', () => {
     it('should throw an error if the cart is not exist', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
       const cartId = 1;
-      const result = await service.findCart(cartId);
+      const result = await (service as any).findCartAndTransformData(cartId);
       expect(result).toBeNull();
     });
     it('should handle empty cart items', async () => {
@@ -196,7 +196,7 @@ describe('CartService', () => {
         cart_items: [],
       });
 
-      const result = await service.findCart(1);
+      const result = await (service as any).findCartAndTransformData(1);
       expect(result).toEqual({
         id: 1,
         owner: 'user-1',
@@ -243,7 +243,7 @@ describe('CartService', () => {
         cart_items: cartItems,
       });
 
-      const result = await service.findCart(1);
+      const result = await (service as any).findCartAndTransformData(1);
       expect(result).toEqual({
         id: 1,
         owner: 'user-1',

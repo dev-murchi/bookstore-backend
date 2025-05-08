@@ -72,7 +72,7 @@ export class CartController {
     @Req() request: Request,
   ): Promise<{ data: Cart | null }> {
     try {
-      const cart = await this.cartService.findCart(id);
+      const cart = await this.cartService.findCartById(id);
 
       // admin access
       if (request.user && request.user['role'] === RoleEnum.Admin) {
@@ -124,7 +124,7 @@ export class CartController {
 
       const userId = request.user ? request.user['id'] : null;
 
-      const cart = await this.cartService.findCart(data.cartId);
+      const cart = await this.cartService.findCartById(data.cartId);
       if (!cart) {
         throw new UnauthorizedException('Unable to access this cart1.');
       }
@@ -161,7 +161,7 @@ export class CartController {
 
       const userId = request.user ? request.user['id'] : null;
 
-      const cart = await this.cartService.findCart(data.cartId);
+      const cart = await this.cartService.findCartById(data.cartId);
 
       if (!cart || cart.owner !== userId) {
         throw new Error('Unable to access this cart.');

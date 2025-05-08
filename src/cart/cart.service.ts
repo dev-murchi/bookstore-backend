@@ -47,9 +47,19 @@ export class CartService {
     }
   }
 
-  async findCart(cartId: number): Promise<Cart | null> {
+  async findCartById(cartId: number): Promise<Cart | null> {
+    return await this.findCartAndTransformData({ id: cartId });
+  }
+
+  async findCartByUser(userId: string): Promise<Cart | null> {
+    return await this.findCartAndTransformData({ userid: userId });
+  }
+
+  private async findCartAndTransformData(
+    condition: Prisma.cartWhereUniqueInput,
+  ) {
     try {
-      const cart = await this.findCartBy({ id: cartId });
+      const cart = await this.findCartBy(condition);
       return cart ? this.transformCartData(cart) : null;
     } catch (error) {
       console.error('Failed to fetch the cart. Error:', error);
@@ -201,10 +211,7 @@ export class CartService {
   private async findCartBy(condition: Prisma.cartWhereUniqueInput) {
     const data = await this.prisma.cart.findUnique({
       where: condition,
-      select: {
-        ...this.cartSelect,
-        user: { select: { id: true, name: true } },
-      },
+      select: this.cartSelect,
     });
 
     return data;
