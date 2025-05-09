@@ -4,19 +4,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
-import { v4 as uuidv4 } from 'uuid';
 
-import { Password } from '../common/password';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-
-const mockPasswordProvider = {
-  generate: jest.fn(),
-  compare: jest.fn(),
-};
-
-jest.mock('uuid', () => ({
-  v4: jest.fn(),
-}));
+import { HelperService } from '../common/helper.service';
 
 const mockPrismaService = {
   user: {
@@ -35,20 +25,17 @@ const mockPrismaService = {
 describe('UserService', () => {
   let service: UserService;
   let prismaService: PrismaService;
-  let passwordProvider: Password;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: Password, useValue: mockPasswordProvider },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
     prismaService = module.get<PrismaService>(PrismaService);
-    passwordProvider = module.get<Password>(Password);
 
     jest.clearAllMocks();
 
@@ -67,7 +54,8 @@ describe('UserService', () => {
       user.email = 'testuser@email.com';
       user.password = 'password123';
 
-      (uuidv4 as jest.Mock).mockReturnValueOnce('user-1');
+      const spyUUID = jest.spyOn(HelperService, 'generateUUID');
+      spyUUID.mockReturnValueOnce('user-1');
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.user.create.mockResolvedValueOnce({
         userid: 'user-1',
@@ -75,7 +63,8 @@ describe('UserService', () => {
         email: 'testuser@email.com',
         role: { role_name: 'user' },
       });
-      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
+      const spyHash = jest.spyOn(HelperService, 'generateHash');
+      spyHash.mockResolvedValueOnce('hashedPassword');
 
       const result = await service.create(user, RoleEnum.User);
 
@@ -104,7 +93,8 @@ describe('UserService', () => {
           role: { select: { role_name: true } },
         },
       });
-      expect(passwordProvider.generate).toHaveBeenCalledWith(user.password);
+
+      expect(spyHash).toHaveBeenCalledWith(user.password);
 
       expect(result).toEqual({
         id: 'user-1',
@@ -112,6 +102,9 @@ describe('UserService', () => {
         email: 'testuser@email.com',
         role: { value: 'user' },
       });
+
+      spyHash.mockRestore();
+      spyUUID.mockRestore();
     });
 
     it('should throw an error if email is already in use', async () => {
@@ -296,7 +289,8 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
+      const spy = jest.spyOn(HelperService, 'generateHash');
+      spy.mockResolvedValueOnce('hashedPassword');
 
       const result = await service.update('user-1', updatedUserDto);
 
@@ -321,6 +315,8 @@ describe('UserService', () => {
         email: 'updatedtestuser@email.com',
         role: { value: 'user' },
       });
+
+      spy.mockRestore();
     });
 
     it('should throw an error if user does not exist', async () => {
@@ -391,13 +387,14 @@ describe('UserService', () => {
     it('should create and return a disposable token', async () => {
       const mockUserId = 'user-1';
 
-      (uuidv4 as jest.Mock).mockReturnValueOnce('mock-uuid-token');
+      const spy = jest.spyOn(HelperService, 'generateUUID');
+      spy.mockReturnValueOnce('mock-uuid-token');
 
       mockPrismaService.user.update.mockResolvedValueOnce({});
 
       const result = await service.createPasswordResetToken(mockUserId);
 
-      expect(uuidv4).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { userid: mockUserId },
         data: {
@@ -413,12 +410,14 @@ describe('UserService', () => {
         token: 'mock-uuid-token',
         expiresAt: expect.any(Date),
       });
+      spy.mockRestore();
     });
 
     it('should throw an error if Prisma update fails', async () => {
       const mockUserId = 'user-1';
 
-      (uuidv4 as jest.Mock).mockReturnValueOnce('mock-uuid-token');
+      const spy = jest.spyOn(HelperService, 'generateUUID');
+      spy.mockReturnValueOnce('mock-uuid-token');
 
       mockPrismaService.user.update.mockRejectedValueOnce(
         new Error('DB error'),
@@ -429,6 +428,7 @@ describe('UserService', () => {
       ).rejects.toThrow(
         new CustomAPIError('Password reset token could not be created.'),
       );
+      spy.mockRestore();
     });
   });
 
@@ -564,7 +564,8 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      mockPasswordProvider.compare.mockResolvedValueOnce(true);
+      const spy = jest.spyOn(HelperService, 'compareHash');
+      spy.mockResolvedValueOnce(true);
 
       try {
         await service.resetPassword(
@@ -577,6 +578,7 @@ describe('UserService', () => {
         expect(error.message).toBe(
           'New password must be different from the current password. Please try again.',
         );
+        spy.mockRestore();
       }
     });
 
@@ -606,8 +608,11 @@ describe('UserService', () => {
         role: { role_name: 'user' },
       });
 
-      mockPasswordProvider.compare.mockResolvedValueOnce(false);
-      mockPasswordProvider.generate.mockResolvedValueOnce('hashedPassword');
+      const spyCampare = jest.spyOn(HelperService, 'compareHash');
+      spyCampare.mockResolvedValueOnce(false);
+
+      const spyHash = jest.spyOn(HelperService, 'generateHash');
+      spyHash.mockResolvedValueOnce('hashedPassword');
 
       const updateSpy = jest.spyOn(service, 'update');
 
@@ -630,6 +635,8 @@ describe('UserService', () => {
       });
 
       expect(result).toEqual({ message: 'Password reset successfully' });
+      spyCampare.mockRestore();
+      spyHash.mockRestore();
     });
   });
 });

@@ -4,17 +4,13 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import { Prisma } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Password } from '../common/password';
 import { PasswordResetToken, User } from '../common/types';
+import { HelperService } from '../common/helper.service';
 
 @Injectable()
 export class UserService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private passwordProvider: Password,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto, role: RoleEnum): Promise<User> {
     try {
@@ -26,11 +22,11 @@ export class UserService {
       }
 
       /// hash password
-      const hashedPassword = await this.passwordProvider.generate(
+      const hashedPassword = await HelperService.generateHash(
         createUserDto.password,
       );
 
-      const userId = uuidv4();
+      const userId = HelperService.generateUUID();
       // create new user
       const user = await this.prisma.user.create({
         data: {
@@ -174,8 +170,7 @@ export class UserService {
       }
 
       if (password) {
-        userUpdateObject.password =
-          await this.passwordProvider.generate(password);
+        userUpdateObject.password = await HelperService.generateHash(password);
       }
 
       const user = await this.prisma.user.update({
@@ -216,7 +211,7 @@ export class UserService {
 
   async createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
     try {
-      const disposableToken = uuidv4();
+      const disposableToken = HelperService.generateUUID();
 
       const tenMinutes = 10 * 60 * 1000;
 
@@ -270,7 +265,7 @@ export class UserService {
         throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
-      if (await this.passwordProvider.compare(newPassword, user.password)) {
+      if (await HelperService.compareHash(newPassword, user.password)) {
         throw new CustomAPIError(
           'New password must be different from the current password. Please try again.',
         );
@@ -295,7 +290,7 @@ export class UserService {
 
       if (!user) throw new CustomAPIError('Invalid user credentials');
 
-      const isCorrect = await this.passwordProvider.compare(
+      const isCorrect = await HelperService.compareHash(
         password,
         user.password,
       );

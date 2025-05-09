@@ -6,7 +6,6 @@ import {
   Get,
   InternalServerErrorException,
   Param,
-  ParseIntPipe,
   Put,
   Req,
   UseGuards,
@@ -19,16 +18,13 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { Password } from '../common/password';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { User } from '../common/types';
+import { HelperService } from '../common/helper.service';
 
 @Controller('users')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly passwordProvider: Password,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard)
   @Get('profile')
@@ -56,10 +52,7 @@ export class UserController {
         throw new BadRequestException('No changes provided.');
 
       if (
-        !(await this.passwordProvider.compare(
-          password,
-          request.user['password'],
-        ))
+        !(await HelperService.compareHash(password, request.user['password']))
       )
         throw new BadRequestException('Invalid password.');
 

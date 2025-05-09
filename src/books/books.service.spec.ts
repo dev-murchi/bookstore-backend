@@ -85,9 +85,8 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      jest
-        .spyOn(HelperService, 'generateUUID')
-        .mockReturnValueOnce('book-uuid');
+      const spy = jest.spyOn(HelperService, 'generateUUID');
+      spy.mockReturnValueOnce('book-uuid');
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.books.create.mockResolvedValueOnce({
         bookid: 'book-uuid',
@@ -124,6 +123,7 @@ describe('BooksService', () => {
         rating: 5,
         imageUrl: 'testbook-image-url',
       });
+      spy.mockRestore();
     });
   });
 

@@ -7,12 +7,8 @@ import { UnauthorizedException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { RoleEnum } from '../common/role.enum';
 
-import { Password } from '../common/password';
+import { HelperService } from '../common/helper.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-
-const mockPasswordProvider = {
-  compare: jest.fn(),
-};
 
 const mockUserService = {
   create: jest.fn(),
@@ -53,10 +49,6 @@ describe('AuthService', () => {
         {
           provide: EmailService,
           useValue: mockEmailService,
-        },
-        {
-          provide: Password,
-          useValue: mockPasswordProvider,
         },
       ],
     }).compile();
@@ -137,7 +129,8 @@ describe('AuthService', () => {
 
       mockUserService.checkUserWithPassword.mockResolvedValue(user);
 
-      mockPasswordProvider.compare.mockResolvedValueOnce(false);
+      const spy = jest.spyOn(HelperService, 'compareHash');
+      spy.mockResolvedValueOnce(false);
 
       try {
         await service.login({
@@ -147,6 +140,7 @@ describe('AuthService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(UnauthorizedException);
         expect(error.message).toBe('Invalid user credentials');
+        spy.mockRestore();
       }
     });
 
@@ -159,7 +153,8 @@ describe('AuthService', () => {
       };
 
       mockUserService.checkUserWithPassword.mockResolvedValue(user);
-      mockPasswordProvider.compare.mockResolvedValueOnce(true);
+      const spy = jest.spyOn(HelperService, 'compareHash');
+      spy.mockResolvedValueOnce(true);
 
       jest
         .spyOn(jwtService, 'signAsync')
@@ -171,6 +166,7 @@ describe('AuthService', () => {
       });
 
       expect(result).toEqual({ accessToken: 'accesstoken' });
+      spy.mockRestore();
     });
   });
 
