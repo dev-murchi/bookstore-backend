@@ -3,6 +3,7 @@ import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
+import { ReviewsService } from '../reviews/reviews.service';
 
 const mockBookService = {
   create: jest.fn(),
@@ -14,6 +15,11 @@ const mockBookService = {
 
 const mockUserService = {
   findBy: jest.fn(),
+};
+
+const mockReviewsService = {
+  createReview: jest.fn(),
+  getReviews: jest.fn(),
 };
 
 describe('BooksController', () => {
@@ -30,6 +36,10 @@ describe('BooksController', () => {
         {
           provide: UserService,
           useValue: mockUserService,
+        },
+        {
+          provide: ReviewsService,
+          useValue: mockReviewsService,
         },
       ],
     })

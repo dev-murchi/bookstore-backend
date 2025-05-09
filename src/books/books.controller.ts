@@ -15,6 +15,8 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
   NotFoundException,
+  ParseUUIDPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -25,13 +27,16 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Book } from '../common/types';
+import { Book, Review } from '../common/types';
+import { BookReviewDTO } from './dto/book-review.dto';
+import { ReviewsService } from '../reviews/reviews.service';
 
 @Controller('books')
 export class BooksController {
   constructor(
     private readonly booksService: BooksService,
     private userService: UserService,
+    private reviewsService: ReviewsService,
   ) {}
 
   @UseGuards(UserAccessGuard)
@@ -192,6 +197,63 @@ export class BooksController {
 
       throw new InternalServerErrorException(
         'Failed to update book due to an unexpected error.',
+      );
+    }
+  }
+
+  @Post(':id/reviews')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.User])
+  async createBookReview(
+    @Param('id', ParseUUIDPipe) bookId: string,
+    @Body() bookReviewDto: BookReviewDTO,
+    @Req() request: Request,
+  ): Promise<{ data: Review }> {
+    try {
+      return {
+        data: await this.reviewsService.createReview(request.user['id'], {
+          bookId: bookId,
+          data: bookReviewDto.data,
+          rating: bookReviewDto.rating,
+        }),
+      };
+    } catch (error) {
+      if (error instanceof CustomAPIError) {
+        throw new BadRequestException(error.message);
+      }
+      throw new InternalServerErrorException(
+        `Review creation for the Book #${bookId} failed due to an unexpected error.`,
+      );
+    }
+  }
+
+  @Get(':id/reviews')
+  async findBookReviews(
+    @Param('id', ParseUUIDPipe) bookId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ): Promise<{
+    data: {
+      data: {
+        reviews: Review[];
+        rating: number;
+      };
+      meta: {
+        bookId: string;
+        totalReviewCount: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    };
+  }> {
+    try {
+      return {
+        data: await this.reviewsService.getReviews(bookId, page, limit),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Reviews could not fetched due to an unexpected error.',
       );
     }
   }

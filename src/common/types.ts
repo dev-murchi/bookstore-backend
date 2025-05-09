@@ -68,8 +68,11 @@ export interface Cart {
 }
 
 export interface Review {
+  id: number;
   data: string;
   rating: number;
+  book: string;
+  owner: string;
 }
 
 export interface OrderItem {

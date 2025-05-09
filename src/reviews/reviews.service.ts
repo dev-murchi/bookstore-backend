@@ -2,37 +2,31 @@ import { Injectable } from '@nestjs/common';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { Review } from '../common/types';
 
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(userId: string, createReviewDTO: CreateReviewDTO) {
-    // save the user reviews about the book to the database.
+  async createReview(
+    userId: string,
+    createReviewDTO: CreateReviewDTO,
+  ): Promise<Review> {
     try {
       const { bookId, data, rating } = createReviewDTO;
 
       // book has to be purchased by the user
-      const purchasedBook = await this.prisma.books.findUnique({
+      const purchasedBooks = await this.prisma.order_items.findMany({
         where: {
           bookid: bookId,
-          order_items: {
-            some: {
-              order: {
-                userid: userId,
-              },
-            },
-          },
-        },
-        select: {
-          id: true,
+          order: { userid: userId, status: 'delivered' },
         },
       });
 
-      if (!purchasedBook) {
+      if (purchasedBooks.length === 0) {
         throw new CustomAPIError('Please purchase the book to leave a review.');
       }
 
-      await this.prisma.reviews.create({
+      const savedReview = await this.prisma.reviews.create({
         data: {
           user: { connect: { userid: userId } },
           book: { connect: { bookid: bookId } },
@@ -41,7 +35,13 @@ export class ReviewsService {
         },
       });
 
-      return { message: 'Review created.' };
+      return {
+        id: savedReview.id,
+        data: data,
+        rating: rating,
+        book: bookId,
+        owner: userId,
+      };
     } catch (error) {
       console.error('Review creation failed.Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -60,22 +60,39 @@ export class ReviewsService {
     }
   }
 
-  async findReviewsForBook(
+  async getReviews(
     bookId: string,
     page: number = 1,
     limit: number = 10,
-  ) {
+  ): Promise<{
+    data: { reviews: Review[]; rating: number };
+    meta: {
+      bookId: string;
+      totalReviewCount: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
     try {
       // calculate offset for pagination
       const offset = (page - 1) * limit;
 
       // fetch all reviews for the book
-      const reviews = await this.prisma.reviews.findMany({
+      const bookReviews = await this.prisma.reviews.findMany({
         where: { book: { bookid: bookId } },
-        select: { rating: true, data: true },
+        select: { id: true, rating: true, data: true, userid: true },
         take: limit,
         skip: offset,
       });
+
+      const reviews = bookReviews.map((review) => ({
+        id: review.id,
+        data: review.data,
+        rating: review.rating,
+        book: bookId,
+        owner: review.userid,
+      }));
 
       // calculate average rating
       const averageRating = (
@@ -100,7 +117,7 @@ export class ReviewsService {
       return {
         data: {
           reviews,
-          rating: averageRating ? averageRating.toFixed(1) : '0',
+          rating: averageRating ? Number(averageRating.toFixed(1)) : 0,
         },
         meta: {
           bookId,

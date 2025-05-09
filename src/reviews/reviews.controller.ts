@@ -33,7 +33,7 @@ export class ReviewsController {
     @Req() request: Request,
   ) {
     try {
-      return await this.reviewsService.create(
+      return await this.reviewsService.createReview(
         request.user['id'],
         createReviewDTO,
       );
@@ -54,7 +54,7 @@ export class ReviewsController {
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
   ) {
     try {
-      return await this.reviewsService.findReviewsForBook(bookId, page, limit);
+      return await this.reviewsService.getReviews(bookId, page, limit);
     } catch (error) {
       throw new InternalServerErrorException(
         'Book(s) could not fetched due to an unexpected error.',

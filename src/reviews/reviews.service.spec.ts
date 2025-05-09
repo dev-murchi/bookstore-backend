@@ -6,7 +6,6 @@ import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockPrismaService = {
-  books: { findUnique: jest.fn() },
   reviews: {
     create: jest.fn(),
     findMany: jest.fn(),
@@ -14,6 +13,7 @@ const mockPrismaService = {
     count: jest.fn(),
     delete: jest.fn(),
   },
+  order_items: { findMany: jest.fn() },
 };
 describe('ReviewsService', () => {
   let service: ReviewsService;
@@ -39,26 +39,36 @@ describe('ReviewsService', () => {
 
   describe('create', () => {
     const createReviewDTO: CreateReviewDTO = {
-      bookId: 10,
+      bookId: 'book-id-10',
       data: 'This is a great book!',
       rating: 5,
     };
 
     it('should successfully create a review', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
-      mockPrismaService.reviews.create.mockResolvedValueOnce({});
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        { bookid: 'book-1' },
+      ]);
+      mockPrismaService.reviews.create.mockResolvedValueOnce({
+        id: 1,
+      });
 
-      const result = await service.create('user-1', createReviewDTO);
+      const result = await service.createReview('user-1', createReviewDTO);
 
       expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
         data: {
           user: { connect: { userid: 'user-1' } },
-          book: { connect: { id: createReviewDTO.bookId } },
+          book: { connect: { bookid: createReviewDTO.bookId } },
           data: createReviewDTO.data,
           rating: createReviewDTO.rating,
         },
       });
-      expect(result).toEqual({ message: 'Review created.' });
+      expect(result).toEqual({
+        id: 1,
+        book: 'book-id-10',
+        data: 'This is a great book!',
+        owner: 'user-1',
+        rating: 5,
+      });
     });
 
     it('should throw an error if the user has already reviewed the book', async () => {
@@ -68,18 +78,20 @@ describe('ReviewsService', () => {
           code: 'P2002',
         } as any,
       );
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        { bookid: 'book-1' },
+      ]);
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       try {
-        await service.create('user-1', createReviewDTO);
+        await service.createReview('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User can create only one review per book.');
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
             user: { connect: { userid: 'user-1' } },
-            book: { connect: { id: createReviewDTO.bookId } },
+            book: { connect: { bookid: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
           },
@@ -88,10 +100,10 @@ describe('ReviewsService', () => {
     });
 
     it('should throw an error if the book is not purchased', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([]);
 
       try {
-        await service.create('user-1', createReviewDTO);
+        await service.createReview('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe(
@@ -108,11 +120,13 @@ describe('ReviewsService', () => {
         } as any,
       );
 
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        { bookid: 'book-1' },
+      ]);
       mockPrismaService.reviews.create.mockRejectedValueOnce(prismaError);
 
       try {
-        await service.create('user-1', createReviewDTO);
+        await service.createReview('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe(
@@ -122,7 +136,7 @@ describe('ReviewsService', () => {
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
             user: { connect: { userid: 'user-1' } },
-            book: { connect: { id: createReviewDTO.bookId } },
+            book: { connect: { bookid: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
           },
@@ -132,11 +146,13 @@ describe('ReviewsService', () => {
 
     it('should throw generic error for unknown error types', async () => {
       const error = new Error('Unknown database error');
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({ id: 1 });
+      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+        { bookid: 'book-1' },
+      ]);
       mockPrismaService.reviews.create.mockRejectedValueOnce(error);
 
       try {
-        await service.create('user-1', createReviewDTO);
+        await service.createReview('user-1', createReviewDTO);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Review creation failed.');
@@ -144,15 +160,15 @@ describe('ReviewsService', () => {
     });
   });
 
-  describe('findReviewsForBook', () => {
-    const bookId = 1;
+  describe('getReviews', () => {
+    const bookId = 'book-id-1';
     const defaultPage = 1;
     const defaultLimit = 10;
 
     it('should successfully fetch paginated reviews with default parameters and calculate metadata', async () => {
       const mockReviews = [
-        { rating: 5, data: 'Excellent book!' },
-        { rating: 4, data: 'Good read.' },
+        { id: 1, rating: 5, data: 'Excellent book!', userid: 'user-1' },
+        { id: 2, rating: 4, data: 'Good read.', userid: 'user-2' },
       ];
       const mockAggregateResult = { _avg: { rating: 4.5 } };
       const mockTotalReviewCount = 25;
@@ -163,23 +179,41 @@ describe('ReviewsService', () => {
       );
       mockPrismaService.reviews.count.mockResolvedValue(mockTotalReviewCount);
 
-      const result = await service.findReviewsForBook(bookId);
+      const result = await service.getReviews(bookId);
 
       expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
-        select: { rating: true, data: true },
+        where: { book: { bookid: bookId } },
+        select: { id: true, rating: true, data: true, userid: true },
         take: defaultLimit,
         skip: 0,
       });
       expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
         _avg: { rating: true },
       });
       expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
       });
       expect(result).toEqual({
-        data: { reviews: mockReviews, rating: '4.5' },
+        data: {
+          reviews: [
+            {
+              id: 1,
+              data: 'Excellent book!',
+              rating: 5,
+              book: bookId,
+              owner: 'user-1',
+            },
+            {
+              id: 2,
+              data: 'Good read.',
+              rating: 4,
+              book: bookId,
+              owner: 'user-2',
+            },
+          ],
+          rating: 4.5,
+        },
         meta: {
           bookId,
           totalReviewCount: mockTotalReviewCount,
@@ -194,9 +228,9 @@ describe('ReviewsService', () => {
       const pageNumber = 2;
       const limitNumber = 5;
       const mockReviews = [
-        { rating: 3, data: 'Okay book.' },
-        { rating: 4, data: 'Enjoyed it.' },
-        { rating: 5, data: 'Great!' },
+        { id: 1, userid: 'user-1', rating: 3, data: 'Okay book.' },
+        { id: 2, userid: 'user-2', rating: 4, data: 'Enjoyed it.' },
+        { id: 3, userid: 'user-3', rating: 5, data: 'Great!' },
       ];
       const mockAggregateResult = { _avg: { rating: 4 } };
       const mockTotalReviewCount = 22;
@@ -208,27 +242,42 @@ describe('ReviewsService', () => {
       );
       mockPrismaService.reviews.count.mockResolvedValue(mockTotalReviewCount);
 
-      const result = await service.findReviewsForBook(
-        bookId,
-        pageNumber,
-        limitNumber,
-      );
+      const result = await service.getReviews(bookId, pageNumber, limitNumber);
 
       expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
-        select: { rating: true, data: true },
+        where: { book: { bookid: bookId } },
+        select: { id: true, rating: true, data: true, userid: true },
         take: limitNumber,
         skip: offset,
       });
       expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
         _avg: { rating: true },
       });
       expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
       });
       expect(result).toEqual({
-        data: { reviews: mockReviews, rating: '4.0' },
+        data: {
+          reviews: [
+            {
+              id: 1,
+              data: 'Okay book.',
+              rating: 3,
+              book: bookId,
+              owner: 'user-1',
+            },
+            {
+              id: 2,
+              data: 'Enjoyed it.',
+              rating: 4,
+              book: bookId,
+              owner: 'user-2',
+            },
+            { id: 3, data: 'Great!', rating: 5, book: bookId, owner: 'user-3' },
+          ],
+          rating: 4,
+        },
         meta: {
           bookId,
           totalReviewCount: mockTotalReviewCount,
@@ -239,30 +288,30 @@ describe('ReviewsService', () => {
       });
     });
 
-    it('should return empty reviews and average as NaN if no reviews are found, but still return meta', async () => {
+    it('should return empty reviews and average as 0 if no reviews are found, but still return meta', async () => {
       mockPrismaService.reviews.findMany.mockResolvedValueOnce([]);
       mockPrismaService.reviews.aggregate.mockResolvedValueOnce({
         _avg: { rating: null },
       });
       mockPrismaService.reviews.count.mockResolvedValueOnce(0);
 
-      const result = await service.findReviewsForBook(bookId);
+      const result = await service.getReviews(bookId);
 
       expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
-        select: { rating: true, data: true },
+        where: { book: { bookid: bookId } },
+        select: { id: true, rating: true, data: true, userid: true },
         take: defaultLimit,
         skip: 0,
       });
       expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
         _avg: { rating: true },
       });
       expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
       });
       expect(result).toEqual({
-        data: { reviews: [], rating: '0' },
+        data: { reviews: [], rating: 0 },
         meta: {
           bookId,
           totalReviewCount: 0,
@@ -280,23 +329,23 @@ describe('ReviewsService', () => {
       });
       mockPrismaService.reviews.count.mockResolvedValueOnce(2);
 
-      const result = await service.findReviewsForBook(bookId);
+      const result = await service.getReviews(bookId);
 
       expect(mockPrismaService.reviews.findMany).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
-        select: { rating: true, data: true },
+        where: { book: { bookid: bookId } },
+        select: { id: true, rating: true, data: true, userid: true },
         take: defaultLimit,
         skip: 0,
       });
       expect(mockPrismaService.reviews.aggregate).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
         _avg: { rating: true },
       });
       expect(mockPrismaService.reviews.count).toHaveBeenCalledWith({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
       });
       expect(result).toEqual({
-        data: { reviews: [], rating: '3.5' },
+        data: { reviews: [], rating: 3.5 },
         meta: {
           bookId,
           totalReviewCount: 2,
@@ -312,7 +361,7 @@ describe('ReviewsService', () => {
       mockPrismaService.reviews.findMany.mockRejectedValueOnce(error);
 
       try {
-        await service.findReviewsForBook(bookId);
+        await service.getReviews(bookId);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Reviews could not fetched.');
@@ -320,14 +369,16 @@ describe('ReviewsService', () => {
     });
 
     it('should throw error if there is an error during average rating calculation', async () => {
-      const reviews = [{ rating: 5, data: 'Great book!' }];
+      const reviews = [
+        { id: 1, userid: 'user-1', rating: 5, data: 'Great book!' },
+      ];
       mockPrismaService.reviews.findMany.mockResolvedValueOnce(reviews);
       mockPrismaService.reviews.aggregate.mockRejectedValueOnce(
         new Error('Aggregation error'),
       );
 
       try {
-        await service.findReviewsForBook(bookId);
+        await service.getReviews(bookId);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Reviews could not fetched.');
@@ -339,7 +390,7 @@ describe('ReviewsService', () => {
       mockPrismaService.reviews.count.mockRejectedValueOnce(error);
 
       try {
-        await service.findReviewsForBook(bookId);
+        await service.getReviews(bookId);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Reviews could not fetched.');
