@@ -10,6 +10,14 @@ import { HelperService } from '../common/helper.service';
 
 @Injectable()
 export class UserService {
+  private readonly userSelect = {
+    userid: true,
+    name: true,
+    email: true,
+    password: true,
+    role: { select: { id: true, role_name: true } },
+  };
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto, role: RoleEnum): Promise<User> {
@@ -46,12 +54,7 @@ export class UserService {
           },
           is_active: true,
         },
-        select: {
-          userid: true,
-          name: true,
-          email: true,
-          role: { select: { role_name: true } },
-        },
+        select: this.userSelect,
       });
 
       return {
@@ -70,22 +73,10 @@ export class UserService {
   async findAll(): Promise<User[]> {
     try {
       const users = await this.prisma.user.findMany({
-        select: {
-          userid: true,
-          name: true,
-          email: true,
-          role: { select: { role_name: true } },
-        },
+        select: this.userSelect,
       });
 
-      return users.map(
-        (user): User => ({
-          id: user.userid,
-          name: user.name,
-          email: user.email,
-          role: { value: user.role.role_name },
-        }),
-      );
+      return users.map((user) => this.transformSelectedUserToUser(user));
     } catch (error) {
       console.error('Users could not fetched. Error:', error);
       throw new Error('Users could not fetched');
@@ -98,12 +89,7 @@ export class UserService {
 
       if (!user) return null;
 
-      return {
-        id: user.userid,
-        name: user.name,
-        email: user.email,
-        role: { value: user.role.role_name },
-      };
+      return this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User could not be fetched. Error:', error);
       throw new Error('User could not be fetched.');
@@ -116,12 +102,7 @@ export class UserService {
 
       if (!user) return null;
 
-      return {
-        id: user.userid,
-        name: user.name,
-        email: user.email,
-        role: { value: user.role.role_name },
-      };
+      return this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User could not be fetched. Error:', error);
       throw new Error('User could not be fetched.');
@@ -176,12 +157,7 @@ export class UserService {
       const user = await this.prisma.user.update({
         where: { userid: id },
         data: userUpdateObject,
-        select: {
-          userid: true,
-          name: true,
-          email: true,
-          role: { select: { role_name: true } },
-        },
+        select: this.userSelect,
       });
 
       return {
@@ -297,12 +273,7 @@ export class UserService {
 
       if (!isCorrect) throw new CustomAPIError('Invalid user credentials');
 
-      return {
-        id: user.userid,
-        name: user.name,
-        email: user.email,
-        role: { value: user.role.role_name },
-      };
+      return this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User password check failed. Error:', error);
 
@@ -310,5 +281,14 @@ export class UserService {
 
       throw new Error('User password check failed.');
     }
+  }
+
+  private transformSelectedUserToUser(selectedUser: any): User {
+    return {
+      id: selectedUser.userid,
+      name: selectedUser.name,
+      email: selectedUser.email,
+      role: { value: selectedUser.role.role_name },
+    };
   }
 }

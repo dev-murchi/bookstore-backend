@@ -90,7 +90,8 @@ describe('UserService', () => {
           userid: true,
           name: true,
           email: true,
-          role: { select: { role_name: true } },
+          password: true,
+          role: { select: { id: true, role_name: true } },
         },
       });
 
@@ -305,7 +306,8 @@ describe('UserService', () => {
           userid: true,
           name: true,
           email: true,
-          role: { select: { role_name: true } },
+          password: true,
+          role: { select: { id: true, role_name: true } },
         },
       });
 
