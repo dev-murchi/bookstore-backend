@@ -8,6 +8,7 @@ import {
   InternalServerErrorException,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Query,
   Req,
@@ -48,7 +49,7 @@ export class ReviewsController {
 
   @Get()
   async findAll(
-    @Query('book', ParseIntPipe) bookId: number,
+    @Query('book', ParseUUIDPipe) bookId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
   ) {

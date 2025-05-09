@@ -1,12 +1,13 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 import * as sanitizeHtml from 'sanitize-html';
 
 export class CreateReviewDTO {
   @IsNotEmpty()
-  @IsNumber()
-  readonly bookId: number;
+  @IsString()
+  @IsUUID()
+  readonly bookId: string;
 
   @IsNotEmpty()
   @IsInt()

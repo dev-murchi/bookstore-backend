@@ -14,7 +14,7 @@ export class ReviewsService {
       // book has to be purchased by the user
       const purchasedBook = await this.prisma.books.findUnique({
         where: {
-          id: bookId,
+          bookid: bookId,
           order_items: {
             some: {
               order: {
@@ -35,7 +35,7 @@ export class ReviewsService {
       await this.prisma.reviews.create({
         data: {
           user: { connect: { userid: userId } },
-          book: { connect: { id: bookId } },
+          book: { connect: { bookid: bookId } },
           data: data,
           rating: rating,
         },
@@ -61,7 +61,7 @@ export class ReviewsService {
   }
 
   async findReviewsForBook(
-    bookId: number,
+    bookId: string,
     page: number = 1,
     limit: number = 10,
   ) {
@@ -71,7 +71,7 @@ export class ReviewsService {
 
       // fetch all reviews for the book
       const reviews = await this.prisma.reviews.findMany({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
         select: { rating: true, data: true },
         take: limit,
         skip: offset,
@@ -81,7 +81,7 @@ export class ReviewsService {
       const averageRating = (
         await this.prisma.reviews.aggregate({
           where: {
-            book: { id: bookId },
+            book: { bookid: bookId },
           },
           _avg: {
             rating: true,
@@ -91,7 +91,7 @@ export class ReviewsService {
 
       // fetch review count
       const totalReviewCount = await this.prisma.reviews.count({
-        where: { book: { id: bookId } },
+        where: { book: { bookid: bookId } },
       });
 
       // calculate total pages
