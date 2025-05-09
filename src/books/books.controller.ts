@@ -249,7 +249,7 @@ export class BooksController {
   }> {
     try {
       return {
-        data: await this.reviewsService.getReviews(bookId, page, limit),
+        data: await this.reviewsService.getReviewsOfBook(bookId, page, limit),
       };
     } catch (error) {
       throw new InternalServerErrorException(

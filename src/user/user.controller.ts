@@ -2,11 +2,15 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   InternalServerErrorException,
   Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -21,10 +25,14 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { User } from '../common/types';
 import { HelperService } from '../common/helper.service';
+import { ReviewsService } from '../reviews/reviews.service';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly reviewsService: ReviewsService,
+  ) {}
 
   @UseGuards(AuthGuard)
   @Get('profile')
@@ -88,11 +96,11 @@ export class UserController {
     }
   }
 
-  @Put(':userId')
+  @Put(':id')
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
   async updateUser(
-    @Param('userId') userId: string,
+    @Param('id') userId: string,
     @Body()
     updateUserDto: UpdateUserDto,
   ): Promise<User> {
@@ -119,6 +127,23 @@ export class UserController {
         throw new BadRequestException(error.message);
 
       throw new InternalServerErrorException('User could not be deleted.');
+    }
+  }
+
+  @Get(':id/reviews')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async getUserReviews(
+    @Param('id', ParseUUIDPipe) userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    try {
+      return {
+        data: await this.reviewsService.getReviewsForUser(userId, page, limit),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('');
     }
   }
 }

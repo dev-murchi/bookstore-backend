@@ -1,6 +1,4 @@
 import {
-  BadRequestException,
-  Body,
   Controller,
   DefaultValuePipe,
   Delete,
@@ -8,56 +6,52 @@ import {
   InternalServerErrorException,
   Param,
   ParseIntPipe,
-  ParseUUIDPipe,
-  Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CreateReviewDTO } from './dto/create-review.dto';
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { CustomAPIError } from '../common/errors/custom-api.error';
 
 @Controller('reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
-  @Post()
+
+  @Get()
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.User])
-  async create(
-    @Body() createReviewDTO: CreateReviewDTO,
+  async findUserReviews(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
     @Req() request: Request,
   ) {
     try {
-      return await this.reviewsService.createReview(
-        request.user['id'],
-        createReviewDTO,
-      );
+      return {
+        data: await this.reviewsService.getReviewsForUser(
+          request.user['id'],
+          page,
+          limit,
+        ),
+      };
     } catch (error) {
-      if (error instanceof CustomAPIError)
-        throw new BadRequestException(error.message);
-
       throw new InternalServerErrorException(
-        'Review creation failed due to an unexpected error.',
+        'Reviews could not fetched due to an unexpected error.',
       );
     }
   }
 
-  @Get()
-  async findAll(
-    @Query('book', ParseUUIDPipe) bookId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-  ) {
+  @Get(':id')
+  async findReview(@Param('id', ParseIntPipe) reviewId: number) {
     try {
-      return await this.reviewsService.getReviews(bookId, page, limit);
+      return {
+        data: await this.reviewsService.findReview(reviewId),
+      };
     } catch (error) {
       throw new InternalServerErrorException(
-        'Book(s) could not fetched due to an unexpected error.',
+        'Review could not fetched due to an unexpected error.',
       );
     }
   }

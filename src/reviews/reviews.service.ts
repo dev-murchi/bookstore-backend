@@ -3,6 +3,7 @@ import { CreateReviewDTO } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Review } from '../common/types';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ReviewsService {
@@ -60,7 +61,81 @@ export class ReviewsService {
     }
   }
 
-  async getReviews(
+  private async getReviews(
+    condition: Prisma.reviewsWhereInput,
+    page: number,
+    limit: number,
+  ) {
+    try {
+      // calculate offset for pagination
+      const offset = (page - 1) * limit;
+
+      // fetch all reviews for the book
+      const reviews = await this.prisma.reviews.findMany({
+        where: condition,
+        select: {
+          id: true,
+          rating: true,
+          data: true,
+          userid: true,
+          bookid: true,
+        },
+        take: limit,
+        skip: offset,
+      });
+
+      return reviews;
+    } catch (error) {
+      console.error('Reviews could not fetched.Error:', error);
+      throw new Error('Reviews could not fetched.');
+    }
+  }
+
+  private async fetchAndFormatReviews(
+    condition: Prisma.reviewsWhereInput,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: { reviews: Review[]; rating: number };
+    meta: {
+      totalReviewCount: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      const entityReviews = await this.getReviews(condition, page, limit);
+
+      const reviews = entityReviews.map((review) =>
+        this.transformSelectedReview(review),
+      );
+
+      const averageRating = await this.averageRating(condition);
+
+      const totalReviewCount = await this.reviewCount(condition);
+
+      const totalPages = Math.ceil(totalReviewCount / limit);
+
+      return {
+        data: {
+          reviews,
+          rating: averageRating ? Number(averageRating.toFixed(1)) : 0,
+        },
+        meta: {
+          totalReviewCount,
+          page,
+          limit,
+          totalPages,
+        },
+      };
+    } catch (error) {
+      console.error(`Could not fetch reviews. Error:`, error);
+      throw new Error(`Could not fetch reviews.`);
+    }
+  }
+
+  async getReviewsOfBook(
     bookId: string,
     page: number = 1,
     limit: number = 10,
@@ -74,63 +149,102 @@ export class ReviewsService {
       totalPages: number;
     };
   }> {
-    try {
-      // calculate offset for pagination
-      const offset = (page - 1) * limit;
+    const result = await this.fetchAndFormatReviews(
+      { bookid: bookId },
+      page,
+      limit,
+    );
+    return {
+      ...result,
+      meta: {
+        ...result.meta,
+        bookId: bookId,
+      },
+    };
+  }
 
-      // fetch all reviews for the book
-      const bookReviews = await this.prisma.reviews.findMany({
-        where: { book: { bookid: bookId } },
-        select: { id: true, rating: true, data: true, userid: true },
-        take: limit,
-        skip: offset,
+  async getReviewsForUser(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    data: { reviews: Review[]; rating: number };
+    meta: {
+      userId: string;
+      totalReviewCount: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const result = await this.fetchAndFormatReviews(
+      { userid: userId },
+      page,
+      limit,
+    );
+    return {
+      ...result,
+      meta: {
+        ...result.meta,
+        userId,
+      },
+    };
+  }
+
+  private transformSelectedReview(review: any) {
+    return {
+      id: review.id,
+      data: review.data,
+      rating: review.rating,
+      book: review.bookid,
+      owner: review.userid,
+    };
+  }
+
+  async findReview(id: number): Promise<Review | null> {
+    try {
+      const review = await this.prisma.reviews.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          rating: true,
+          data: true,
+          userid: true,
+          bookid: true,
+        },
       });
 
-      const reviews = bookReviews.map((review) => ({
+      if (!review) return null;
+      return {
         id: review.id,
         data: review.data,
         rating: review.rating,
-        book: bookId,
+        book: review.bookid,
         owner: review.userid,
-      }));
-
-      // calculate average rating
-      const averageRating = (
-        await this.prisma.reviews.aggregate({
-          where: {
-            book: { bookid: bookId },
-          },
-          _avg: {
-            rating: true,
-          },
-        })
-      )._avg.rating;
-
-      // fetch review count
-      const totalReviewCount = await this.prisma.reviews.count({
-        where: { book: { bookid: bookId } },
-      });
-
-      // calculate total pages
-      const totalPages = Math.ceil(totalReviewCount / limit);
-
-      return {
-        data: {
-          reviews,
-          rating: averageRating ? Number(averageRating.toFixed(1)) : 0,
-        },
-        meta: {
-          bookId,
-          totalReviewCount,
-          page,
-          limit,
-          totalPages,
-        },
       };
     } catch (error) {
-      console.error('Reviews could not fetched.Error:', error);
-      throw new Error('Reviews could not fetched.');
+      console.error('Review could not fetched.Error:', error);
+      throw new Error('Review could not fetched.');
     }
+  }
+
+  private async averageRating(condition: Prisma.reviewsWhereInput) {
+    const data = await this.prisma.reviews.aggregate({
+      where: condition,
+      _avg: {
+        rating: true,
+      },
+    });
+
+    return data._avg.rating;
+  }
+
+  private async reviewCount(condition: Prisma.reviewsWhereInput) {
+    const totalReviewCount = await this.prisma.reviews.count({
+      where: condition,
+    });
+
+    return totalReviewCount;
   }
 
   async delete(reviewId: number) {

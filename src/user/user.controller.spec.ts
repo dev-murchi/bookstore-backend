@@ -3,9 +3,14 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { AuthGuard } from '../common/guards/auth/auth.guard';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { ReviewsService } from '../reviews/reviews.service';
 
 const mockUserService = {
   findOne: jest.fn(),
+};
+
+const mockReviewsService = {
+  getReviewsForUser: jest.fn(),
 };
 
 describe('UserController', () => {
@@ -14,7 +19,10 @@ describe('UserController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [{ provide: UserService, useValue: mockUserService }],
+      providers: [
+        { provide: UserService, useValue: mockUserService },
+        { provide: ReviewsService, useValue: mockReviewsService },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({
