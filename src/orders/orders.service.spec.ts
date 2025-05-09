@@ -103,10 +103,12 @@ describe('OrdersService', () => {
     it('returns orders filtered by userId', async () => {
       mockPrismaService.orders.findMany.mockResolvedValueOnce([mockOrder]);
 
-      const result = await service.getAll(101);
+      const result = await service.getUserOrders('user-uuid-101');
 
       expect(mockPrismaService.orders.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { user: { id: 101 } } }),
+        expect.objectContaining({
+          where: { userid: 'user-uuid-101' },
+        }),
       );
       expect(result).toEqual([
         {

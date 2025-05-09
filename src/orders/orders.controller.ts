@@ -71,10 +71,8 @@ export class OrdersController {
   async viewAllOrders(@Req() request: Request): Promise<Order[]> {
     try {
       if (request.user['role'] === RoleEnum.User) {
-        // user's orders
-        return await this.ordersService.getAll(request.user['id']);
+        return await this.ordersService.getUserOrders(request.user['id']);
       }
-      // all orders
       return await this.ordersService.getAll();
     } catch (error) {
       console.error('Orders could not be fetched', error);

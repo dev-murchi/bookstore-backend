@@ -26,12 +26,14 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 import { User } from '../common/types';
 import { HelperService } from '../common/helper.service';
 import { ReviewsService } from '../reviews/reviews.service';
+import { OrdersService } from '../orders/orders.service';
 
 @Controller('users')
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly reviewsService: ReviewsService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   @UseGuards(AuthGuard)
@@ -141,6 +143,19 @@ export class UserController {
     try {
       return {
         data: await this.reviewsService.getReviewsForUser(userId, page, limit),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException('');
+    }
+  }
+
+  @Get(':id/orders')
+  @UseGuards(UserAccessGuard)
+  @Roles([RoleEnum.Admin])
+  async getUserOrders(@Param('id', ParseUUIDPipe) userId: string) {
+    try {
+      return {
+        data: await this.ordersService.getUserOrders(userId),
       };
     } catch (error) {
       throw new InternalServerErrorException('');

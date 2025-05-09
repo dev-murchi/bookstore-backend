@@ -67,16 +67,18 @@ export class OrdersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAll(userId?: number): Promise<Order[]> {
+  async getAll(): Promise<Order[]> {
+    return await this.getOrders({});
+  }
+
+  async getUserOrders(userId: string): Promise<Order[]> {
+    return await this.getOrders({ userid: userId });
+  }
+
+  private async getOrders(coondition: Prisma.ordersWhereInput) {
     try {
-      const where: Prisma.ordersWhereInput = {};
-
-      if (userId) {
-        where['user'] = { id: userId };
-      }
-
       const orders = await this.prisma.orders.findMany({
-        where,
+        where: coondition,
         select: this.orderSelect,
       });
       return orders.map((order) => this.transformToOrder(order));
@@ -85,7 +87,6 @@ export class OrdersService {
       throw new Error('Orders could not fetched');
     }
   }
-
   async getOrder(orderId: number): Promise<Order | null> {
     const order = await this.prisma.orders.findUnique({
       where: {
