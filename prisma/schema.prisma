@@ -101,6 +101,7 @@ model cart_items {
 
 model orders {
   id  Int @id @default(autoincrement())
+  orderid String @unique
   userid String?
   totalPrice  Float @default(0)
   shipping_details  shipping?
@@ -113,12 +114,12 @@ model orders {
 
 model order_items {
   id  Int @id @default(autoincrement())
-  orderid Int
+  orderid String
   bookid String
   quantity  Int
   price Float @default(0)
 
-  order orders @relation(fields: [orderid], references: [id])
+  order orders @relation(fields: [orderid], references: [orderid])
   book  books @relation(fields: [bookid], references: [bookid])
 }
 
@@ -138,16 +139,16 @@ model shipping {
   id Int  @id @default(autoincrement())
   email           String  
   phone           String? 
-  orderid Int @unique
+  orderid String @unique
   addressid Int
 
-  order orders @relation(fields: [orderid], references: [id])
+  order orders @relation(fields: [orderid], references: [orderid])
   address address @relation(fields: [addressid], references: [id])
 }
 
 model payment {
   id Int  @id @default(autoincrement())
-  orderid Int @unique
+  orderid String @unique
   transaction_id String?
   status String
   method  String
@@ -155,7 +156,7 @@ model payment {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  order  orders @relation(fields: [orderid], references: [id])
+  order  orders @relation(fields: [orderid], references: [orderid])
 }
 
 model reviews {

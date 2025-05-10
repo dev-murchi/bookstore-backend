@@ -5,6 +5,7 @@ import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
 import { CheckoutData, OrderItem } from '../../common/types';
 import Stripe from 'stripe';
+import { HelperService } from '../../common/helper.service';
 
 @Injectable()
 export class CheckoutService {
@@ -95,6 +96,7 @@ export class CheckoutService {
         // Create the order
         const order = await pr.orders.create({
           data: {
+            orderid: HelperService.generateUUID(),
             totalPrice,
             status: 'pending',
             userid: userId,

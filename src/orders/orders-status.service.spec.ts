@@ -6,6 +6,7 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockOrder = {
   id: 1,
+  orderid: 'order-uuid-1',
   userid: 101,
   totalPrice: 42.5,
   status: OrderStatus.Pending,
@@ -76,7 +77,7 @@ describe('OrdersStatusService', () => {
       const order = { ...mockOrder, status: OrderStatus.Canceled };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
-      const result = await (service as any).changeStatus(1, {
+      const result = await (service as any).changeStatus('order-uuid-1', {
         from: OrderStatus.Pending,
         to: OrderStatus.Canceled,
       });
@@ -89,7 +90,7 @@ describe('OrdersStatusService', () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
       try {
-        await (service as any).changeStatus(1, {
+        await (service as any).changeStatus('order-uuid-1', {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
         });
@@ -110,9 +111,12 @@ describe('OrdersStatusService', () => {
         status: OrderStatus.Canceled,
       });
 
-      await service.cancelOrder(1);
+      await service.cancelOrder('order-uuid-1');
 
-      expect(ordersService.updateStatus).toHaveBeenCalledWith(1, 'canceled');
+      expect(ordersService.updateStatus).toHaveBeenCalledWith(
+        'order-uuid-1',
+        'canceled',
+      );
     });
   });
 
@@ -124,10 +128,10 @@ describe('OrdersStatusService', () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
       mockOrdersService.updateStatus.mockResolvedValueOnce(updated);
 
-      await service.shipOrder(order.id);
+      await service.shipOrder(order.orderid);
 
       expect(ordersService.updateStatus).toHaveBeenCalledWith(
-        order.id,
+        order.orderid,
         'shipped',
       );
     });
@@ -141,10 +145,10 @@ describe('OrdersStatusService', () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
       mockOrdersService.updateStatus.mockResolvedValueOnce(updated);
 
-      await service.deliverOrder(order.id);
+      await service.deliverOrder(order.orderid);
 
       expect(ordersService.updateStatus).toHaveBeenCalledWith(
-        order.id,
+        order.orderid,
         'delivered',
       );
     });

@@ -87,7 +87,10 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentFailed(data: StripePaymentData): Promise<void> {
-    const orderId = this.parseOrderId(data.metadata);
+    const orderId = data.metadata?.orderId;
+    if (!orderId) {
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
+    }
     const paymentData: PaymentData = {
       orderId: orderId,
       transactionId: data.id,
@@ -107,7 +110,10 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentExpired(data: StripeSessionData): Promise<void> {
-    const orderId = this.parseOrderId(data.metadata);
+    const orderId = data.metadata?.orderId;
+    if (!orderId) {
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
+    }
     const paymentData: PaymentData = {
       orderId: orderId,
       transactionId: null,
@@ -144,7 +150,10 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async paymentSuccessful(data: StripeSessionData): Promise<void> {
-    const orderId = this.parseOrderId(data.metadata);
+    const orderId = data.metadata?.orderId;
+    if (!orderId) {
+      throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
+    }
 
     const shippingDetails: ShippingCustomerDetails = {
       email: data.customer_details.email,
@@ -214,7 +223,7 @@ export class StripeWebhookProcessor extends WorkerHost {
     return orderId;
   }
 
-  private async tryRefund(orderId: number, paymentIntent: string) {
+  private async tryRefund(orderId: string, paymentIntent: string) {
     try {
       await this.stripeService.createRefundForPayment(paymentIntent!, {
         orderId,

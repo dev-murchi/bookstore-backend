@@ -129,7 +129,7 @@ describe('PaymentService', () => {
     it('should create a new payment when the order does not exist', async () => {
       // Arrange
       const paymentData = {
-        orderId: 1,
+        orderId: 'order-uuid-1',
         transactionId: 'pi_123',
         status: PaymentStatus.Paid,
         amount: 1000,
@@ -137,7 +137,7 @@ describe('PaymentService', () => {
 
       mockPrismaService.payment.upsert.mockResolvedValueOnce({
         id: 1,
-        orderid: 1,
+        orderid: 'order-uuid-1',
         transaction_id: 'pi_123',
         status: 'paid',
         method: 'card',
@@ -149,11 +149,11 @@ describe('PaymentService', () => {
         await paymentService.createOrUpdatePayment(paymentData);
 
       expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: { orderid: 1 },
+        where: { orderid: 'order-uuid-1' },
         update: { status: 'paid' },
         create: {
           transaction_id: 'pi_123',
-          order: { connect: { id: 1 } },
+          order: { connect: { orderid: 'order-uuid-1' } },
           status: 'paid',
           method: 'card',
           amount: 1000,
@@ -162,7 +162,7 @@ describe('PaymentService', () => {
 
       expect(receivedPayment).toEqual({
         id: 1,
-        orderid: 1,
+        orderid: 'order-uuid-1',
         transaction_id: 'pi_123',
         status: 'paid',
         method: 'card',
@@ -173,7 +173,7 @@ describe('PaymentService', () => {
 
     it('should propagate error when Prisma throws an exception', async () => {
       const paymentData = {
-        orderId: 1,
+        orderId: 'order-uuid-1',
         transactionId: 'pi_123',
         status: PaymentStatus.Paid,
         amount: 1000,

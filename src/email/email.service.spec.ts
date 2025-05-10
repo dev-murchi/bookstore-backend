@@ -26,12 +26,16 @@ describe('EmailService', () => {
   describe('sendOrderStatusUpdate', () => {
     it('should adds a new job to the queue. ', async () => {
       const job = {
-        orderId: 1,
+        orderId: 'order-uuid-1',
         status: 'complete',
         email: 'testuser@email.com',
       };
 
-      await service.sendOrderStatusUpdate(1, 'complete', 'testuser@email.com');
+      await service.sendOrderStatusUpdate(
+        'order-uuid-1',
+        'complete',
+        'testuser@email.com',
+      );
 
       expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
         'order-status-mail',
@@ -42,9 +46,15 @@ describe('EmailService', () => {
       mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
 
       await expect(
-        service.sendOrderStatusUpdate(1, 'failed', 'testuser@email.com'),
+        service.sendOrderStatusUpdate(
+          'order-uuid-1',
+          'failed',
+          'testuser@email.com',
+        ),
       ).rejects.toThrow(
-        new Error('Mail for Order 1 could not be added to the queue.'),
+        new Error(
+          'Mail for Order order-uuid-1 could not be added to the queue.',
+        ),
       );
     });
   });

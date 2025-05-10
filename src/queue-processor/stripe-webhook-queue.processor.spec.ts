@@ -89,7 +89,7 @@ describe('StripeWebhookProcessor', () => {
         last_payment_error: {
           message: 'Your card has insufficient funds.',
         },
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         status: 'requires_payment_method',
       };
       mockPaymentService.createOrUpdatePayment.mockResolvedValueOnce({});
@@ -97,7 +97,7 @@ describe('StripeWebhookProcessor', () => {
       await (processor as any).paymentFailed(data);
 
       expect(mockPaymentService.createOrUpdatePayment).toHaveBeenCalledWith({
-        orderId: 123,
+        orderId: 'order-uuid-123',
         transactionId: 'pi_123',
         status: PaymentStatus.Failed,
         amount: 1000,
@@ -107,7 +107,7 @@ describe('StripeWebhookProcessor', () => {
     it('should throw errors gracefully', async () => {
       const data: StripePaymentData = {
         id: 'pi_123',
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         last_payment_error: { message: 'Payment failed' },
         amount: 1000,
         object: 'payment_intent',
@@ -119,7 +119,7 @@ describe('StripeWebhookProcessor', () => {
       );
 
       await expect((processor as any).paymentFailed(data)).rejects.toThrow(
-        new Error('Payment failure handling failed for Order 123.'),
+        new Error('Payment failure handling failed for Order order-uuid-123.'),
       );
     });
   });
@@ -129,7 +129,7 @@ describe('StripeWebhookProcessor', () => {
       const data: StripeSessionData = {
         id: 'cs_123',
         object: 'checkout.session',
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         amount_total: 1000,
         currency: 'usd',
         payment_status: 'unpaid',
@@ -171,6 +171,7 @@ describe('StripeWebhookProcessor', () => {
       const existingOrder = {
         order_items: orderItems,
         id: 1,
+        orderid: 'order-uuid-123',
         status: 'pending',
         userid: 1,
         totalPrice: 1000,
@@ -186,27 +187,29 @@ describe('StripeWebhookProcessor', () => {
 
       await (processor as any).paymentExpired(data);
 
-      expect(mockOrdersService.getOrder).toHaveBeenCalledWith(123);
-      expect(mockOrdersService.revertOrderStocks).toHaveBeenCalledWith(123);
+      expect(mockOrdersService.getOrder).toHaveBeenCalledWith('order-uuid-123');
+      expect(mockOrdersService.revertOrderStocks).toHaveBeenCalledWith(
+        'order-uuid-123',
+      );
       expect(mockOrdersService.updateStatus).toHaveBeenCalledWith(
-        123,
+        'order-uuid-123',
         OrderStatus.Expired,
       );
       expect(mockPaymentService.createOrUpdatePayment).toHaveBeenCalledWith({
-        orderId: 123,
+        orderId: 'order-uuid-123',
         transactionId: null,
         status: PaymentStatus.Unpaid,
         amount: 1000,
       });
 
       expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        123,
+        'order-uuid-123',
         OrderStatus.Expired,
         'user@email.com',
       );
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Order #[123] expired and expiration email added to the queue.',
+        'Order #[order-uuid-123] expired and expiration email added to the queue.',
       );
       consoleSpy.mockRestore();
     });
@@ -215,7 +218,7 @@ describe('StripeWebhookProcessor', () => {
       const data: StripeSessionData = {
         id: 'cs_123',
         object: 'checkout.session',
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         amount_total: 1000,
         currency: 'usd',
         payment_status: 'unpaid',
@@ -238,7 +241,9 @@ describe('StripeWebhookProcessor', () => {
       );
 
       await expect((processor as any).paymentExpired(data)).rejects.toThrow(
-        new Error('Payment expiration handling failed for Order 123.'),
+        new Error(
+          'Payment expiration handling failed for Order order-uuid-123.',
+        ),
       );
     });
   });
@@ -248,7 +253,7 @@ describe('StripeWebhookProcessor', () => {
       const data: StripeSessionData = {
         id: 'cs_123',
         object: 'checkout.session',
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         payment_intent: 'pi_123',
         amount_total: 1000,
         currency: 'usd',
@@ -290,7 +295,7 @@ describe('StripeWebhookProcessor', () => {
 
       const existingOrder = {
         order_items: orderItems,
-        id: 123,
+        id: 'order-uuid-123',
         status: 'pending',
         userid: 1,
         totalPrice: 1000,
@@ -299,7 +304,7 @@ describe('StripeWebhookProcessor', () => {
 
       const updatedOrder = {
         order_items: orderItems,
-        id: 123,
+        id: 'order-uuid-123',
         status: 'complete',
         userid: 1,
         totalPrice: 1000,
@@ -321,7 +326,7 @@ describe('StripeWebhookProcessor', () => {
       };
 
       const paymentData = {
-        orderId: 123,
+        orderId: 'order-uuid-123',
         transactionId: 'pi_123',
         status: PaymentStatus.Paid,
         amount: 1000,
@@ -336,14 +341,14 @@ describe('StripeWebhookProcessor', () => {
 
       await (processor as any).paymentSuccessful(data);
 
-      expect(mockOrdersService.getOrder).toHaveBeenCalledWith(123);
+      expect(mockOrdersService.getOrder).toHaveBeenCalledWith('order-uuid-123');
       expect(mockOrdersService.updateStatus).toHaveBeenCalledWith(
-        123,
+        'order-uuid-123',
         OrderStatus.Complete,
       );
 
       expect(mockShippingService.createShipping).toHaveBeenCalledWith(
-        123,
+        'order-uuid-123',
         shippingDetails,
       );
 
@@ -352,7 +357,7 @@ describe('StripeWebhookProcessor', () => {
       );
 
       expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        123,
+        'order-uuid-123',
         OrderStatus.Complete,
         'user@email.com',
       );
@@ -360,7 +365,7 @@ describe('StripeWebhookProcessor', () => {
       expect(mockStripeService.createRefundForPayment).not.toHaveBeenCalled();
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Order #[123] marked as complete and order confirmation email added to queue.',
+        'Order #[order-uuid-123] marked as complete and order confirmation email added to queue.',
       );
       consoleSpy.mockRestore();
     });
@@ -369,7 +374,7 @@ describe('StripeWebhookProcessor', () => {
       const data: StripeSessionData = {
         id: 'cs_123',
         object: 'checkout.session',
-        metadata: { orderId: '123' },
+        metadata: { orderId: 'order-uuid-123' },
         amount_total: 1000,
         currency: 'usd',
         payment_status: 'paid',
@@ -391,7 +396,7 @@ describe('StripeWebhookProcessor', () => {
       );
 
       await expect((processor as any).paymentSuccessful(data)).rejects.toThrow(
-        new Error('Payment success handling failed for Order 123.'),
+        new Error('Payment success handling failed for Order order-uuid-123.'),
       );
     });
   });
@@ -408,7 +413,7 @@ describe('StripeWebhookProcessor', () => {
             last_payment_error: {
               message: 'Your card has insufficient funds.',
             },
-            metadata: { orderId: 123 },
+            metadata: { orderId: 'order-uuid-123' },
             status: 'requires_payment_method',
           },
         },
@@ -424,7 +429,7 @@ describe('StripeWebhookProcessor', () => {
         last_payment_error: {
           message: 'Your card has insufficient funds.',
         },
-        metadata: { orderId: 123 },
+        metadata: { orderId: 'order-uuid-123' },
         status: 'requires_payment_method',
       });
     });
@@ -437,7 +442,7 @@ describe('StripeWebhookProcessor', () => {
             id: 'cs_123',
             object: 'checkout.session',
             amount_total: 1000,
-            metadata: { orderId: 123 },
+            metadata: { orderId: 'order-uuid-123' },
             payment_status: 'unpaid',
             status: 'expired',
             customer_details: {
@@ -494,7 +499,7 @@ describe('StripeWebhookProcessor', () => {
         id: 'cs_123',
         object: 'checkout.session',
         amount_total: 1000,
-        metadata: { orderId: 123 },
+        metadata: { orderId: 'order-uuid-123' },
         payment_status: 'unpaid',
         status: 'expired',
         customer_details: {
@@ -517,7 +522,7 @@ describe('StripeWebhookProcessor', () => {
           eventType: 'checkout.session.completed',
           eventData: {
             id: 'cs_123',
-            metadata: { orderId: 123 },
+            metadata: { orderId: 'order-uuid-123' },
             payment_intent: 'pi_123',
             amount_total: 1000,
             payment_status: 'paid',
@@ -574,7 +579,7 @@ describe('StripeWebhookProcessor', () => {
       expect(spy).toHaveBeenCalledTimes(1);
       expect(spy).toHaveBeenCalledWith({
         id: 'cs_123',
-        metadata: { orderId: 123 },
+        metadata: { orderId: 'order-uuid-123' },
         payment_intent: 'pi_123',
         amount_total: 1000,
         payment_status: 'paid',

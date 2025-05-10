@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus } from './enum/order-status.enum';
 
 const mockOrder = {
-  id: 1,
+  orderid: 'order-uuid-1',
   userid: 'user-uuid-101',
   totalPrice: 42.5,
   status: 'pending',
@@ -20,7 +20,7 @@ const mockOrder = {
         rating: 4.0,
         image_url: 'book-image-url',
         author: { name: 'test author' },
-        category: { category_name: 'test category' },
+        category: { id: 1, category_name: 'test category' },
       },
     },
   ],
@@ -74,7 +74,7 @@ describe('OrdersService', () => {
       );
       expect(result).toEqual([
         {
-          id: 1,
+          id: 'order-uuid-1',
           userId: 'user-uuid-101',
           status: 'pending',
           price: 42.5,
@@ -90,7 +90,7 @@ describe('OrdersService', () => {
                 rating: 4.0,
                 imageUrl: 'book-image-url',
                 author: { name: 'test author' },
-                category: { value: 'test category' },
+                category: { id: 1, value: 'test category' },
               },
             },
           ],
@@ -112,7 +112,7 @@ describe('OrdersService', () => {
       );
       expect(result).toEqual([
         {
-          id: 1,
+          id: 'order-uuid-1',
           userId: 'user-uuid-101',
           status: 'pending',
           price: 42.5,
@@ -128,7 +128,7 @@ describe('OrdersService', () => {
                 rating: 4.0,
                 imageUrl: 'book-image-url',
                 author: { name: 'test author' },
-                category: { value: 'test category' },
+                category: { id: 1, value: 'test category' },
               },
             },
           ],
@@ -153,14 +153,14 @@ describe('OrdersService', () => {
     it('returns the order if found', async () => {
       mockPrismaService.orders.findUnique.mockResolvedValueOnce(mockOrder);
 
-      const result = await service.getOrder(1);
+      const result = await service.getOrder('order-uuid-1');
 
       expect(mockPrismaService.orders.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { orderid: 'order-uuid-1' },
         select: expect.anything(),
       });
       expect(result).toEqual({
-        id: 1,
+        id: 'order-uuid-1',
         userId: 'user-uuid-101',
         status: 'pending',
         price: 42.5,
@@ -176,7 +176,7 @@ describe('OrdersService', () => {
               rating: 4.0,
               imageUrl: 'book-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
         ],
@@ -188,7 +188,7 @@ describe('OrdersService', () => {
     it('throws an error if no order found', async () => {
       mockPrismaService.orders.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.getOrder(999);
+      const result = await service.getOrder('order-uuid-999');
       expect(result).toBeNull();
     });
   });
@@ -198,15 +198,18 @@ describe('OrdersService', () => {
       const updatedOrder = { ...mockOrder, status: 'canceled' };
       mockPrismaService.orders.update.mockResolvedValueOnce(updatedOrder);
 
-      const result = await service.updateStatus(1, OrderStatus.Canceled);
+      const result = await service.updateStatus(
+        'order-uuid-1',
+        OrderStatus.Canceled,
+      );
 
       expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { orderid: 'order-uuid-1' },
         data: { status: 'canceled' },
         select: expect.anything(),
       });
       expect(result).toEqual({
-        id: 1,
+        id: 'order-uuid-1',
         userId: 'user-uuid-101',
         status: 'canceled',
         price: 42.5,
@@ -222,7 +225,7 @@ describe('OrdersService', () => {
               rating: 4.0,
               imageUrl: 'book-image-url',
               author: { name: 'test author' },
-              category: { value: 'test category' },
+              category: { id: 1, value: 'test category' },
             },
           },
         ],
@@ -237,8 +240,8 @@ describe('OrdersService', () => {
       );
 
       await expect(
-        service.updateStatus(1, OrderStatus.Shipped),
-      ).rejects.toThrow('Order #1 status could not be updated');
+        service.updateStatus('order-uuid-1', OrderStatus.Shipped),
+      ).rejects.toThrow('Order #order-uuid-1 status could not be updated');
     });
   });
 
@@ -252,10 +255,10 @@ describe('OrdersService', () => {
       ]);
       mockPrismaService.books.update.mockResolvedValueOnce({});
 
-      await service.revertOrderStocks(1);
+      await service.revertOrderStocks('order-uuid-1');
 
       expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
-        where: { orderid: 1 },
+        where: { orderid: 'order-uuid-1' },
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({
@@ -273,12 +276,12 @@ describe('OrdersService', () => {
       ]);
       mockPrismaService.books.update.mockRejectedValue(new Error('DB error'));
 
-      await expect(service.revertOrderStocks(1)).rejects.toThrow(
-        'Stock counts could not be reverted for Order 1.',
+      await expect(service.revertOrderStocks('order-uuid-1')).rejects.toThrow(
+        'Stock counts could not be reverted for Order order-uuid-1.',
       );
 
       expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
-        where: { orderid: 1 },
+        where: { orderid: 'order-uuid-1' },
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({

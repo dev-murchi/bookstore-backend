@@ -7,7 +7,7 @@ export class EmailService {
     @Inject('MailSenderQueue') private readonly mailSenderQueue: Queue,
   ) {}
 
-  async sendOrderStatusUpdate(orderId: number, status: string, email: string) {
+  async sendOrderStatusUpdate(orderId: string, status: string, email: string) {
     try {
       await this.mailSenderQueue.add('order-status-mail', {
         orderId,

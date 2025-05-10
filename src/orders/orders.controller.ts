@@ -6,7 +6,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
   Req,
   UseGuards,
@@ -34,7 +34,7 @@ export class OrdersController {
   @Post(':id/status')
   @Roles([RoleEnum.Admin])
   async updateOrderStatus(
-    @Param('id', ParseIntPipe) orderId: number,
+    @Param('id', ParseUUIDPipe) orderId: string,
     @Body() orderStatusDTO: OrderStatusDto,
   ): Promise<Order> {
     try {
@@ -88,7 +88,7 @@ export class OrdersController {
   @Roles([RoleEnum.Admin, RoleEnum.User])
   async viewOrder(
     @Req() request: Request,
-    @Param('id', ParseIntPipe) orderId: number,
+    @Param('id', ParseUUIDPipe) orderId: string,
   ): Promise<{ data: Order }> {
     try {
       const order = await this.ordersService.getOrder(orderId);
@@ -106,6 +106,8 @@ export class OrdersController {
       throw new BadRequestException(`Order #${orderId} could not be fetched`);
     }
   }
-
+  // @Post(':id/refund')
   // orderRefund() {}
+
+  // @Put('id/shipping) updateOrderShippingInformation() {}
 }

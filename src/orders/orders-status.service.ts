@@ -14,7 +14,7 @@ export class OrdersStatusService {
   constructor(private readonly ordersService: OrdersService) {}
 
   private async changeStatus(
-    orderId: number,
+    orderId: string,
     rule: StatusRule,
   ): Promise<Order> {
     try {
@@ -44,21 +44,21 @@ export class OrdersStatusService {
     }
   }
 
-  async cancelOrder(orderId: number): Promise<Order> {
+  async cancelOrder(orderId: string): Promise<Order> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Pending,
       to: OrderStatus.Canceled,
     });
   }
 
-  async shipOrder(orderId: number): Promise<Order> {
+  async shipOrder(orderId: string): Promise<Order> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Complete,
       to: OrderStatus.Shipped,
     });
   }
 
-  async deliverOrder(orderId: number): Promise<Order> {
+  async deliverOrder(orderId: string): Promise<Order> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Shipped,
       to: OrderStatus.Delivered,

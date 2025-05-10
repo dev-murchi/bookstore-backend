@@ -87,10 +87,10 @@ export class OrdersService {
       throw new Error('Orders could not fetched');
     }
   }
-  async getOrder(orderId: number): Promise<Order | null> {
+  async getOrder(orderId: string): Promise<Order | null> {
     const order = await this.prisma.orders.findUnique({
       where: {
-        id: orderId,
+        orderid: orderId,
       },
       select: this.orderSelect,
     });
@@ -98,10 +98,10 @@ export class OrdersService {
     return this.transformToOrder(order);
   }
 
-  async updateStatus(orderId: number, status: OrderStatus): Promise<Order> {
+  async updateStatus(orderId: string, status: OrderStatus): Promise<Order> {
     try {
       const order = await this.prisma.orders.update({
-        where: { id: orderId },
+        where: { orderid: orderId },
         data: { status },
         select: this.orderSelect,
       });
@@ -112,7 +112,7 @@ export class OrdersService {
     }
   }
 
-  async revertOrderStocks(orderId: number) {
+  async revertOrderStocks(orderId: string) {
     try {
       const orderItems = await this.prisma.order_items.findMany({
         where: { orderid: orderId },
@@ -158,7 +158,7 @@ export class OrdersService {
 
   private transformToOrder(order: any): Order {
     const {
-      id,
+      orderid,
       userid,
       status,
       totalPrice,
@@ -194,7 +194,7 @@ export class OrdersService {
       : null;
 
     return {
-      id,
+      id: orderid,
       userId: userid,
       status,
       price: Number(totalPrice.toFixed(2)),

@@ -18,12 +18,12 @@ export interface ShippingCustomerDetails {
 @Injectable()
 export class ShippingService {
   constructor(private readonly prisma: PrismaService) {}
-  async createShipping(orderId: number, data: ShippingCustomerDetails) {
+  async createShipping(orderId: string, data: ShippingCustomerDetails) {
     try {
       const shipping = await this.prisma.shipping.create({
         data: {
           email: data.email,
-          order: { connect: { id: orderId } },
+          order: { connect: { orderid: orderId } },
           address: {
             create: {
               country: data.address.country,
