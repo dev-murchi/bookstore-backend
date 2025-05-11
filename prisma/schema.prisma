@@ -110,6 +110,7 @@ model orders {
 
   order_items order_items[]
   payment payment?
+  refunds refunds[]
 }
 
 model order_items {
@@ -139,6 +140,7 @@ model shipping {
   id Int  @id @default(autoincrement())
   email           String  
   phone           String? 
+  name            String
   orderid String @unique
   addressid Int
 
@@ -169,4 +171,20 @@ model reviews {
   user  User @relation(fields: [userid], references: [userid])
   book books @relation(fields: [bookid], references: [bookid])
   @@unique([bookid, userid])
+}
+
+
+model refunds {
+  id Int  @id @default(autoincrement())
+  refundid String @unique
+  orderid String 
+  transaction_id String
+  status String
+  amount Float
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  failure_reason  String?
+
+  order  orders @relation(fields: [orderid], references: [orderid])
+  
 }

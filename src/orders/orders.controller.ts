@@ -5,6 +5,8 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  InternalServerErrorException,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -21,6 +23,8 @@ import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
 import { Order } from '../common/types';
+import { OrderStatus } from './enum/order-status.enum';
+import { StripeService } from '../payment/stripe/stripe.service';
 
 @Controller('orders')
 @UseGuards(UserAccessGuard)
@@ -29,6 +33,7 @@ export class OrdersController {
     private ordersService: OrdersService,
     private ordersStatusService: OrdersStatusService,
     private readonly emailService: EmailService,
+    private readonly stripeService: StripeService,
   ) {}
 
   @Post(':id/status')
@@ -95,7 +100,7 @@ export class OrdersController {
 
       if (request.user['role'] === RoleEnum.Admin) return { data: order };
 
-      if (request.user['id'] !== order.userId) {
+      if (request.user['id'] !== order.owner) {
         throw new Error('Unauthorized access');
       }
 
@@ -106,8 +111,55 @@ export class OrdersController {
       throw new BadRequestException(`Order #${orderId} could not be fetched`);
     }
   }
-  // @Post(':id/refund')
-  // orderRefund() {}
+  @Post(':id/refund')
+  @Roles([RoleEnum.Admin])
+  async orderRefund(@Param('id', ParseUUIDPipe) orderId: string) {
+    try {
+      const order = await this.ordersService.getOrder(orderId);
 
-  // @Put('id/shipping) updateOrderShippingInformation() {}
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      if (
+        ![OrderStatus.Complete, OrderStatus.Delivered].includes(
+          order.status as OrderStatus,
+        )
+      ) {
+        throw new BadRequestException(
+          'Order status must be complete or delivered to process a refund',
+        );
+      }
+
+      const refund = await this.stripeService.createRefundForPayment(
+        order.payment.transactionId,
+        { orderId },
+      );
+
+      return {
+        status: 'success',
+        message: 'Refund processed successfully.',
+        refund: {
+          refund_id: refund.id,
+          order_id: orderId,
+          amount: Number((refund.amount / 100).toFixed(2)),
+          currency: refund.currency.toUpperCase(),
+          refunded_at: new Date(refund.created * 1000).toISOString(),
+          status: refund.status,
+        },
+      };
+    } catch (error) {
+      console.error(error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Refund could not be processed. Please try again later.',
+      );
+    }
+  }
 }

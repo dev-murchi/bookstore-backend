@@ -12,6 +12,7 @@ export interface ShippingAddress {
 
 export interface ShippingCustomerDetails {
   email: string;
+  name: string;
   address: ShippingAddress;
 }
 
@@ -23,6 +24,7 @@ export class ShippingService {
       const shipping = await this.prisma.shipping.create({
         data: {
           email: data.email,
+          name: data.name,
           order: { connect: { orderid: orderId } },
           address: {
             create: {

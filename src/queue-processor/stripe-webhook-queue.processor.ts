@@ -12,6 +12,7 @@ import {
 import { PaymentData } from '../payment/interfaces/payment-data.interface';
 import { PaymentStatus } from '../payment/enum/payment-status.enum';
 import { OrderStatus } from '../orders/enum/order-status.enum';
+import Stripe from 'stripe';
 
 export interface StripeMetadata {
   orderId: string;
@@ -79,6 +80,19 @@ export class StripeWebhookProcessor extends WorkerHost {
       case 'checkout.session.completed':
         await this.paymentSuccessful(eventData);
         break;
+
+      case 'refund.created':
+        await this.refundCreated(eventData);
+        break;
+
+      case 'refund.updated':
+        await this.refundUpdated(eventData);
+        break;
+
+      case 'refund.failed':
+        await this.refundFailed(eventData);
+        break;
+
       default:
         console.warn(`Unhandled Stripe webhook event: ${eventType}`);
         break;
@@ -86,7 +100,7 @@ export class StripeWebhookProcessor extends WorkerHost {
     return Promise.resolve({ success: true });
   }
 
-  private async paymentFailed(data: StripePaymentData): Promise<void> {
+  private async paymentFailed(data: Stripe.PaymentIntent): Promise<void> {
     const orderId = data.metadata?.orderId;
     if (!orderId) {
       throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
@@ -109,7 +123,7 @@ export class StripeWebhookProcessor extends WorkerHost {
     }
   }
 
-  private async paymentExpired(data: StripeSessionData): Promise<void> {
+  private async paymentExpired(data: Stripe.Checkout.Session): Promise<void> {
     const orderId = data.metadata?.orderId;
     if (!orderId) {
       throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
@@ -149,7 +163,9 @@ export class StripeWebhookProcessor extends WorkerHost {
     }
   }
 
-  private async paymentSuccessful(data: StripeSessionData): Promise<void> {
+  private async paymentSuccessful(
+    data: Stripe.Checkout.Session,
+  ): Promise<void> {
     const orderId = data.metadata?.orderId;
     if (!orderId) {
       throw new Error(`Invalid or missing order ID: ${data.metadata?.orderId}`);
@@ -157,6 +173,7 @@ export class StripeWebhookProcessor extends WorkerHost {
 
     const shippingDetails: ShippingCustomerDetails = {
       email: data.customer_details.email,
+      name: data.customer_details.name,
       address: {
         country: data.customer_details.address.country,
         state: data.customer_details.address.state,
@@ -167,9 +184,14 @@ export class StripeWebhookProcessor extends WorkerHost {
       },
     };
 
+    const transactionId =
+      typeof data.payment_intent === 'string'
+        ? data.payment_intent
+        : (data.payment_intent?.id ?? null);
+
     const paymentData: PaymentData = {
       orderId: orderId,
-      transactionId: data.payment_intent,
+      transactionId: transactionId,
       status: PaymentStatus.Paid,
       amount: data.amount_total,
     };
@@ -201,7 +223,11 @@ export class StripeWebhookProcessor extends WorkerHost {
       );
 
       if (existingOrder.status === 'canceled') {
-        await this.tryRefund(orderId, data.payment_intent);
+        const transactionId =
+          typeof data.payment_intent === 'string'
+            ? data.payment_intent
+            : (data.payment_intent?.id ?? null);
+        await this.tryRefund(orderId, transactionId);
       }
       console.warn(
         `Order #[${orderId}] marked as complete and order confirmation email added to queue.`,
@@ -215,14 +241,6 @@ export class StripeWebhookProcessor extends WorkerHost {
     }
   }
 
-  private parseOrderId(metadata: any) {
-    const orderId = parseInt(metadata?.orderId ?? '');
-    if (isNaN(orderId)) {
-      throw new Error(`Invalid or missing order ID: ${metadata?.orderId}`);
-    }
-    return orderId;
-  }
-
   private async tryRefund(orderId: string, paymentIntent: string) {
     try {
       await this.stripeService.createRefundForPayment(paymentIntent!, {
@@ -231,6 +249,115 @@ export class StripeWebhookProcessor extends WorkerHost {
       console.warn(`Refund issued for previously canceled order: ${orderId}`);
     } catch (error) {
       console.error(`Refund failed for order ID ${orderId}:`, error);
+    }
+  }
+
+  private async refundCreated(eventData: Stripe.Refund) {
+    const { id, payment_intent, amount, metadata, status } = eventData;
+
+    const orderId = metadata?.orderId;
+    if (!orderId) {
+      console.error(`Missing orderId in refund metadata for refund ${id}`);
+      return;
+    }
+
+    const transactionId =
+      typeof payment_intent === 'string'
+        ? payment_intent
+        : (payment_intent?.id ?? null);
+
+    await this.prisma.refunds.create({
+      data: {
+        refundid: id,
+        orderid: orderId,
+        transaction_id: transactionId,
+        amount,
+        status,
+      },
+    });
+
+    const shipping = await this.prisma.shipping.findUnique({
+      where: { orderid: orderId },
+      select: { email: true, name: true },
+    });
+
+    try {
+      await this.emailService.sendRefundCreatedMail({
+        orderId: orderId,
+        amount: (amount / 100).toFixed(2),
+        email: shipping.email,
+        customerName: shipping.name,
+      });
+    } catch (err) {
+      console.error(
+        `Failed to send refund created email for refund ${id}`,
+        err,
+      );
+    }
+  }
+
+  private async refundUpdated(eventData: Stripe.Refund) {
+    const { id, status, amount } = eventData;
+
+    const refund = await this.prisma.refunds.update({
+      where: { refundid: id },
+      data: { status },
+      select: { orderid: true },
+    });
+
+    if (status === 'succeeded') {
+      try {
+        const shipping = await this.prisma.shipping.findUnique({
+          where: { orderid: refund.orderid },
+          select: { email: true, name: true },
+        });
+
+        await this.emailService.sendRefundCompleteddMail({
+          orderId: refund.orderid,
+          amount: (amount / 100).toFixed(2),
+          email: shipping.email,
+          customerName: shipping.name,
+        });
+      } catch (err) {
+        console.error(
+          `Failed to send refund updated email for refund ${id}`,
+          err,
+        );
+      }
+    }
+  }
+
+  private async refundFailed(eventData: Stripe.Refund) {
+    const { id, status, amount, failure_reason } = eventData;
+
+    const refund = await this.prisma.refunds.update({
+      where: { refundid: id },
+      data: { status, failure_reason },
+      select: {
+        orderid: true,
+      },
+    });
+
+    const shipping = await this.prisma.shipping.findUnique({
+      where: { orderid: refund.orderid },
+      select: { email: true, name: true },
+    });
+
+    if (refund.orderid) {
+      try {
+        await this.emailService.sendRefundFailedMail({
+          orderId: refund.orderid,
+          amount: (amount / 100).toFixed(2),
+          email: shipping.email,
+          customerName: shipping.name,
+          failureReason: failure_reason ?? 'unknown',
+        });
+      } catch (err) {
+        console.error(
+          `Failed to send refund failed email for refund ${id}`,
+          err,
+        );
+      }
     }
   }
 }
