@@ -55,7 +55,7 @@ export class OrdersController {
       }
 
       await this.emailService.sendOrderStatusUpdate(
-        order.id,
+        order.orderid,
         order.status,
         order.shipping_details.email,
       );

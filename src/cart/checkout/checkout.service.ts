@@ -124,11 +124,11 @@ export class CheckoutService {
               allowed_countries: ['TR', 'GB', 'US', 'JP'],
             },
             metadata: {
-              orderId: order.id,
+              orderId: order.orderid,
             },
             payment_intent_data: {
               metadata: {
-                orderId: order.id,
+                orderId: order.orderid,
               },
             },
             customer_email: cart.user ? cart.user.email : undefined,
@@ -146,7 +146,7 @@ export class CheckoutService {
 
         return {
           order: {
-            id: order.id,
+            id: order.orderid,
             userId: order.userid,
             items: orderItems,
             status: order.status,
