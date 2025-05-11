@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class MailSenderService {
@@ -9,6 +11,9 @@ export class MailSenderService {
   private mailPort: number;
   private mailAddress: string;
   private mailPass: string;
+
+  private readonly htmlMessages = new Map<string, string>();
+  private readonly textMessages = new Map<string, string>();
 
   constructor(private readonly configService: ConfigService) {
     this.mailHost = this.configService.get<string>('MAIL_HOST');
@@ -34,75 +39,43 @@ export class MailSenderService {
         pass: this.mailPass,
       },
     });
+
+    this.readMaileMessageTemplates('password-reset');
+    this.readMaileMessageTemplates('refund-create');
+    this.readMaileMessageTemplates('refund-complete');
+    this.readMaileMessageTemplates('refund-failed');
   }
 
-  private resetPasswordText(link: string) {
-    const text = `
-Hi there!
+  private readMaileMessageTemplates(fileName: string) {
+    const mailFolderPath = path.join(__dirname, '../assets/mail-templates');
 
-We received a request to reset the password for your BookStore account.
-If you made this request, please use the link below to reset your password.
+    this.htmlMessages.set(
+      fileName,
+      fs
+        .readFileSync(
+          path.join(mailFolderPath, `html/${fileName}.html`),
+          'utf8',
+        )
+        .trim(),
+    );
 
-Link: ${link}
-
-Note that this link can only be used once and will expire in 10 minutes. After the time limit has expired, you will have to resubmit the request for a password reset. If you didn’t request a password reset, please ignore this email.
-  
-For any further assistance, feel free to mail us at support@bookstore.com.
-
-Technical Team of BookStore`;
-
-    return text.trim();
+    this.textMessages.set(
+      fileName,
+      fs
+        .readFileSync(
+          path.join(mailFolderPath, `text/${fileName}.text`),
+          'utf8',
+        )
+        .trim(),
+    );
   }
 
-  private resetPasswordHtml(link: string) {
-    const html = `
-<div style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0;">
-  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 10px;">
-    <!-- Header -->
-    <div style="text-align: center; padding: 20px;">
-      <img src="" alt="BookStore Logo" style="width: 150px;">
-    </div>
-
-    <!-- Content -->
-    <div style="padding: 20px; color: #333333;">
-      <p style="font-size: 16px; line-height: 1.6;">Hi there!</p>
-      <p style="font-size: 16px; line-height: 1.6;">We received a request to reset the password for your BookStore
-        account.</p>
-      <p style="font-size: 16px; line-height: 1.6;">If you made this request, please click the button below to reset
-        your password.</p>
-
-      <p style="text-align: center;">
-        <a href="${link}"
-          style="background-color: #007bff; color: #ffffff; padding: 15px 30px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px; font-size: 16px;">Reset
-          Password</a>
-      </p>
-
-      <p style="font-size: 16px; line-height: 1.6;">If the above link does not work for you, please copy and paste the
-        following into your browser address bar:</p>
-
-      <p style="font-size: 16px; line-height: 1.6;">${link}</p>
-
-      <p style="font-size: 16px; line-height: 1.6;">Note that this link can only be used once and will expire in 10 minutes. After the time limit has
-        expired, you will have to resubmit the request for a password reset.</p>
-      <p style="font-size: 16px; line-height: 1.6;">If you didn’t request a password reset, please ignore this email.
-      </p>
-
-      <p style="font-size: 16px; line-height: 1.6;">For any further assistance, feel free to mai us at
-        <a href="mailto:support@bookstore.com">support@bookstore.com</a>
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="text-align: center; font-size: 14px; color: #777777; margin-top: 20px;">
-      <p>&copy; 2025 BookStore. All rights reserved.</p>
-    </div>
-  </div>
-</div>`.trim();
-
-    return html.trim();
-  }
-
-  async sendMail(email: string, subject: string, text: string, html: string) {
+  private async sendMail(
+    email: string,
+    subject: string,
+    text: string,
+    html: string,
+  ) {
     try {
       const info = await this.transporter.sendMail({
         from: this.mailAddress,
@@ -120,17 +93,19 @@ Technical Team of BookStore`;
   }
 
   async sendResetPasswordMail(email: string, username: string, link: string) {
-    await this.sendMail(
-      email,
-      'Reset your password',
-      this.resetPasswordText(link),
-      this.resetPasswordHtml(link),
-    );
+    try {
+      const subject = 'Reset your password';
+      await this.updateFieldsAndSendMail('password-reset', email, subject, [
+        { key: '{{link}}', value: link },
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async sendOrderStatusUpdateMail(
     email: string,
-    orderId: number,
+    orderId: string,
     status: string,
   ) {
     if (status === 'shipped') {
@@ -150,5 +125,81 @@ Technical Team of BookStore`;
     } else {
       throw new Error('Invalid order status');
     }
+  }
+
+  async sendRefundCreatedMail(data: {
+    orderId: string;
+    amount: string;
+    email: string;
+    customerName: string;
+  }) {
+    try {
+      const { orderId, amount, email, customerName } = data;
+      const subject = 'We’ve initiated your refund';
+      await this.updateFieldsAndSendMail('refund-create', email, subject, [
+        { key: '{{customer_name}}', value: customerName },
+        { key: '{{order_id}}', value: orderId },
+        { key: '{{amount}}', value: amount },
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async sendRefundCompletedMail(data: {
+    orderId: string;
+    amount: string;
+    email: string;
+    customerName: string;
+  }) {
+    try {
+      const { orderId, amount, email, customerName } = data;
+      const subject = 'Your refund has been completed';
+      await this.updateFieldsAndSendMail('refund-complete', email, subject, [
+        { key: '{{customer_name}}', value: customerName },
+        { key: '{{order_id}}', value: orderId },
+        { key: '{{amount}}', value: amount },
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async sendRefundFailedMail(data: {
+    email: string;
+    orderId: string;
+    customerName: string;
+    amount: string;
+    failureReason: string;
+  }) {
+    try {
+      const { orderId, amount, email, customerName, failureReason } = data;
+      const subject = 'There was a problem with your refund';
+      await this.updateFieldsAndSendMail('refund-failed', email, subject, [
+        { key: '{{customer_name}}', value: customerName },
+        { key: '{{order_id}}', value: orderId },
+        { key: '{{amount}}', value: amount },
+        { key: '{{failure_reason}}', value: failureReason },
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  private async updateFieldsAndSendMail(
+    fileName: string,
+    email: string,
+    subject: string,
+    fileds: { key: string; value: string }[],
+  ) {
+    const dataHtml = fileds.reduce((text, field) => {
+      return text.replace(field.key, field.value);
+    }, this.htmlMessages.get(fileName));
+
+    const dataText = fileds.reduce((text, field) => {
+      return text.replace(field.key, field.value);
+    }, this.textMessages.get(fileName));
+
+    await this.sendMail(email, subject, dataText, dataHtml);
   }
 }

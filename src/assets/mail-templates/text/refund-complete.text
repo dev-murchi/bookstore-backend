@@ -1,0 +1,12 @@
+Hi {{customer_name}},
+
+Your refund for Order #{{order_id}} has been successfully completed.
+
+Amount: ${{amount}}
+
+Refunded to: Card ending in {{last4}}
+
+If you don’t see the funds in your account within a few days, please contact your bank for more details.
+
+Thanks again,
+The BookStore Team
