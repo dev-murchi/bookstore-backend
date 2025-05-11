@@ -195,7 +195,7 @@ export class OrdersService {
 
     return {
       id: orderid,
-      userId: userid,
+      owner: userid,
       status,
       price: Number(totalPrice.toFixed(2)),
       items,

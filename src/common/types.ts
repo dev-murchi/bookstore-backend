@@ -82,7 +82,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  userId: string;
+  owner: string;
   items: OrderItem[];
   status: string;
   price: number;

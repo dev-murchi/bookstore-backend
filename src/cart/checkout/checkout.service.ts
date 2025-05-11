@@ -41,13 +41,6 @@ export class CheckoutService {
                 quantity: true,
               },
             },
-            user: {
-              select: {
-                userid: true,
-                email: true,
-                name: true,
-              },
-            },
           },
         });
 
@@ -106,6 +99,11 @@ export class CheckoutService {
               },
             },
           },
+          select: {
+            orderid: true,
+            status: true,
+            user: { select: { name: true, email: true } },
+          },
         });
 
         // Update stock
@@ -131,7 +129,7 @@ export class CheckoutService {
                 orderId: order.orderid,
               },
             },
-            customer_email: cart.user ? cart.user.email : undefined,
+            customer_email: order.user ? order.user.email : undefined,
             line_items: lineItems,
             success_url: 'http://localhost:8080/success',
             cancel_url: 'http://localhost:8080/cancel',
@@ -144,18 +142,20 @@ export class CheckoutService {
           );
         }
 
-        return {
+        const checkoutData: CheckoutData = {
           order: {
             id: order.orderid,
-            userId: order.userid,
+            owner: userId,
             items: orderItems,
             status: order.status,
-            price: Number(order.totalPrice.toFixed(2)),
+            price: totalPrice,
           },
           message: 'Checkout successful.',
           expiresAt: session.expires,
           url: session.url,
         };
+
+        return checkoutData;
       });
     } catch (error) {
       console.error('Checkout failed. Error:', error);
