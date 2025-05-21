@@ -1,13 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UserService } from '../user/user.service';
-import { LoginDto } from '../user/dto/login.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
-import { PasswordResetDto } from '../user/dto/password-reset.dto';
+import { PasswordResetDto } from './dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { User } from '../common/types';
+import { SignupDTO } from './dto/signup.dto';
 
 @Injectable()
 export class AuthService {
@@ -17,12 +18,17 @@ export class AuthService {
     private emailService: EmailService,
   ) {}
 
-  async register(user: CreateUserDto, role: RoleEnum): Promise<User> {
+  async register(signupDto: SignupDTO, role: RoleEnum): Promise<User> {
+    const user = new CreateUserDto();
+    user.email = signupDto.email;
+    user.name = signupDto.name;
+    user.password = signupDto.password;
     return await this.userService.create(user, role);
   }
 
-  async login({ email, password }: LoginDto): Promise<{ accessToken: string }> {
+  async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
     try {
+      const { email, password } = loginDto;
       const user = await this.userService.checkUserWithPassword(
         email,
         password,
@@ -66,11 +72,10 @@ export class AuthService {
     };
   }
 
-  async resetPassword({
-    email,
-    token,
-    newPassword,
-  }: PasswordResetDto): Promise<{ message: string }> {
+  async resetPassword(
+    passwordResetDto: PasswordResetDto,
+  ): Promise<{ message: string }> {
+    const { email, token, newPassword } = passwordResetDto;
     return await this.userService.resetPassword(email, token, newPassword);
   }
 }

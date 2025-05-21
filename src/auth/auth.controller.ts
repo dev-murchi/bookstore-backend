@@ -10,53 +10,109 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from '../user/dto/create-user.dto';
-import { LoginDto } from '../user/dto/login.dto';
-import { PasswordResetRequestDto } from '../user/dto/password-reset-request.dto';
-import { PasswordResetDto } from '../user/dto/password-reset.dto';
+import { SignupDTO } from './dto/signup.dto';
+import { LoginDto } from './dto/login.dto';
+import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
+import { PasswordResetDto } from './dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { User } from '../common/types';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBody,
+  ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiCreatedResponse,
+  ApiInternalServerErrorResponse,
+  ApiUnauthorizedResponse,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  async register(@Body() user: CreateUserDto): Promise<User> {
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiBody({ type: SignupDTO })
+  @ApiCreatedResponse({
+    description: 'User successfully registered',
+    schema: {
+      example: {
+        id: 'abcdef01-2345-6789-abcd-ef0123456789',
+        email: 'newuser@email.com',
+        name: 'John Doe',
+        role: { value: 'user' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Bad request or validation failed' })
+  @ApiInternalServerErrorResponse({ description: 'User registration failed' })
+  async register(@Body() signupDto: SignupDTO): Promise<User> {
     try {
-      return await this.authService.register(user, RoleEnum.User);
+      return await this.authService.register(signupDto, RoleEnum.User);
     } catch (error) {
       if (error instanceof CustomAPIError)
         throw new BadRequestException(error.message);
 
-      throw new InternalServerErrorException('User registeration failed.');
+      throw new InternalServerErrorException('User registration failed.');
     }
   }
 
   @Post('create-author')
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin])
-  async createAuthor(@Body() user: CreateUserDto): Promise<User> {
+  @ApiOperation({ summary: 'Create an author account (admin only)' })
+  @ApiBearerAuth()
+  @ApiBody({ type: SignupDTO })
+  @ApiCreatedResponse({
+    description: 'Author account created successfully',
+    schema: {
+      example: {
+        id: 'abcdef01-2345-6789-abcd-ef0123456789',
+        email: 'newuser@email.com',
+        name: 'John Doe',
+        role: { value: 'author' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Bad request or validation failed' })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized. Only admins can access this endpoint.',
+  })
+  @ApiInternalServerErrorResponse({ description: 'User registration failed' })
+  async createAuthor(@Body() signupDto: SignupDTO): Promise<User> {
     try {
-      return await this.authService.register(user, RoleEnum.Author);
+      return await this.authService.register(signupDto, RoleEnum.Author);
     } catch (error) {
       if (error instanceof CustomAPIError)
         throw new BadRequestException(error.message);
 
-      throw new InternalServerErrorException('User registeration failed.');
+      throw new InternalServerErrorException('User registration failed.');
     }
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() { email, password }: LoginDto,
-  ): Promise<{ accessToken: string }> {
+  @ApiOperation({ summary: 'Login a user and get access token' })
+  @ApiBody({ type: LoginDto })
+  @ApiOkResponse({
+    description: 'Login successful',
+    schema: {
+      example: { accessToken: 'jwt-token-string' },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiInternalServerErrorResponse({ description: 'Login failed' })
+  async login(@Body() loginDto: LoginDto): Promise<{ accessToken: string }> {
     try {
-      return await this.authService.login({ email, password });
+      return await this.authService.login(loginDto);
     } catch (error) {
       if (error instanceof CustomAPIError)
         throw new BadRequestException(error.message);
@@ -68,10 +124,20 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a password reset link to the user email' })
+  @ApiBody({ type: PasswordResetRequestDto })
+  @ApiOkResponse({
+    description: 'Password reset email sent',
+    schema: { example: { message: 'Password reset link sent to your email.' } },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async forgotPassword(
-    @Body() { email }: PasswordResetRequestDto,
+    @Body() passwordResetRequestDto: PasswordResetRequestDto,
   ): Promise<{ message: string }> {
     try {
+      const { email } = passwordResetRequestDto;
       return await this.authService.forgotPassword(email);
     } catch (error) {
       if (error instanceof CustomAPIError)
@@ -84,15 +150,20 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password using the token received in email' })
+  @ApiBody({ type: PasswordResetDto })
+  @ApiOkResponse({
+    description: 'Password successfully reset',
+    schema: { example: { message: 'Password has been reset successfully.' } },
+  })
+  @ApiBadRequestResponse({ description: 'Bad request or invalid token' })
+  @ApiInternalServerErrorResponse({ description: 'Password reset failed' })
   async resetPassword(
-    @Body() { email, token, newPassword }: PasswordResetDto,
+    @Body() passwordResetDto: PasswordResetDto,
   ): Promise<{ message: string }> {
     try {
-      return await this.authService.resetPassword({
-        email,
-        token,
-        newPassword,
-      });
+      return await this.authService.resetPassword(passwordResetDto);
     } catch (error) {
       if (error instanceof CustomAPIError)
         throw new BadRequestException(error.message);

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
-import { CreateUserDto } from '../user/dto/create-user.dto';
+import { SignupDTO } from './dto/signup.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
@@ -69,7 +69,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should call the create method of userService', async () => {
-      const user: CreateUserDto = {
+      const user: SignupDTO = {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -87,7 +87,7 @@ describe('AuthService', () => {
     });
 
     it('should handle error when userService.create fails', async () => {
-      const user: CreateUserDto = {
+      const user: SignupDTO = {
         name: 'test user',
         email: 'test email',
         password: 'password123',
