@@ -69,7 +69,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should call the create method of userService', async () => {
-      const user: SignupDTO = {
+      const data: SignupDTO = {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -79,9 +79,12 @@ describe('AuthService', () => {
         message: 'User registered successfully',
       });
 
-      const result = await service.register(user, RoleEnum.User);
+      const result = await service.register(data, RoleEnum.User);
 
-      expect(userService.create).toHaveBeenCalledWith(user, RoleEnum.User);
+      expect(userService.create).toHaveBeenCalledWith({
+        ...data,
+        role: RoleEnum.User,
+      });
 
       expect(result).toEqual({ message: 'User registered successfully' });
     });

@@ -73,6 +73,7 @@ export class UserAccessGuard implements CanActivate {
 
       request.user = {
         id: user.userid,
+        name: user.name,
         email: user.email,
         role: user.role.role_name,
         cartId: user.cart ? user.cart.id : null,

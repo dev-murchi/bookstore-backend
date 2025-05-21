@@ -1,8 +1,53 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateUserDto } from './create-user.dto';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsStrongPassword,
+} from 'class-validator';
+
+export class UpdateUserDTO {
+  @ApiProperty({
+    description: 'User email address',
+    example: 'user@email.com',
+    format: 'email',
+  })
+  @IsOptional()
+  @IsEmail()
+  @IsNotEmpty()
+  email?: string;
+
+  @ApiProperty({
+    description: 'Secure password with upper, lower, number, symbol',
+    example: 'P@ssw0rd123',
+  })
+  @IsOptional()
+  @IsNotEmpty()
+  @IsStrongPassword({
+    minLength: 8,
+    minLowercase: 1,
+    minNumbers: 1,
+    minSymbols: 1,
+    minUppercase: 1,
+  })
+  password?: string;
+
+  @ApiProperty({
+    description: 'Full name of the user',
+    example: 'John Doe',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
+
+  @ApiProperty({
+    description: 'User role (admin, user, etc.)',
+    required: false,
+    example: 'user',
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()

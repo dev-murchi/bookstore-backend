@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDTO } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { PasswordResetToken, User } from '../common/types';
+import { PasswordResetToken } from '../common/types';
 import { HelperService } from '../common/helper.service';
+import { UserDTO } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -20,10 +20,15 @@ export class UserService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto, role: RoleEnum): Promise<User> {
+  async create(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: RoleEnum;
+  }): Promise<UserDTO> {
     try {
       // check user is exist or not
-      const existingUser = await this.findUser({ email: createUserDto.email });
+      const existingUser = await this.findUser({ email: userData.email });
 
       if (existingUser) {
         throw new CustomAPIError('Email already in use');
@@ -31,24 +36,24 @@ export class UserService {
 
       /// hash password
       const hashedPassword = await HelperService.generateHash(
-        createUserDto.password,
+        userData.password,
       );
 
       const userId = HelperService.generateUUID();
       // create new user
       const user = await this.prisma.user.create({
         data: {
-          name: createUserDto.name,
-          email: createUserDto.email,
+          name: userData.name,
+          email: userData.email,
           password: hashedPassword,
           userid: userId,
           role: {
             connectOrCreate: {
               where: {
-                role_name: role,
+                role_name: userData.role,
               },
               create: {
-                role_name: role,
+                role_name: userData.role,
               },
             },
           },
@@ -61,7 +66,7 @@ export class UserService {
         id: user.userid,
         name: user.name,
         email: user.email,
-        role: { value: user.role.role_name },
+        role: user.role.role_name,
       };
     } catch (error) {
       console.error('User creation failed. Error:', error);
@@ -70,7 +75,7 @@ export class UserService {
     }
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(): Promise<UserDTO[]> {
     try {
       const users = await this.prisma.user.findMany({
         select: this.userSelect,
@@ -83,7 +88,7 @@ export class UserService {
     }
   }
 
-  async findById(id: string): Promise<User | null> {
+  async findById(id: string): Promise<UserDTO | null> {
     try {
       const user = await this.findUser({ userid: id });
 
@@ -96,7 +101,7 @@ export class UserService {
     }
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<UserDTO | null> {
     try {
       const user = await this.findUser({ email });
 
@@ -129,9 +134,9 @@ export class UserService {
     });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+  async update(id: string, updateUserDTO: UpdateUserDTO): Promise<UserDTO> {
     try {
-      const { name, email, role, password } = updateUserDto;
+      const { name, email, role, password } = updateUserDTO;
       if (!name && !email && !role && !password) {
         throw new CustomAPIError('No changes provided.');
       }
@@ -164,7 +169,7 @@ export class UserService {
         id: user.userid,
         name: user.name,
         email: user.email,
-        role: { value: user.role.role_name },
+        role: user.role.role_name,
       };
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
@@ -260,7 +265,10 @@ export class UserService {
     }
   }
 
-  async checkUserWithPassword(email: string, password: string): Promise<User> {
+  async checkUserWithPassword(
+    email: string,
+    password: string,
+  ): Promise<UserDTO> {
     try {
       const user = await this.findUser({ email });
 
@@ -283,12 +291,12 @@ export class UserService {
     }
   }
 
-  private transformSelectedUserToUser(selectedUser: any): User {
-    return {
-      id: selectedUser.userid,
-      name: selectedUser.name,
-      email: selectedUser.email,
-      role: { value: selectedUser.role.role_name },
-    };
+  private transformSelectedUserToUser(selectedUser: any): UserDTO {
+    return new UserDTO(
+      selectedUser.userid,
+      selectedUser.name,
+      selectedUser.email,
+      selectedUser.role.role_name,
+    );
   }
 }

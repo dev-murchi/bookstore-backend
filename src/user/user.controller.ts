@@ -5,6 +5,8 @@ import {
   DefaultValuePipe,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   InternalServerErrorException,
   Param,
   ParseIntPipe,
@@ -16,19 +18,18 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Request } from 'express';
-import { AuthGuard } from '../common/guards/auth/auth.guard';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDTO } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { User } from '../common/types';
-import { HelperService } from '../common/helper.service';
+import { UserDTO } from './dto/user.dto';
 import { ReviewsService } from '../reviews/reviews.service';
 import { OrdersService } from '../orders/orders.service';
 
 @Controller('users')
+@UseGuards(UserAccessGuard)
 export class UserController {
   constructor(
     private readonly userService: UserService,
@@ -36,23 +37,27 @@ export class UserController {
     private readonly ordersService: OrdersService,
   ) {}
 
-  @UseGuards(AuthGuard)
   @Get('profile')
-  async profile(@Req() request: Request): Promise<User> {
-    return {
-      id: request.user['id'],
-      name: request.user['name'],
-      email: request.user['email'],
-      role: { value: request.user['role']['name'] },
-    };
+  @HttpCode(HttpStatus.OK)
+  @Roles([RoleEnum.Admin, RoleEnum.User])
+  async profile(@Req() request: Request): Promise<UserDTO> {
+    const user = new UserDTO(
+      request.user['id'],
+      request.user['name'],
+      request.user['email'],
+      request.user['role'],
+    );
+
+    return user;
   }
 
-  @UseGuards(AuthGuard)
   @Put('profile')
+  @HttpCode(HttpStatus.OK)
+  @Roles([RoleEnum.Admin, RoleEnum.User])
   async updateProfile(
     @Req() request: Request,
     @Body() updateUserProfileDto: UpdateProfileDto,
-  ): Promise<User> {
+  ): Promise<UserDTO> {
     try {
       const { name, email, password, newPassword } = updateUserProfileDto;
 
@@ -69,7 +74,7 @@ export class UserController {
       if (password === newPassword)
         throw new BadRequestException('Choose a different password.');
 
-      const updateData = new UpdateUserDto();
+      const updateData = new UpdateUserDTO();
 
       if (name) updateData.name = name;
       if (email) updateData.email = email;
@@ -78,46 +83,46 @@ export class UserController {
       return await this.userService.update(request.user['id'], updateData);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
       throw new InternalServerErrorException('User profile update failed.');
     }
   }
 
   @Get()
-  @UseGuards(UserAccessGuard)
+  @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
-  async viewAllRegisteredUsers(): Promise<User[]> {
+  async viewAllRegisteredUsers(): Promise<UserDTO[]> {
     try {
       return await this.userService.findAll();
     } catch (error) {
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
-
+      }
       throw new InternalServerErrorException('User could not be fetched.');
     }
   }
 
   @Put(':id')
-  @UseGuards(UserAccessGuard)
+  @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
   async updateUser(
     @Param('id') userId: string,
-    @Body()
-    updateUserDto: UpdateUserDto,
-  ): Promise<User> {
+    @Body() updateUserDTO: UpdateUserDTO,
+  ): Promise<UserDTO> {
     try {
       return await this.userService.update(userId, updateUserDto);
     } catch (error) {
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
-
+      }
       throw new InternalServerErrorException('User update failed.');
     }
   }
 
   @Delete(':id')
-  @UseGuards(UserAccessGuard)
+  @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
   async deleteUser(
     @Param('userId') userId: string,
@@ -125,15 +130,15 @@ export class UserController {
     try {
       return await this.userService.remove(userId);
     } catch (error) {
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
-
+      }
       throw new InternalServerErrorException('User could not be deleted.');
     }
   }
 
   @Get(':id/reviews')
-  @UseGuards(UserAccessGuard)
+  @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
   async getUserReviews(
     @Param('id', ParseUUIDPipe) userId: string,
@@ -150,7 +155,7 @@ export class UserController {
   }
 
   @Get(':id/orders')
-  @UseGuards(UserAccessGuard)
+  @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
   async getUserOrders(@Param('id', ParseUUIDPipe) userId: string) {
     try {

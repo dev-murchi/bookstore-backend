@@ -18,7 +18,7 @@ import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { User } from '../common/types';
+import { UserDTO } from 'src/user/dto/user.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -53,7 +53,7 @@ export class AuthController {
   })
   @ApiBadRequestResponse({ description: 'Bad request or validation failed' })
   @ApiInternalServerErrorResponse({ description: 'User registration failed' })
-  async register(@Body() signupDto: SignupDTO): Promise<User> {
+  async register(@Body() signupDto: SignupDTO): Promise<UserDTO> {
     try {
       return await this.authService.register(signupDto, RoleEnum.User);
     } catch (error) {
@@ -87,7 +87,7 @@ export class AuthController {
     description: 'Unauthorized. Only admins can access this endpoint.',
   })
   @ApiInternalServerErrorResponse({ description: 'User registration failed' })
-  async createAuthor(@Body() signupDto: SignupDTO): Promise<User> {
+  async createAuthor(@Body() signupDto: SignupDTO): Promise<UserDTO> {
     try {
       return await this.authService.register(signupDto, RoleEnum.Author);
     } catch (error) {

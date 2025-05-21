@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+
+import { UpdateUserDTO } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 
@@ -49,10 +49,12 @@ describe('UserService', () => {
 
   describe('create', () => {
     it('should successfully create a user if email is not taken', async () => {
-      const user: CreateUserDto = new CreateUserDto();
-      user.name = 'test user';
-      user.email = 'testuser@email.com';
-      user.password = 'password123';
+      const userData = {
+        name: 'test user',
+        email: 'testuser@email.com',
+        password: 'password123',
+        role: RoleEnum.User,
+      };
 
       const spyUUID = jest.spyOn(HelperService, 'generateUUID');
       spyUUID.mockReturnValueOnce('user-1');
@@ -66,7 +68,7 @@ describe('UserService', () => {
       const spyHash = jest.spyOn(HelperService, 'generateHash');
       spyHash.mockResolvedValueOnce('hashedPassword');
 
-      const result = await service.create(user, RoleEnum.User);
+      const result = await service.create(userData);
 
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
@@ -95,13 +97,13 @@ describe('UserService', () => {
         },
       });
 
-      expect(spyHash).toHaveBeenCalledWith(user.password);
+      expect(spyHash).toHaveBeenCalledWith(userData.password);
 
       expect(result).toEqual({
         id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        role: { value: 'user' },
+        role: 'user',
       });
 
       spyHash.mockRestore();
@@ -109,10 +111,12 @@ describe('UserService', () => {
     });
 
     it('should throw an error if email is already in use', async () => {
-      const user = new CreateUserDto();
-      user.name = 'new user';
-      user.email = 'testuser@email.com';
-      user.password = 'password123';
+      const userData = {
+        name: 'new user',
+        email: 'testuser@email.com',
+        password: 'password123',
+        role: RoleEnum.User,
+      };
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
         id: 1,
@@ -127,7 +131,7 @@ describe('UserService', () => {
       });
 
       try {
-        await service.create(user, RoleEnum.User);
+        await service.create(userData);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Email already in use');
@@ -162,7 +166,7 @@ describe('UserService', () => {
           id: 'user-1',
           name: 'test user',
           email: 'testuser@email.com',
-          role: { value: 'user' },
+          role: 'user',
         },
       ]);
     });
@@ -209,7 +213,7 @@ describe('UserService', () => {
         id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        role: { value: 'user' },
+        role: 'user',
       });
     });
 
@@ -260,7 +264,7 @@ describe('UserService', () => {
         id: 'user-1',
         name: 'test user',
         email: 'testuser@email.com',
-        role: { value: 'user' },
+        role: 'user',
       });
     });
 
@@ -272,7 +276,7 @@ describe('UserService', () => {
 
   describe('update', () => {
     it('should successfully update a user', async () => {
-      const updatedUserDto: UpdateUserDto = {
+      const updatedUserDTO: UpdateUserDTO = {
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
@@ -293,7 +297,7 @@ describe('UserService', () => {
       const spy = jest.spyOn(HelperService, 'generateHash');
       spy.mockResolvedValueOnce('hashedPassword');
 
-      const result = await service.update('user-1', updatedUserDto);
+      const result = await service.update('user-1', updatedUserDTO);
 
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { userid: 'user-1' },
@@ -315,14 +319,14 @@ describe('UserService', () => {
         id: 'user-1',
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
-        role: { value: 'user' },
+        role: 'user',
       });
 
       spy.mockRestore();
     });
 
     it('should throw an error if user does not exist', async () => {
-      const user: UpdateUserDto = {
+      const user: UpdateUserDTO = {
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
