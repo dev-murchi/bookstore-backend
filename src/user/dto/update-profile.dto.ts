@@ -7,20 +7,28 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class UpdateProfileDto {
-  @ApiProperty()
+export class UpdateProfileDTO {
+  @ApiProperty({
+    description: 'Updated full name',
+    required: false,
+    example: 'Jane Doe',
+  })
   @IsString()
   @IsNotEmpty()
   @IsOptional()
-  name: string;
+  name?: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Updated email',
+    required: false,
+    example: 'jane@email.com',
+  })
   @IsEmail()
   @IsNotEmpty()
   @IsOptional()
-  email: string;
+  email?: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'User password', example: 'Str0ng-P@ssword1' })
   @IsStrongPassword({
     minLength: 8,
     minLowercase: 1,
@@ -31,14 +39,12 @@ export class UpdateProfileDto {
   @IsString()
   password: string;
 
-  @ApiProperty()
-  @IsStrongPassword({
-    minLength: 8,
-    minLowercase: 1,
-    minNumbers: 1,
-    minSymbols: 1,
-    minUppercase: 1,
+  @ApiProperty({
+    description: 'New password to change to',
+    required: false,
+    example: 'NewP@ssword.123',
   })
+  @IsStrongPassword()
   @IsOptional()
-  newPassword: string;
+  newPassword?: string;
 }

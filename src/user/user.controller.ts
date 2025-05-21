@@ -19,7 +19,7 @@ import {
 import { UserService } from './user.service';
 import { Request } from 'express';
 import { UpdateUserDTO } from './dto/update-user.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateProfileDTO } from './dto/update-profile.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
@@ -28,6 +28,21 @@ import { UserDTO } from './dto/user.dto';
 import { ReviewsService } from '../reviews/reviews.service';
 import { OrdersService } from '../orders/orders.service';
 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiInternalServerErrorResponse,
+  ApiBadRequestResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
+
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 @UseGuards(UserAccessGuard)
 export class UserController {
@@ -40,6 +55,12 @@ export class UserController {
   @Get('profile')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin, RoleEnum.User])
+  @ApiOperation({ summary: 'Get the profile of the current user' })
+  @ApiOkResponse({
+    description: 'User profile retrieved',
+    type: UserDTO,
+  })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   async profile(@Req() request: Request): Promise<UserDTO> {
     const user = new UserDTO(
       request.user['id'],
@@ -54,25 +75,40 @@ export class UserController {
   @Put('profile')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin, RoleEnum.User])
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiBody({ type: UpdateProfileDTO })
+  @ApiOkResponse({
+    description: 'Profile updated successfully',
+    type: UserDTO,
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid request or no changes provided',
+  })
+  @ApiInternalServerErrorResponse({ description: 'Failed to update profile' })
   async updateProfile(
     @Req() request: Request,
-    @Body() updateUserProfileDto: UpdateProfileDto,
+    @Body() updateUserProfileDto: UpdateProfileDTO,
   ): Promise<UserDTO> {
     try {
       const { name, email, password, newPassword } = updateUserProfileDto;
 
-      if (!password) throw new BadRequestException('Password is required.');
+      if (!password) {
+        throw new BadRequestException('Password is required.');
+      }
 
-      if (!name && !email && !newPassword)
+      if (!name && !email && !newPassword) {
         throw new BadRequestException('No changes provided.');
+      }
 
-      if (
-        !(await HelperService.compareHash(password, request.user['password']))
-      )
-        throw new BadRequestException('Invalid password.');
-
-      if (password === newPassword)
-        throw new BadRequestException('Choose a different password.');
+      await this.userService.checkUserWithPassword(
+        request.user['email'],
+        password,
+      );
+      if (password === newPassword) {
+        throw new BadRequestException(
+          'New password must be different from old password.',
+        );
+      }
 
       const updateData = new UpdateUserDTO();
 
@@ -93,6 +129,14 @@ export class UserController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
+  @ApiOperation({ summary: 'Get all registered users (Admin only)' })
+  @ApiOkResponse({
+    description: 'Users retrieved successfully',
+    type: [UserDTO],
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to retrieve the users',
+  })
   async viewAllRegisteredUsers(): Promise<UserDTO[]> {
     try {
       return await this.userService.findAll();
@@ -100,19 +144,27 @@ export class UserController {
       if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
       }
-      throw new InternalServerErrorException('User could not be fetched.');
+      throw new InternalServerErrorException('Users could not be retrieved.');
     }
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
+  @ApiOperation({ summary: 'Update a specific user by ID (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: String })
+  @ApiBody({ type: UpdateUserDTO })
+  @ApiOkResponse({
+    description: 'User updated successfully',
+    type: UserDTO,
+  })
+  @ApiInternalServerErrorResponse({ description: 'Failed to update user' })
   async updateUser(
     @Param('id') userId: string,
     @Body() updateUserDTO: UpdateUserDTO,
   ): Promise<UserDTO> {
     try {
-      return await this.userService.update(userId, updateUserDto);
+      return await this.userService.update(userId, updateUserDTO);
     } catch (error) {
       if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
@@ -124,9 +176,14 @@ export class UserController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
-  async deleteUser(
-    @Param('userId') userId: string,
-  ): Promise<{ message: string }> {
+  @ApiOperation({ summary: 'Delete a user by ID (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: String })
+  @ApiOkResponse({
+    description: 'User deleted successfully',
+    schema: { example: { message: 'User deleted successfully' } },
+  })
+  @ApiInternalServerErrorResponse({ description: 'User could not be deleted' })
+  async deleteUser(@Param('id') userId: string): Promise<{ message: string }> {
     try {
       return await this.userService.remove(userId);
     } catch (error) {
@@ -140,6 +197,10 @@ export class UserController {
   @Get(':id/reviews')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
+  @ApiOperation({ summary: 'Get all reviews of a user by ID (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   async getUserReviews(
     @Param('id', ParseUUIDPipe) userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
@@ -150,20 +211,24 @@ export class UserController {
         data: await this.reviewsService.getReviewsForUser(userId, page, limit),
       };
     } catch (error) {
-      throw new InternalServerErrorException('');
+      throw new InternalServerErrorException(
+        'Failed to retrieve user reviews.',
+      );
     }
   }
 
   @Get(':id/orders')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
+  @ApiOperation({ summary: 'Get all orders of a user by ID (Admin only)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: String })
   async getUserOrders(@Param('id', ParseUUIDPipe) userId: string) {
     try {
       return {
         data: await this.ordersService.getUserOrders(userId),
       };
     } catch (error) {
-      throw new InternalServerErrorException('');
+      throw new InternalServerErrorException('Failed to retrieve user orders.');
     }
   }
 }
