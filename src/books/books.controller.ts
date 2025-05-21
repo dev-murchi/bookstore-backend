@@ -27,9 +27,11 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Book, Review } from '../common/types';
+import { Book } from '../common/types';
 import { BookReviewDTO } from './dto/book-review.dto';
 import { ReviewsService } from '../reviews/reviews.service';
+import { ReviewDTO } from 'src/reviews/dto/review.dto';
+import { CreateReviewDTO } from 'src/reviews/dto/create-review.dto';
 
 @Controller('books')
 export class BooksController {
@@ -208,14 +210,13 @@ export class BooksController {
     @Param('id', ParseUUIDPipe) bookId: string,
     @Body() bookReviewDto: BookReviewDTO,
     @Req() request: Request,
-  ): Promise<{ data: Review }> {
+  ): Promise<{ data: ReviewDTO }> {
     try {
       return {
-        data: await this.reviewsService.createReview(request.user['id'], {
-          bookId: bookId,
-          data: bookReviewDto.data,
-          rating: bookReviewDto.rating,
-        }),
+        data: await this.reviewsService.createReview(
+          request.user['id'],
+          new CreateReviewDTO(bookId, bookReviewDto.data, bookReviewDto.rating),
+        ),
       };
     } catch (error) {
       if (error instanceof CustomAPIError) {
@@ -235,7 +236,7 @@ export class BooksController {
   ): Promise<{
     data: {
       data: {
-        reviews: Review[];
+        reviews: ReviewDTO[];
         rating: number;
       };
       meta: {
@@ -278,7 +279,7 @@ export class BooksController {
       );
     }
 
-    if (targetAuthor.role.value !== RoleEnum.Author) {
+    if (targetAuthor.role !== RoleEnum.Author) {
       throw new BadRequestException(
         'Books can only belong to registered authors.',
       );

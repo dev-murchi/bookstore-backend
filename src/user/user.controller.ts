@@ -197,10 +197,55 @@ export class UserController {
   @Get(':id/reviews')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all reviews of a user by ID (Admin only)' })
-  @ApiParam({ name: 'id', description: 'User ID', type: String })
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID of the user',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    example: 1,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    example: 10,
+    description: 'Number of reviews per page',
+  })
+  @ApiOkResponse({
+    description: 'Successfully retrieved user reviews',
+    schema: {
+      example: {
+        data: {
+          data: {
+            reviews: [
+              {
+                id: 1,
+                data: 'Excellent read!',
+                rating: 5,
+                book: 'book-id-uuid',
+                owner: 'user-id-uuid',
+              },
+            ],
+            rating: 4.5,
+          },
+          meta: {
+            userId: 'user-id-uuid',
+            totalReviewCount: 12,
+            page: 1,
+            limit: 10,
+            totalPages: 2,
+          },
+        },
+      },
+    },
+  })
   async getUserReviews(
     @Param('id', ParseUUIDPipe) userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,

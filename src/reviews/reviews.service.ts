@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateReviewDTO } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Review } from '../common/types';
+import { ReviewDTO } from './dto/review.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class ReviewsService {
   async createReview(
     userId: string,
     createReviewDTO: CreateReviewDTO,
-  ): Promise<Review> {
+  ): Promise<ReviewDTO> {
     try {
       const { bookId, data, rating } = createReviewDTO;
 
@@ -36,13 +36,7 @@ export class ReviewsService {
         },
       });
 
-      return {
-        id: savedReview.id,
-        data: data,
-        rating: rating,
-        book: bookId,
-        owner: userId,
-      };
+      return new ReviewDTO(savedReview.id, data, rating, bookId, userId);
     } catch (error) {
       console.error('Review creation failed.Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -96,7 +90,7 @@ export class ReviewsService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{
-    data: { reviews: Review[]; rating: number };
+    data: { reviews: ReviewDTO[]; rating: number };
     meta: {
       totalReviewCount: number;
       page: number;
@@ -140,7 +134,7 @@ export class ReviewsService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{
-    data: { reviews: Review[]; rating: number };
+    data: { reviews: ReviewDTO[]; rating: number };
     meta: {
       bookId: string;
       totalReviewCount: number;
@@ -168,7 +162,7 @@ export class ReviewsService {
     page: number = 1,
     limit: number = 10,
   ): Promise<{
-    data: { reviews: Review[]; rating: number };
+    data: { reviews: ReviewDTO[]; rating: number };
     meta: {
       userId: string;
       totalReviewCount: number;
@@ -191,17 +185,17 @@ export class ReviewsService {
     };
   }
 
-  private transformSelectedReview(review: any) {
-    return {
-      id: review.id,
-      data: review.data,
-      rating: review.rating,
-      book: review.bookid,
-      owner: review.userid,
-    };
+  private transformSelectedReview(review: any): ReviewDTO {
+    return new ReviewDTO(
+      review.id,
+      review.data,
+      review.rating,
+      review.bookid,
+      review.userid,
+    );
   }
 
-  async findReview(id: number): Promise<Review | null> {
+  async findReview(id: number): Promise<ReviewDTO | null> {
     try {
       const review = await this.prisma.reviews.findUnique({
         where: { id },
@@ -215,13 +209,8 @@ export class ReviewsService {
       });
 
       if (!review) return null;
-      return {
-        id: review.id,
-        data: review.data,
-        rating: review.rating,
-        book: review.bookid,
-        owner: review.userid,
-      };
+
+      return this.transformSelectedReview(review);
     } catch (error) {
       console.error('Review could not fetched.Error:', error);
       throw new Error('Review could not fetched.');
