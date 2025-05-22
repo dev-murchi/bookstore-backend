@@ -6,6 +6,8 @@ import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Book } from '../common/types';
 import { HelperService } from '../common/helper.service';
+import { BookDTO } from './dto/book.dto';
+import { CategoryDTO } from '../category/dto/category.dto';
 
 export type SortType = 'asc' | 'desc';
 
@@ -36,7 +38,10 @@ type SelectedBook = Prisma.booksGetPayload<{
 @Injectable()
 export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
-  async create(authorId: string, createBookDto: CreateBookDto): Promise<Book> {
+  async create(
+    authorId: string,
+    createBookDto: CreateBookDto,
+  ): Promise<BookDTO> {
     try {
       // check book is exist or not
       const book = await this.findBook({ isbn: createBookDto.isbn });
@@ -103,7 +108,7 @@ export class BooksService {
     id: string,
     updateBookDto: UpdateBookDto,
     authorId: string,
-  ): Promise<Book> {
+  ): Promise<BookDTO> {
     try {
       const {
         title,
@@ -271,21 +276,16 @@ export class BooksService {
   }
 
   private transformBookData(book: SelectedBook): Book {
-    return {
-      id: book.bookid,
-      title: book.title,
-      description: book.description,
-      isbn: book.isbn,
-      author: {
-        name: book.author.name,
-      },
-      category: {
-        id: book.category.id,
-        value: book.category.category_name,
-      },
-      price: Number(book.price.toFixed(2)),
-      rating: book.rating,
-      imageUrl: book.image_url,
-    };
+    return new BookDTO(
+      book.bookid,
+      book.title,
+      book.description,
+      book.isbn,
+      { name: book.author.name },
+      new CategoryDTO(book.category.id, book.category.category_name),
+      Number(book.price.toFixed(2)),
+      book.rating,
+      book.image_url,
+    );
   }
 }

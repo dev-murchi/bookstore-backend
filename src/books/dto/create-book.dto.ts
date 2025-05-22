@@ -16,58 +16,71 @@ import * as sanitizeHtml from 'sanitize-html';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateBookDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Book title', example: 'The Art of Programming' })
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }) => {
-    const data = sanitizeHtml(value, {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
-
-    return data.trim();
-  })
+  @Transform(({ value }) =>
+    sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim(),
+  )
   title: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Category ID to which the book belongs',
+    example: 3,
+  })
   @IsInt()
   categoryId: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'ISBN of the book',
+    example: '978-3-16-148410-0',
+    format: 'isbn',
+  })
   @IsISBN()
   isbn: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Price of the book', example: 29.99 })
   @IsPositive()
   price: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Optional book description',
+    required: false,
+    example: 'This book covers...',
+  })
   @IsOptional()
   @IsString()
-  @Transform(({ value }) => {
-    const data = sanitizeHtml(value, {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
-
-    return data.trim();
-  })
+  @Transform(({ value }) =>
+    sanitizeHtml(value, { allowedTags: [], allowedAttributes: {} }).trim(),
+  )
   description?: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Stock quantity', example: 100, minimum: 0 })
   @IsInt()
   @Min(0)
   stockQuantity: number;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'URL of the book cover image',
+    required: false,
+    example: 'https://example.com/book.jpg',
+  })
   @IsOptional()
   @IsUrl()
   imageUrl?: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Is the book currently active/available?',
+    example: true,
+  })
   @IsBoolean()
   isActive: boolean;
 
+  @ApiProperty({
+    description: "Author's email",
+    example: 'author@email.com',
+    format: 'email',
+  })
   @IsEmail()
   author: string;
 }

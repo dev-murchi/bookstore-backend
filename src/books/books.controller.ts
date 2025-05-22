@@ -17,6 +17,8 @@ import {
   NotFoundException,
   ParseUUIDPipe,
   DefaultValuePipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -27,12 +29,25 @@ import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Book } from '../common/types';
+import { BookDTO } from './dto/book.dto';
 import { BookReviewDTO } from './dto/book-review.dto';
 import { ReviewsService } from '../reviews/reviews.service';
 import { ReviewDTO } from 'src/reviews/dto/review.dto';
 import { CreateReviewDTO } from 'src/reviews/dto/create-review.dto';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 
+@ApiTags('Books')
 @Controller('books')
 export class BooksController {
   constructor(
@@ -44,10 +59,17 @@ export class BooksController {
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new book (Author and Admin only)' })
+  @ApiBody({ type: CreateBookDto })
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Book successfully created', type: BookDTO })
+  @ApiBadRequestResponse({ description: 'Validation or business logic error' })
+  @ApiInternalServerErrorResponse({ description: 'Unexpected server error' })
   async create(
     @Req() request: Request,
     @Body() createBookDto: CreateBookDto,
-  ): Promise<{ data: Book }> {
+  ): Promise<{ data: BookDTO }> {
     try {
       const { authorId } = await this.validateAuthorOrThrow(
         {
@@ -77,19 +99,32 @@ export class BooksController {
   }
 
   @Get()
-  async findAll(): Promise<{ data: Book[] }> {
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retrieve all books' })
+  @ApiOkResponse({ description: 'List of all books', type: [BookDTO] })
+  @ApiInternalServerErrorResponse({ description: 'Failed to retrieve books' })
+  async findAll(): Promise<{ data: BookDTO[] }> {
     try {
       return { data: await this.booksService.findAll() };
     } catch (error) {
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
 
       throw new InternalServerErrorException('User could not be fetched.');
     }
   }
 
   @Get('search')
-  async search(@Query('search') query: string): Promise<{ data: Book[] }> {
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search books by keyword' })
+  @ApiQuery({ name: 'search', required: true, type: String })
+  @ApiOkResponse({
+    description: 'Books matching the search query',
+    type: [BookDTO],
+  })
+  @ApiBadRequestResponse({ description: 'Search query too short' })
+  async search(@Query('search') query: string): Promise<{ data: BookDTO[] }> {
     try {
       if (!query) return { data: [] };
       if (query.length < 3)
@@ -103,8 +138,9 @@ export class BooksController {
         error,
       );
       if (error instanceof BadRequestException) throw error;
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
 
       throw new InternalServerErrorException(
         'Failed to search the book due to an unexpected error.',
@@ -113,13 +149,21 @@ export class BooksController {
   }
 
   @Get('filter')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Filter books by price, rating, stock, and sort' })
+  @ApiQuery({ name: 'minPrice', type: Number, required: false })
+  @ApiQuery({ name: 'maxPrice', type: Number, required: false })
+  @ApiQuery({ name: 'rating', type: Number, required: false })
+  @ApiQuery({ name: 'stock', type: Boolean, required: false })
+  @ApiQuery({ name: 'sort', enum: ['asc', 'desc'], required: false })
+  @ApiOkResponse({ description: 'Filtered list of books', type: [BookDTO] })
   async filter(
     @Query('minPrice', ParseFloatPipe) minPrice?: number,
     @Query('maxPrice', ParseFloatPipe) maxPrice?: number,
     @Query('rating', ParseIntPipe) rating?: number,
     @Query('stock', ParseBoolPipe) stock?: boolean,
     @Query('sort') sort?: 'asc' | 'desc',
-  ): Promise<{ data: Book[] }> {
+  ): Promise<{ data: BookDTO[] }> {
     try {
       const orderBy = sort === 'desc' ? 'desc' : 'asc';
       const filteredBooks = await this.booksService.filter({
@@ -137,8 +181,9 @@ export class BooksController {
         error,
       );
 
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
 
       throw new InternalServerErrorException(
         'Failed to filter the books due to an unexpected error.',
@@ -147,7 +192,12 @@ export class BooksController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<{ data: Book }> {
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get book by ID' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ description: 'Book found', type: BookDTO })
+  @ApiInternalServerErrorResponse({ description: 'Book retrieval failed' })
+  async findOne(@Param('id') id: string): Promise<{ data: BookDTO }> {
     try {
       const book = await this.booksService.findOne(id);
       return { data: book };
@@ -164,11 +214,20 @@ export class BooksController {
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update book by ID (Author and Admin only)' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: UpdateBookDto })
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Book updated', type: BookDTO })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized to update' })
+  @ApiInternalServerErrorResponse({ description: 'Failed to update book' })
   async update(
     @Req() request: Request,
     @Param('id', ParseIntPipe) bookId: string,
     @Body() updateBookDto: UpdateBookDto,
-  ): Promise<{ data: Book }> {
+  ): Promise<{ data: BookDTO }> {
     try {
       const { authorId } = await this.validateAuthorOrThrow(
         {
@@ -194,8 +253,9 @@ export class BooksController {
       if (error instanceof NotFoundException) throw error;
       if (error instanceof UnauthorizedException) throw error;
 
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
 
       throw new InternalServerErrorException(
         'Failed to update book due to an unexpected error.',
@@ -206,6 +266,16 @@ export class BooksController {
   @Post(':id/reviews')
   @UseGuards(UserAccessGuard)
   @Roles([RoleEnum.User])
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Submit a review for a book (Authenticated User only)',
+  })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({ type: BookReviewDTO })
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: 'Review submitted', type: ReviewDTO })
+  @ApiBadRequestResponse({ description: 'Invalid review data' })
+  @ApiInternalServerErrorResponse({ description: 'Failed to submit review' })
   async createBookReview(
     @Param('id', ParseUUIDPipe) bookId: string,
     @Body() bookReviewDto: BookReviewDTO,
@@ -229,6 +299,39 @@ export class BooksController {
   }
 
   @Get(':id/reviews')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get reviews for a specific book' })
+  @ApiParam({ name: 'id', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiOkResponse({
+    description: 'Paginated reviews with rating metadata',
+    schema: {
+      example: {
+        data: {
+          data: {
+            reviews: [
+              {
+                id: 1,
+                data: 'Excellent insights on travel!',
+                rating: 5,
+                book: 'uuid-book-id',
+                owner: 'uuid-user-id',
+              },
+            ],
+            rating: 4.8,
+          },
+          meta: {
+            bookId: 'uuid-book-id',
+            totalReviewCount: 1,
+            page: 1,
+            limit: 10,
+            totalPages: 1,
+          },
+        },
+      },
+    },
+  })
   async findBookReviews(
     @Param('id', ParseUUIDPipe) bookId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
