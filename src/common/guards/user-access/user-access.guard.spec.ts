@@ -125,6 +125,7 @@ describe('UserAccessGuard', () => {
     expect(result).toBe(true);
     expect(mockRequest.user).toEqual({
       id: 'user-uuid-1',
+      name: 'test user',
       email: 'test@example.com',
       role: RoleEnum.User,
       cartId: 10,

@@ -76,15 +76,10 @@ describe('CheckoutService', () => {
             rating: new Prisma.Decimal(4.2),
             image_url: '',
             author: { name: 'Author A' },
-            category: { category_name: 'Fiction' },
+            category: { id: 1, category_name: 'Fiction' },
           },
         },
       ],
-      user: {
-        userid: 'user-1',
-        email: 'test@example.com',
-        name: 'User One',
-      },
     });
 
     await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
@@ -110,7 +105,7 @@ describe('CheckoutService', () => {
           rating: new Prisma.Decimal(4.0),
           image_url: 'img-a.jpg',
           author: { name: 'Author A' },
-          category: { category_name: 'Fiction' },
+          category: { id: 1, category_name: 'Fiction' },
         },
       },
       {
@@ -125,7 +120,7 @@ describe('CheckoutService', () => {
           rating: new Prisma.Decimal(4.5),
           image_url: 'img-b.jpg',
           author: { name: 'Author B' },
-          category: { category_name: 'Non-fiction' },
+          category: { id: 2, category_name: 'Non-fiction' },
         },
       },
     ];
@@ -138,11 +133,10 @@ describe('CheckoutService', () => {
 
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
       cart_items: cartItems,
-      user,
     });
 
     mockPrismaService.orders.create.mockResolvedValueOnce({
-      id: 123,
+      orderid: 'order-uuid-123',
       totalPrice: new Prisma.Decimal(50.0),
       status: 'pending',
     });
@@ -156,7 +150,8 @@ describe('CheckoutService', () => {
 
     expect(result).toEqual({
       order: {
-        id: 123,
+        id: 'order-uuid-123',
+        owner: 'user-1',
         items: [
           {
             quantity: 2,
@@ -169,7 +164,7 @@ describe('CheckoutService', () => {
               rating: 4.0,
               imageUrl: 'img-a.jpg',
               author: { name: 'Author A' },
-              category: { value: 'Fiction' },
+              category: { id: 1, value: 'Fiction' },
             },
           },
           {
@@ -183,7 +178,7 @@ describe('CheckoutService', () => {
               rating: 4.5,
               imageUrl: 'img-b.jpg',
               author: { name: 'Author B' },
-              category: { value: 'Non-fiction' },
+              category: { id: 2, value: 'Non-fiction' },
             },
           },
         ],

@@ -5,6 +5,7 @@ import { UserAccessGuard } from '../common/guards/user-access/user-access.guard'
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
+import { StripeService } from '../payment/stripe/stripe.service';
 
 const mockOrdersService = {
   getOrder: jest.fn(),
@@ -20,6 +21,10 @@ const mockEmailService = {
   sendOrderStatusUpdate: jest.fn(),
 };
 
+const mockStripeService = {
+  createRefundForPayment: jest.fn(),
+};
+
 describe('OrdersController', () => {
   let controller: OrdersController;
 
@@ -33,6 +38,7 @@ describe('OrdersController', () => {
           provide: EmailService,
           useValue: mockEmailService,
         },
+        { provide: StripeService, useValue: mockStripeService },
       ],
     })
       .overrideGuard(UserAccessGuard)

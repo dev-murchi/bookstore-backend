@@ -75,7 +75,7 @@ describe('OrdersService', () => {
       expect(result).toEqual([
         {
           id: 'order-uuid-1',
-          userId: 'user-uuid-101',
+          owner: 'user-uuid-101',
           status: 'pending',
           price: 42.5,
           items: [
@@ -113,7 +113,7 @@ describe('OrdersService', () => {
       expect(result).toEqual([
         {
           id: 'order-uuid-1',
-          userId: 'user-uuid-101',
+          owner: 'user-uuid-101',
           status: 'pending',
           price: 42.5,
           items: [
@@ -161,7 +161,7 @@ describe('OrdersService', () => {
       });
       expect(result).toEqual({
         id: 'order-uuid-1',
-        userId: 'user-uuid-101',
+        owner: 'user-uuid-101',
         status: 'pending',
         price: 42.5,
         items: [
@@ -210,7 +210,7 @@ describe('OrdersService', () => {
       });
       expect(result).toEqual({
         id: 'order-uuid-1',
-        userId: 'user-uuid-101',
+        owner: 'user-uuid-101',
         status: 'canceled',
         price: 42.5,
         items: [

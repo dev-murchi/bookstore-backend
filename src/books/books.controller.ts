@@ -32,8 +32,8 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 import { BookDTO } from './dto/book.dto';
 import { BookReviewDTO } from './dto/book-review.dto';
 import { ReviewsService } from '../reviews/reviews.service';
-import { ReviewDTO } from 'src/reviews/dto/review.dto';
-import { CreateReviewDTO } from 'src/reviews/dto/create-review.dto';
+import { ReviewDTO } from '../reviews/dto/review.dto';
+import { CreateReviewDTO } from '../reviews/dto/create-review.dto';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,

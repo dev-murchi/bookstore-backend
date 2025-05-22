@@ -28,8 +28,10 @@ describe('ShippingService', () => {
   describe('createShipping', () => {
     it('should successfully create a shipping record', async () => {
       const orderId = 'order-uuid-1';
+
       const shippingData = {
         email: 'testuser@example.com',
+        name: 'test user',
         address: {
           line1: 'Test Street 123',
           line2: 'Apt 101',
@@ -47,6 +49,7 @@ describe('ShippingService', () => {
       expect(mockPrismaService.shipping.create).toHaveBeenCalledWith({
         data: {
           email: shippingData.email,
+          name: shippingData.name,
           order: { connect: { orderid: orderId } },
           address: {
             create: {
@@ -67,6 +70,7 @@ describe('ShippingService', () => {
       const orderId = 'order-uuid-2';
       const shippingData = {
         email: 'no-line2@example.com',
+        name: 'no line 2 user',
         address: {
           line1: 'Test Avenue 456',
           city: 'Test City',
@@ -83,6 +87,7 @@ describe('ShippingService', () => {
       expect(mockPrismaService.shipping.create).toHaveBeenCalledWith({
         data: {
           email: shippingData.email,
+          name: shippingData.name,
           order: { connect: { orderid: orderId } },
           address: {
             create: {
@@ -103,6 +108,7 @@ describe('ShippingService', () => {
       const orderId = 'order-uuid-3';
       const shippingData = {
         email: 'error@example.com',
+        name: 'error user',
         address: {
           line1: 'Test Road 789',
           city: 'Test City',

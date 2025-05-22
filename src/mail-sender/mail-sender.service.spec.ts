@@ -81,7 +81,7 @@ describe('MailSenderService', () => {
     it('should send an email successfully', async () => {
       (service as any).transporter.sendMail.mockResolvedValueOnce({});
 
-      await service.sendMail(
+      await (service as any).sendMail(
         'client@example.com',
         'Subject',
         'Text',
@@ -103,7 +103,7 @@ describe('MailSenderService', () => {
       );
 
       await expect(
-        service.sendMail(
+        (service as any).sendMail(
           'client@example.com',
           'Subject',
           'Text',
@@ -138,7 +138,7 @@ describe('MailSenderService', () => {
       (service as any).transporter.sendMail.mockResolvedValueOnce({});
       await service.sendOrderStatusUpdateMail(
         'client@example.com',
-        1,
+        'order-uuid-1',
         'shipped',
       );
 
@@ -146,7 +146,7 @@ describe('MailSenderService', () => {
       expect((service as any).transporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'client@example.com',
-          subject: 'Your Books are on Their Way! Order #1',
+          subject: 'Your Books are on Their Way! Order #order-uuid-1',
         }),
       );
     });
@@ -156,7 +156,7 @@ describe('MailSenderService', () => {
 
       await service.sendOrderStatusUpdateMail(
         'client@example.com',
-        2,
+        'order-uuid-2',
         'delivered',
       );
 
@@ -164,14 +164,18 @@ describe('MailSenderService', () => {
       expect((service as any).transporter.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'client@example.com',
-          subject: 'Your Book Order #2 Has Arrived!',
+          subject: 'Your Book Order #order-uuid-2 Has Arrived!',
         }),
       );
     });
 
     it('should throw an error for invalid status', async () => {
       await expect(
-        service.sendOrderStatusUpdateMail('client@example.com', 3, 'pending'),
+        service.sendOrderStatusUpdateMail(
+          'client@example.com',
+          'order-uuid-3',
+          'pending',
+        ),
       ).rejects.toThrow('Invalid order status');
     });
   });
