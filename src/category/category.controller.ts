@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   InternalServerErrorException,
   Param,
   ParseIntPipe,
@@ -17,15 +19,35 @@ import { UserAccessGuard } from '../common/guards/user-access/user-access.guard'
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Category } from '../common/types';
+import { CategoryDTO } from './dto/category.dto';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiBody,
+  ApiOkResponse,
+  ApiInternalServerErrorResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+} from '@nestjs/swagger';
 
+@ApiTags('Categories')
+@ApiBearerAuth()
 @Controller('category')
 @UseGuards(UserAccessGuard)
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
   @Get()
   @Roles([RoleEnum.Admin, RoleEnum.Author, RoleEnum.User, RoleEnum.GuestUser])
-  async viewAllCategories(): Promise<Category[]> {
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get all book categories' })
+  @ApiOkResponse({
+    description: 'List of all available categories',
+    type: [CategoryDTO],
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  async viewAllCategories(): Promise<CategoryDTO[]> {
     try {
       return await this.categoryService.getAll();
     } catch (error) {
@@ -37,9 +59,18 @@ export class CategoryController {
 
   @Post()
   @Roles([RoleEnum.Admin])
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new category (Admin only)' })
+  @ApiBody({ type: CreateCategoryDTO })
+  @ApiCreatedResponse({
+    description: 'Category created successfully',
+    type: CategoryDTO,
+  })
+  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async createCategory(
     @Body() createCategoryDTO: CreateCategoryDTO,
-  ): Promise<Category> {
+  ): Promise<CategoryDTO> {
     try {
       return await this.categoryService.create(createCategoryDTO);
     } catch (error) {
@@ -54,12 +85,32 @@ export class CategoryController {
 
   @Put(':id')
   @Roles([RoleEnum.Admin])
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a category by ID (Admin only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the category to update',
+    example: 1,
+    type: Number,
+  })
+  @ApiBody({
+    description: 'New name for the category',
+    type: CreateCategoryDTO,
+  })
+  @ApiOkResponse({
+    description: 'Category updated successfully',
+    type: CategoryDTO,
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async updateCategory(
     @Param('id', ParseIntPipe) categoryId: number,
-    @Body() name: string,
-  ): Promise<Category> {
+    @Body() updatedCategory: CreateCategoryDTO,
+  ): Promise<CategoryDTO> {
     try {
-      return await this.categoryService.update(categoryId, name);
+      return await this.categoryService.update(
+        categoryId,
+        updatedCategory.value,
+      );
     } catch (error) {
       throw new InternalServerErrorException(
         'Category could be updated due to an unexpected error.',
@@ -69,6 +120,23 @@ export class CategoryController {
 
   @Delete(':id')
   @Roles([RoleEnum.Admin])
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a category by ID (Admin only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the category to delete',
+    example: 2,
+    type: Number,
+  })
+  @ApiOkResponse({
+    description: 'Category deleted successfully',
+    schema: {
+      example: {
+        message: 'Category deleted successfully',
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async deleteCategory(@Param('id', ParseIntPipe) categoryId: number): Promise<{
     message: string;
   }> {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from './category.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
+import { CategoryDTO } from './dto/category.dto';
 
 const mockPrismaService = {
   category: {
@@ -45,8 +46,8 @@ describe('CategoryService', () => {
       const result = await service.getAll();
 
       expect(result).toEqual([
-        { id: 1, value: 'Fiction' },
-        { id: 2, value: 'Non-fiction' },
+        new CategoryDTO(1, 'Fiction'),
+        new CategoryDTO(2, 'Non-fiction'),
       ]);
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
         select: { id: true, category_name: true },
@@ -66,21 +67,21 @@ describe('CategoryService', () => {
 
   describe('create', () => {
     it('should create a new category', async () => {
-      const createCategoryDTO: CreateCategoryDTO = { category: 'Science' };
+      const createCategoryDTO: CreateCategoryDTO = { value: 'Science' };
       const createdCategory = { id: 1, category_name: 'Science' };
       mockPrismaService.category.create.mockResolvedValue(createdCategory);
 
       const result = await service.create(createCategoryDTO);
 
-      expect(result).toEqual({ id: 1, value: 'Science' });
+      expect(result).toEqual(new CategoryDTO(1, 'Science'));
       expect(mockPrismaService.category.create).toHaveBeenCalledWith({
-        data: { category_name: createCategoryDTO.category },
+        data: { category_name: createCategoryDTO.value },
         select: { id: true, category_name: true },
       });
     });
 
     it('should throw an error if the category could not be created', async () => {
-      const createCategoryDTO: CreateCategoryDTO = { category: 'Science' };
+      const createCategoryDTO: CreateCategoryDTO = { value: 'Science' };
       mockPrismaService.category.create.mockRejectedValue(
         new Error('Database error'),
       );

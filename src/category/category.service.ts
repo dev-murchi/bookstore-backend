@@ -2,38 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Category } from '../common/types';
+import { CategoryDTO } from './dto/category.dto';
 
 @Injectable()
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
-  async getAll(): Promise<Category[]> {
+  async getAll(): Promise<CategoryDTO[]> {
     try {
       const categories = await this.prisma.category.findMany({
         select: { id: true, category_name: true },
       });
 
-      return categories.map((category) => ({
-        id: category.id,
-        value: category.category_name,
-      }));
+      return categories.map(
+        (category) => new CategoryDTO(category.id, category.category_name),
+      );
     } catch (error) {
       console.error('Categories could not be fetched. Error:', error);
       throw new Error('Categories could not be fetched.');
     }
   }
 
-  async create(createCategoryDTO: CreateCategoryDTO): Promise<Category> {
+  async create(createCategoryDTO: CreateCategoryDTO): Promise<CategoryDTO> {
     try {
       const category = await this.prisma.category.create({
-        data: { category_name: createCategoryDTO.category },
+        data: { category_name: createCategoryDTO.value },
         select: { id: true, category_name: true },
       });
 
-      return {
-        id: category.id,
-        value: category.category_name,
-      };
+      return new CategoryDTO(category.id, category.category_name);
     } catch (error) {
       console.error('Category could not be created. Error:', error);
       // unique constraint
@@ -51,10 +47,7 @@ export class CategoryService {
         select: { id: true, category_name: true },
       });
 
-      return {
-        id: category.id,
-        value: category.category_name,
-      };
+      return new CategoryDTO(category.id, category.category_name);
     } catch (error) {
       console.error('Category name could not be updated. Error:', error);
       throw new Error('Category name could not be updated.');
