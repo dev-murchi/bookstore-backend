@@ -3,7 +3,7 @@ export enum OrderStatus {
   Complete = 'complete',
   Expired = 'expired',
   Refunding = 'refunding',
-  Refunded = 'redunded',
+  Refunded = 'refunded',
   Canceled = 'canceled',
   Shipped = 'shipped',
   Delivered = 'delivered',

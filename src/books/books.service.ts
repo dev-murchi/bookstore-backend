@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBookDto } from './dto/create-book.dto';
-import { UpdateBookDto } from './dto/update-book.dto';
+import { CreateBookDto } from '../common/dto/create-book.dto';
+import { UpdateBookDto } from '../common/dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Book } from '../common/types';
 import { HelperService } from '../common/helper.service';
-import { BookDTO } from './dto/book.dto';
-import { CategoryDTO } from '../category/dto/category.dto';
+import { BookDTO } from '../common/dto/book.dto';
+import { CategoryDTO } from '../common/dto/category.dto';
 
 export type SortType = 'asc' | 'desc';
 

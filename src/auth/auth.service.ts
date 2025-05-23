@@ -1,13 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto } from '../common/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
-import { PasswordResetDto } from './dto/password-reset.dto';
+import { PasswordResetDto } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { SignupDTO } from './dto/signup.dto';
-import { UserDTO } from 'src/user/dto/user.dto';
+import { SignupDTO } from '../common/dto/signup.dto';
+import { UserDTO } from 'src/common/dto/user.dto';
 
 @Injectable()
 export class AuthService {

@@ -13,13 +13,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
-import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
-import { CartItemDto } from './dto/cart-item.dto';
+import { DeleteCartItemDto } from '../common/dto/delete-cart-item.dto';
+import { CartItemDto } from '../common/dto/cart-item.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { CreateCheckoutDto } from './dto/create-checkout.dto';
+import { CreateCheckoutDto } from '../common/dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Cart, CartItem } from '../common/types';

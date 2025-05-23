@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCheckoutDto } from '../dto/create-checkout.dto';
+import { CreateCheckoutDto } from '../../common/dto/create-checkout.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';

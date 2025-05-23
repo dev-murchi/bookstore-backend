@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateCategoryDTO } from './dto/create-category.dto';
+import { CreateCategoryDTO } from '../common/dto/create-category.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CategoryDTO } from './dto/category.dto';
+import { CategoryDTO } from '../common/dto/category.dto';
 
 @Injectable()
 export class CategoryService {

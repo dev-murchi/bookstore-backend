@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateReviewDTO } from './dto/create-review.dto';
+import { CreateReviewDTO } from '../common/dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { ReviewDTO } from './dto/review.dto';
+import { ReviewDTO } from '../common/dto/review.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()

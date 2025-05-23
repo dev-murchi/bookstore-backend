@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from './category.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateCategoryDTO } from './dto/create-category.dto';
-import { CategoryDTO } from './dto/category.dto';
+import { CreateCategoryDTO } from '../common/dto/create-category.dto';
+import { CategoryDTO } from '../common/dto/category.dto';
 
 const mockPrismaService = {
   category: {

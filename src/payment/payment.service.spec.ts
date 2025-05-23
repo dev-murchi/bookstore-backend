@@ -3,7 +3,7 @@ import { PaymentService } from './payment.service';
 import { StripeService } from './stripe/stripe.service';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentStatus } from './enum/payment-status.enum';
+import { PaymentStatus } from '../common/enum/payment-status.enum';
 
 const mockStripeService = {
   createCheckoutSession: jest.fn(),

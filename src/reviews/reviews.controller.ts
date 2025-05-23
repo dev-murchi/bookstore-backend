@@ -15,7 +15,7 @@ import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { ReviewDTO } from './dto/review.dto';
+import { ReviewDTO } from '../common/dto/review.dto';
 import {
   ApiBearerAuth,
   ApiOperation,

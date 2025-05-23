@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { UpdateUserDTO } from './dto/update-user.dto';
+import { UpdateUserDTO } from '../common/dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { PasswordResetToken } from '../common/types';
 import { HelperService } from '../common/helper.service';
-import { UserDTO } from './dto/user.dto';
+import { UserDTO } from '../common/dto/user.dto';
 
 @Injectable()
 export class UserService {

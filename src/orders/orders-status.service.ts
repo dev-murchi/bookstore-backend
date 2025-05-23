@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from './enum/order-status.enum';
+import { OrderStatus } from '../common/enum/order-status.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Order } from '../common/types';
 

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateReviewDTO } from './dto/create-review.dto';
+import { CreateReviewDTO } from '../common/dto/create-review.dto';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 

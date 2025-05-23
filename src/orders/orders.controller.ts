@@ -18,12 +18,12 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { OrderStatusDto } from './dto/order-status.dto';
+import { OrderStatusDto } from '../common/dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
 import { Order } from '../common/types';
-import { OrderStatus } from './enum/order-status.enum';
+import { OrderStatus } from '../common/enum/order-status.enum';
 import { StripeService } from '../payment/stripe/stripe.service';
 
 @Controller('orders')

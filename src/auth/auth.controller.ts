@@ -10,15 +10,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignupDTO } from './dto/signup.dto';
-import { LoginDto } from './dto/login.dto';
-import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
-import { PasswordResetDto } from './dto/password-reset.dto';
+import { SignupDTO } from '../common/dto/signup.dto';
+import { LoginDto } from '../common/dto/login.dto';
+import { PasswordResetRequestDto } from '../common/dto/password-reset-request.dto';
+import { PasswordResetDto } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { UserDTO } from 'src/user/dto/user.dto';
+import { UserDTO } from 'src/common/dto/user.dto';
 import {
   ApiTags,
   ApiOperation,

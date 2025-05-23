@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from './enum/order-status.enum';
+import { OrderStatus } from '../common/enum/order-status.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockOrder = {

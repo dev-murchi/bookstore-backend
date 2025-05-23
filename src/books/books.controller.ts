@@ -21,19 +21,19 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
-import { CreateBookDto } from './dto/create-book.dto';
-import { UpdateBookDto } from './dto/update-book.dto';
+import { CreateBookDto } from '../common/dto/create-book.dto';
+import { UpdateBookDto } from '../common/dto/update-book.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { BookDTO } from './dto/book.dto';
-import { BookReviewDTO } from './dto/book-review.dto';
+import { BookDTO } from '../common/dto/book.dto';
+import { BookReviewDTO } from '../common/dto/book-review.dto';
 import { ReviewsService } from '../reviews/reviews.service';
-import { ReviewDTO } from '../reviews/dto/review.dto';
-import { CreateReviewDTO } from '../reviews/dto/create-review.dto';
+import { ReviewDTO } from '../common/dto/review.dto';
+import { CreateReviewDTO } from '../common/dto/create-review.dto';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,

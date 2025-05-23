@@ -10,9 +10,9 @@ import { StripeService } from '../payment/stripe/stripe.service';
 import { PaymentService } from '../payment/payment.service';
 import { OrdersService } from '../orders/orders.service';
 import { ShippingService } from '../orders/shipping/shipping.service';
-import { PaymentStatus } from '../payment/enum/payment-status.enum';
+import { PaymentStatus } from '../common/enum/payment-status.enum';
 import { EmailService } from '../email/email.service';
-import { OrderStatus } from '../orders/enum/order-status.enum';
+import { OrderStatus } from '../common/enum/order-status.enum';
 
 const mockPrismaService = {
   $transaction: jest.fn((fn) => fn()),

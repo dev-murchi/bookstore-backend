@@ -6,7 +6,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { CategoryDTO } from '../../category/dto/category.dto';
+import { CategoryDTO } from './category.dto';
 import { Type } from 'class-transformer';
 
 export class BookDTO {

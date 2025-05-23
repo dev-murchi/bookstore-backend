@@ -9,9 +9,9 @@ import {
   ShippingCustomerDetails,
   ShippingService,
 } from '../orders/shipping/shipping.service';
-import { PaymentData } from '../payment/interfaces/payment-data.interface';
-import { PaymentStatus } from '../payment/enum/payment-status.enum';
-import { OrderStatus } from '../orders/enum/order-status.enum';
+import { PaymentData } from '../common/interfaces/payment-data.interface';
+import { PaymentStatus } from '../common/enum/payment-status.enum';
+import { OrderStatus } from '../common/enum/order-status.enum';
 import Stripe from 'stripe';
 
 export interface StripeMetadata {

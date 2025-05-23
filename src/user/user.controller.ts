@@ -18,13 +18,13 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Request } from 'express';
-import { UpdateUserDTO } from './dto/update-user.dto';
-import { UpdateProfileDTO } from './dto/update-profile.dto';
+import { UpdateUserDTO } from '../common/dto/update-user.dto';
+import { UpdateProfileDTO } from '../common/dto/update-profile.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { UserDTO } from './dto/user.dto';
+import { UserDTO } from '../common/dto/user.dto';
 import { ReviewsService } from '../reviews/reviews.service';
 import { OrdersService } from '../orders/orders.service';
 

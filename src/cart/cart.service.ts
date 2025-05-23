@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CartItemDto } from './dto/cart-item.dto';
-import { DeleteCartItemDto } from './dto/delete-cart-item.dto';
+import { CartItemDto } from '../common/dto/cart-item.dto';
+import { DeleteCartItemDto } from '../common/dto/delete-cart-item.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Cart, CartItem } from '../common/types';
 import { Prisma } from '@prisma/client';
