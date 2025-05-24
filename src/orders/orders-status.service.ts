@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Order } from '../common/types';
+import { OrderDTO } from '../common/dto/order.dto';
 
 interface StatusRule {
   from: OrderStatus;
@@ -16,7 +16,7 @@ export class OrdersStatusService {
   private async changeStatus(
     orderId: string,
     rule: StatusRule,
-  ): Promise<Order> {
+  ): Promise<OrderDTO> {
     try {
       const order = await this.ordersService.getOrder(orderId);
 
@@ -44,21 +44,21 @@ export class OrdersStatusService {
     }
   }
 
-  async cancelOrder(orderId: string): Promise<Order> {
+  async cancelOrder(orderId: string): Promise<OrderDTO> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Pending,
       to: OrderStatus.Canceled,
     });
   }
 
-  async shipOrder(orderId: string): Promise<Order> {
+  async shipOrder(orderId: string): Promise<OrderDTO> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Complete,
       to: OrderStatus.Shipped,
     });
   }
 
-  async deliverOrder(orderId: string): Promise<Order> {
+  async deliverOrder(orderId: string): Promise<OrderDTO> {
     return await this.changeStatus(orderId, {
       from: OrderStatus.Shipped,
       to: OrderStatus.Delivered,
