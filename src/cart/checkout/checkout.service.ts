@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCheckoutDto } from '../../common/dto/create-checkout.dto';
+import { CreateCheckoutDTO } from '../../common/dto/create-checkout.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
@@ -19,7 +19,7 @@ export class CheckoutService {
   ) {}
   async checkout(
     userId: string | null,
-    data: CreateCheckoutDto,
+    data: CreateCheckoutDTO,
   ): Promise<CheckoutDTO> {
     try {
       return await this.prisma.$transaction(async (pr) => {

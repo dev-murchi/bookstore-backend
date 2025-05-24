@@ -6,7 +6,7 @@ import {
   IsStrongPassword,
 } from 'class-validator';
 
-export class PasswordResetDto {
+export class PasswordResetDTO {
   @ApiProperty({
     description: 'Email for the password reset',
     example: 'user@email.com',

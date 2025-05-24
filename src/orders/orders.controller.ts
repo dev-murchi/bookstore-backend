@@ -19,11 +19,11 @@ import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { OrderStatusDto } from '../common/dto/order-status.dto';
+import { OrderStatusDTO } from '../common/dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
-import { OrderDTO } from 'src/common/dto/order.dto';
+import { OrderDTO } from '../common/dto/order.dto';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { StripeService } from '../payment/stripe/stripe.service';
 import {
@@ -68,7 +68,7 @@ export class OrdersController {
   })
   async updateOrderStatus(
     @Param('id', ParseUUIDPipe) orderId: string,
-    @Body() orderStatusDTO: OrderStatusDto,
+    @Body() orderStatusDTO: OrderStatusDTO,
   ): Promise<OrderDTO> {
     try {
       let order;

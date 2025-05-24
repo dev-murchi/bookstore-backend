@@ -15,13 +15,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
-import { DeleteCartItemDto } from '../common/dto/delete-cart-item.dto';
+import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
 import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { CreateCheckoutDto } from '../common/dto/create-checkout.dto';
+import { CreateCheckoutDTO } from '../common/dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { CartDTO } from '../common/dto/cart.dto';
@@ -132,7 +132,7 @@ export class CartController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async checkout(
     @Req() request: Request,
-    @Body() createCheckoutDto: CreateCheckoutDto,
+    @Body() createCheckoutDto: CreateCheckoutDTO,
   ): Promise<CheckoutDTO> {
     try {
       // guest user can also checkout
@@ -277,7 +277,7 @@ export class CartController {
   async removeItem(
     @Req() request: Request,
     @Param('id', ParseIntPipe) cartId: number,
-    @Body() data: DeleteCartItemDto,
+    @Body() data: DeleteCartItemDTO,
   ): Promise<{ message: string }> {
     try {
       if (request.user && request.user['cartId'] === null) {

@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator';
 import { OrderStatus } from '../../common/enum/order-status.enum';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class OrderStatusDto {
+export class OrderStatusDTO {
   @ApiProperty({
     description: 'Status of the order',
     enum: OrderStatus,

@@ -15,7 +15,7 @@ import { Transform } from 'class-transformer';
 import * as sanitizeHtml from 'sanitize-html';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateBookDto {
+export class CreateBookDTO {
   @ApiProperty({ description: 'Book title', example: 'The Art of Programming' })
   @IsString()
   @IsNotEmpty()

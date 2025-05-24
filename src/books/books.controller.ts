@@ -21,8 +21,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
-import { CreateBookDto } from '../common/dto/create-book.dto';
-import { UpdateBookDto } from '../common/dto/update-book.dto';
+import { CreateBookDTO } from '../common/dto/create-book.dto';
+import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/role.enum';
@@ -61,14 +61,14 @@ export class BooksController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new book (Author and Admin only)' })
-  @ApiBody({ type: CreateBookDto })
+  @ApiBody({ type: CreateBookDTO })
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Book successfully created', type: BookDTO })
   @ApiBadRequestResponse({ description: 'Validation or business logic error' })
   @ApiInternalServerErrorResponse({ description: 'Unexpected server error' })
   async create(
     @Req() request: Request,
-    @Body() createBookDto: CreateBookDto,
+    @Body() createBookDto: CreateBookDTO,
   ): Promise<{ data: BookDTO }> {
     try {
       const { authorId } = await this.validateAuthorOrThrow(
@@ -217,7 +217,7 @@ export class BooksController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update book by ID (Author and Admin only)' })
   @ApiParam({ name: 'id', type: String })
-  @ApiBody({ type: UpdateBookDto })
+  @ApiBody({ type: UpdateBookDTO })
   @ApiBearerAuth()
   @ApiOkResponse({ description: 'Book updated', type: BookDTO })
   @ApiBadRequestResponse({ description: 'Bad request' })
@@ -226,7 +226,7 @@ export class BooksController {
   async update(
     @Req() request: Request,
     @Param('id', ParseIntPipe) bookId: string,
-    @Body() updateBookDto: UpdateBookDto,
+    @Body() updateBookDto: UpdateBookDTO,
   ): Promise<{ data: BookDTO }> {
     try {
       const { authorId } = await this.validateAuthorOrThrow(

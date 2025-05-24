@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBookDto } from '../common/dto/create-book.dto';
-import { UpdateBookDto } from '../common/dto/update-book.dto';
+import { CreateBookDTO } from '../common/dto/create-book.dto';
+import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
@@ -39,7 +39,7 @@ export class BooksService {
   constructor(private readonly prisma: PrismaService) {}
   async create(
     authorId: string,
-    createBookDto: CreateBookDto,
+    createBookDto: CreateBookDTO,
   ): Promise<BookDTO> {
     try {
       // check book is exist or not
@@ -105,7 +105,7 @@ export class BooksService {
 
   async update(
     id: string,
-    updateBookDto: UpdateBookDto,
+    updateBookDto: UpdateBookDTO,
     authorId: string,
   ): Promise<BookDTO> {
     try {

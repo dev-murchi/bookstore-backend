@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService, SortType } from './books.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CreateBookDto } from '../common/dto/create-book.dto';
-import { UpdateBookDto } from '../common/dto/update-book.dto';
+import { CreateBookDTO } from '../common/dto/create-book.dto';
+import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { HelperService } from '../common/helper.service';
 import { BookDTO } from '../common/dto/book.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
@@ -53,7 +53,7 @@ describe('BooksService', () => {
       });
 
       const userId = 'user-1';
-      const createBookDto: CreateBookDto = {
+      const createBookDto: CreateBookDTO = {
         title: 'The Test Book',
         categoryId: 1,
         isbn: isbn,
@@ -75,7 +75,7 @@ describe('BooksService', () => {
     });
 
     it('should successfully create a book if ISBN is not taken', async () => {
-      const createBookDto: CreateBookDto = {
+      const createBookDto: CreateBookDTO = {
         title: 'The Test Book',
         categoryId: 1,
         isbn: '9780743273565',
@@ -211,7 +211,7 @@ describe('BooksService', () => {
 
   describe('update', () => {
     it('should throw an error when no fields are provided for update', async () => {
-      const updateBookDto: UpdateBookDto = {
+      const updateBookDto: UpdateBookDTO = {
         author: 'testauthor@email.com',
       };
       const authorId = 'author-1';

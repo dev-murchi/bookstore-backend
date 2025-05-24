@@ -11,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDTO } from '../common/dto/signup.dto';
-import { LoginDto } from '../common/dto/login.dto';
-import { PasswordResetRequestDto } from '../common/dto/password-reset-request.dto';
-import { PasswordResetDto } from '../common/dto/password-reset.dto';
+import { LoginDTO } from '../common/dto/login.dto';
+import { PasswordResetRequestDTO } from '../common/dto/password-reset-request.dto';
+import { PasswordResetDTO } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
@@ -101,7 +101,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login a user and get access token' })
-  @ApiBody({ type: LoginDto })
+  @ApiBody({ type: LoginDTO })
   @ApiOkResponse({
     description: 'Login successful',
     schema: {
@@ -110,7 +110,7 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   @ApiInternalServerErrorResponse({ description: 'Login failed' })
-  async login(@Body() loginDto: LoginDto): Promise<{ accessToken: string }> {
+  async login(@Body() loginDto: LoginDTO): Promise<{ accessToken: string }> {
     try {
       return await this.authService.login(loginDto);
     } catch (error) {
@@ -126,7 +126,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send a password reset link to the user email' })
-  @ApiBody({ type: PasswordResetRequestDto })
+  @ApiBody({ type: PasswordResetRequestDTO })
   @ApiOkResponse({
     description: 'Password reset email sent',
     schema: { example: { message: 'Password reset link sent to your email.' } },
@@ -134,7 +134,7 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'Invalid request' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async forgotPassword(
-    @Body() passwordResetRequestDto: PasswordResetRequestDto,
+    @Body() passwordResetRequestDto: PasswordResetRequestDTO,
   ): Promise<{ message: string }> {
     try {
       const { email } = passwordResetRequestDto;
@@ -152,7 +152,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password using the token received in email' })
-  @ApiBody({ type: PasswordResetDto })
+  @ApiBody({ type: PasswordResetDTO })
   @ApiOkResponse({
     description: 'Password successfully reset',
     schema: { example: { message: 'Password has been reset successfully.' } },
@@ -160,7 +160,7 @@ export class AuthController {
   @ApiBadRequestResponse({ description: 'Bad request or invalid token' })
   @ApiInternalServerErrorResponse({ description: 'Password reset failed' })
   async resetPassword(
-    @Body() passwordResetDto: PasswordResetDto,
+    @Body() passwordResetDto: PasswordResetDTO,
   ): Promise<{ message: string }> {
     try {
       return await this.authService.resetPassword(passwordResetDto);

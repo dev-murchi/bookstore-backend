@@ -20,12 +20,15 @@ async function bootstrap() {
     .setTitle('Book Store')
     .setDescription('Book Store API description')
     .setVersion('1.0.0')
-    .addTag('book-store')
     .addBearerAuth()
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('api', app, documentFactory);
+  SwaggerModule.setup('api', app, documentFactory, {
+    swaggerOptions: { tagsSorter: 'alpha', operationsSorter: 'alpha' },
+  });
+
+  
 
   await app.listen(process.env.PORT ?? 3000);
 }

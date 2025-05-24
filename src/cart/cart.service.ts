@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CartItemDTO } from '../common/dto/cart-item.dto';
-import { DeleteCartItemDto } from '../common/dto/delete-cart-item.dto';
+import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { Prisma } from '@prisma/client';
 import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
@@ -72,7 +72,7 @@ export class CartService {
 
   async removeItem(
     cartId: number,
-    data: DeleteCartItemDto,
+    data: DeleteCartItemDTO,
   ): Promise<{ message: string }> {
     try {
       await this.prisma.cart_items.delete({
