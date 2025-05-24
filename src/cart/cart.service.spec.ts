@@ -284,14 +284,14 @@ describe('CartService', () => {
 
   describe('removeItem', () => {
     it('should throw an error if a database error occurs when the user tries to remove a product from the cart', async () => {
+      const cartId = 2;
       const data = {
-        cartId: 2,
         bookId: 'book-uuid-1',
       };
       mockPrismaService.cart_items.delete.mockRejectedValueOnce('DB error.');
 
       try {
-        await service.removeItem(data);
+        await service.removeItem(cartId, data);
       } catch (error) {
         expect(error.message).toBe(
           'Failed to delete item. Check cart and book IDs.',
@@ -300,11 +300,12 @@ describe('CartService', () => {
     });
 
     it('should remove an item from the cart', async () => {
-      const data = { cartId: 1, bookId: 'book-uuid-1' };
+      const cartId = 1;
+      const data = { bookId: 'book-uuid-1' };
 
       mockPrismaService.cart_items.delete.mockResolvedValueOnce({});
 
-      const result = await service.removeItem(data);
+      const result = await service.removeItem(cartId, data);
 
       expect(result).toEqual({
         message: 'Item successfully deleted.',
@@ -315,23 +316,23 @@ describe('CartService', () => {
   describe('upsertItem', () => {
     it('it should throw an error if the book with the specified id does not exist', async () => {
       mockPrismaService.books.findUnique.mockReturnValueOnce(null);
+      const cartId = 1;
       const data = {
         bookId: 'book-uuid-1',
-        cartId: 1,
         quantity: 1,
       };
 
       try {
-        await service.upsertItem(data);
+        await service.upsertItem(cartId, data);
       } catch (error) {
         expect(error.message).toBe('Book ID #book-uuid-1 does not exist.');
       }
     });
 
     it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
+      const cartId = 1;
       const data = {
         bookId: 'book-uuid-1',
-        cartId: 1,
         quantity: 10,
       };
       mockPrismaService.books.findUnique.mockReturnValueOnce({
@@ -340,7 +341,7 @@ describe('CartService', () => {
       });
 
       try {
-        await service.upsertItem(data);
+        await service.upsertItem(cartId, data);
       } catch (error) {
         expect(error.message).toBe(
           'Insufficient stock for book ID: book-uuid-1',
@@ -356,14 +357,14 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
         'This is not your cart.',
       );
+      const cartId = 2;
       const data = {
-        cartId: 2,
         bookId: 'book-uuid-1',
         quantity: 1,
       };
 
       try {
-        await service.upsertItem(data);
+        await service.upsertItem(cartId, data);
       } catch (error) {
         expect(error.message).toBe('Failed to update item. Check input data.');
       }
@@ -389,8 +390,8 @@ describe('CartService', () => {
         },
       });
 
-      const result = await service.upsertItem({
-        cartId: 1,
+      const cartId = 1;
+      const result = await service.upsertItem(cartId, {
         bookId: 'book-uuid-1',
         quantity: 5,
       });

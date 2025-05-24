@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CartItemDto } from '../common/dto/cart-item.dto';
+import { CartItemDTO } from '../common/dto/cart-item.dto';
 import { DeleteCartItemDto } from '../common/dto/delete-cart-item.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Cart, CartItem } from '../common/types';
 import { Prisma } from '@prisma/client';
+import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
+import { CartDTO } from '../common/dto/cart.dto';
+import { BookDTO } from '../common/dto/book.dto';
+import { CategoryDTO } from '../common/dto/category.dto';
 
 @Injectable()
 export class CartService {
@@ -35,7 +38,7 @@ export class CartService {
     },
   };
 
-  async createCart(userId: string | null): Promise<Cart> {
+  async createCart(userId: string | null): Promise<CartDTO> {
     try {
       const cart = userId
         ? await this.cartUpsert(userId)
@@ -47,11 +50,11 @@ export class CartService {
     }
   }
 
-  async findCartById(cartId: number): Promise<Cart | null> {
+  async findCartById(cartId: number): Promise<CartDTO | null> {
     return await this.findCartAndTransformData({ id: cartId });
   }
 
-  async findCartByUser(userId: string): Promise<Cart | null> {
+  async findCartByUser(userId: string): Promise<CartDTO | null> {
     return await this.findCartAndTransformData({ userid: userId });
   }
 
@@ -67,12 +70,15 @@ export class CartService {
     }
   }
 
-  async removeItem(data: DeleteCartItemDto): Promise<{ message: string }> {
+  async removeItem(
+    cartId: number,
+    data: DeleteCartItemDto,
+  ): Promise<{ message: string }> {
     try {
       await this.prisma.cart_items.delete({
         where: {
           cartid_bookid: {
-            cartid: data.cartId,
+            cartid: cartId,
             bookid: data.bookId,
           },
         },
@@ -85,7 +91,7 @@ export class CartService {
     }
   }
 
-  async upsertItem(data: CartItemDto): Promise<CartItem> {
+  async upsertItem(cartId: number, data: AddToCartDTO): Promise<CartItemDTO> {
     try {
       const book = await this.prisma.books.findUnique({
         where: { bookid: data.bookId },
@@ -105,13 +111,13 @@ export class CartService {
       const cartItem = await this.prisma.cart_items.upsert({
         where: {
           cartid_bookid: {
-            cartid: data.cartId,
+            cartid: cartId,
             bookid: data.bookId,
           },
         },
         update: { quantity: data.quantity },
         create: {
-          cart: { connect: { id: data.cartId } },
+          cart: { connect: { id: cartId } },
           book: { connect: { bookid: data.bookId } },
           quantity: data.quantity,
         },
@@ -129,7 +135,7 @@ export class CartService {
     }
   }
 
-  async claim(userId: string, cartId: number): Promise<Cart> {
+  async claim(userId: string, cartId: number): Promise<CartDTO> {
     try {
       const cart = await this.prisma.$transaction(async () => {
         const usersCart = await this.findCartBy({ userid: userId });
@@ -155,7 +161,7 @@ export class CartService {
         return this.transformCartData(updatedCart);
       });
 
-      return cart as Cart;
+      return cart;
     } catch (error) {
       console.error('Failed to claim cart. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -217,39 +223,34 @@ export class CartService {
     return data;
   }
 
-  private transformCartItemData(cartItem: any): CartItem {
-    return {
-      quantity: cartItem.quantity,
-      item: {
-        id: cartItem.book.bookid,
-        title: cartItem.book.title,
-        description: cartItem.book.description,
-        isbn: cartItem.book.isbn,
-        price: Number(cartItem.book.price.toFixed(2)),
-        rating: Number(cartItem.book.rating.toFixed(2)),
-        imageUrl: cartItem.book.image_url,
-        author: { name: cartItem.book.author.name },
-        category: {
-          id: cartItem.book.category.id,
-          value: cartItem.book.category.category_name,
-        },
-      },
-    };
+  private transformCartItemData(data: any): CartItemDTO {
+    const cartItem = new CartItemDTO();
+    cartItem.quantity = data.quantity;
+    cartItem.item = new BookDTO(
+      data.book.bookid,
+      data.book.title,
+      data.book.description,
+      data.book.isbn,
+      { name: data.book.author.name },
+      new CategoryDTO(data.book.category.id, data.book.category.category_name),
+      Number(data.book.price.toFixed(2)),
+      Number(data.book.rating.toFixed(2)),
+      data.book.image_url,
+    );
+
+    return cartItem;
   }
 
-  private transformCartData(cartData: any): Cart {
-    const cartItems = cartData.cart_items.map(this.transformCartItemData);
+  private transformCartData(cartData: any): CartDTO {
+    const cartItems = cartData.cart_items.map((cartItem) => {
+      return this.transformCartItemData(cartItem);
+    });
     const totalPrice = Number(
       cartItems
         .reduce((sum, item) => sum + item.item.price * item.quantity, 0)
         .toFixed(2),
     );
 
-    return {
-      id: cartData.id,
-      owner: cartData.userid,
-      items: cartItems,
-      totalPrice,
-    };
+    return new CartDTO(cartData.id, cartData.userid, totalPrice, cartItems);
   }
 }

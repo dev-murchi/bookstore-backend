@@ -3,9 +3,13 @@ import { CreateCheckoutDto } from '../../common/dto/create-checkout.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
-import { CheckoutData, OrderItem } from '../../common/types';
 import Stripe from 'stripe';
 import { HelperService } from '../../common/helper.service';
+import { CheckoutDTO } from '../../common/dto/checkout.dto';
+import { OrderDTO } from '../../common/dto/order.dto';
+import { OrderItemDTO } from '../../common/dto/order-item.dto';
+import { BookDTO } from '../../common/dto/book.dto';
+import { CategoryDTO } from '../../common/dto/category.dto';
 
 @Injectable()
 export class CheckoutService {
@@ -16,7 +20,7 @@ export class CheckoutService {
   async checkout(
     userId: string | null,
     data: CreateCheckoutDto,
-  ): Promise<CheckoutData> {
+  ): Promise<CheckoutDTO> {
     try {
       return await this.prisma.$transaction(async (pr) => {
         const cart = await pr.cart.findUnique({
@@ -49,7 +53,7 @@ export class CheckoutService {
         }
 
         let totalPrice = 0;
-        const orderItems = [];
+        const orderItems: OrderItemDTO[] = [];
         const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
         const orderItemsToCreate = [];
@@ -142,18 +146,18 @@ export class CheckoutService {
           );
         }
 
-        const checkoutData: CheckoutData = {
-          order: {
-            id: order.orderid,
-            owner: userId,
-            items: orderItems,
-            status: order.status,
-            price: totalPrice,
-          },
-          message: 'Checkout successful.',
-          expiresAt: session.expires,
-          url: session.url,
-        };
+        const orderData = new OrderDTO();
+        orderData.id = order.orderid;
+        orderData.owner = userId;
+        orderData.price = totalPrice;
+        orderData.status = order.status;
+        orderData.items = orderItems;
+
+        const checkoutData = new CheckoutDTO();
+        checkoutData.expiresAt = session.expires;
+        checkoutData.message = 'Checkout successful.';
+        checkoutData.url = session.url;
+        checkoutData.order = orderData;
 
         return checkoutData;
       });
@@ -164,24 +168,25 @@ export class CheckoutService {
     }
   }
 
-  private transformToOrderItem(cartItem: any): OrderItem {
-    return {
-      quantity: cartItem.quantity,
-      item: {
-        id: cartItem.book.bookid,
-        title: cartItem.book.title,
-        description: cartItem.book.description,
-        isbn: cartItem.book.isbn,
-        price: Number(cartItem.book.price.toFixed(2)),
-        rating: Number(cartItem.book.rating.toFixed(2)),
-        imageUrl: cartItem.book.image_url,
-        author: { name: cartItem.book.author.name },
-        category: {
-          id: cartItem.book.category.id,
-          value: cartItem.book.category.category_name,
-        },
-      },
-    };
+  private transformToOrderItem(cartItem: any): OrderItemDTO {
+    const orderItem = new OrderItemDTO();
+    orderItem.quantity = cartItem.quantity;
+    orderItem.item = new BookDTO(
+      cartItem.book.bookid,
+      cartItem.book.title,
+      cartItem.book.description,
+      cartItem.book.isbn,
+      { name: cartItem.book.author.name },
+      new CategoryDTO(
+        cartItem.book.category.id,
+        cartItem.book.category.category_name,
+      ),
+      Number(cartItem.book.price.toFixed(2)),
+      Number(cartItem.book.rating.toFixed(2)),
+      cartItem.book.image_url,
+    );
+
+    return orderItem;
   }
 
   private transformToStripeLineItem(
