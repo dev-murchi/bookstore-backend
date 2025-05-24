@@ -125,12 +125,6 @@ describe('CheckoutService', () => {
       },
     ];
 
-    const user = {
-      userid: 'user-1',
-      email: 'user@example.com',
-      name: 'User Name',
-    };
-
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
       cart_items: cartItems,
     });

@@ -94,8 +94,8 @@ describe('OrdersService', () => {
               },
             },
           ],
-          shipping: null,
-          payment: null,
+          shipping: {},
+          payment: {},
         },
       ]);
     });
@@ -132,8 +132,8 @@ describe('OrdersService', () => {
               },
             },
           ],
-          shipping: null,
-          payment: null,
+          shipping: {},
+          payment: {},
         },
       ]);
     });
@@ -180,8 +180,8 @@ describe('OrdersService', () => {
             },
           },
         ],
-        shipping: null,
-        payment: null,
+        shipping: {},
+        payment: {},
       });
     });
 
@@ -229,8 +229,8 @@ describe('OrdersService', () => {
             },
           },
         ],
-        shipping: null,
-        payment: null,
+        shipping: {},
+        payment: {},
       });
     });
 

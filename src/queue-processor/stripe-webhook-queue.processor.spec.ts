@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Job } from 'bullmq';
 import {
   StripePaymentData,
   StripeSessionData,
@@ -53,7 +52,6 @@ const mockEmailService = {
 
 describe('StripeWebhookProcessor', () => {
   let processor: StripeWebhookProcessor;
-  let job: Job;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -69,7 +67,6 @@ describe('StripeWebhookProcessor', () => {
     }).compile();
 
     processor = module.get<StripeWebhookProcessor>(StripeWebhookProcessor);
-    job = { data: { eventType: '', eventData: {} } } as Job;
   });
 
   afterEach(() => {
