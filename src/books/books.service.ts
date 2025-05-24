@@ -4,7 +4,6 @@ import { UpdateBookDto } from '../common/dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Book } from '../common/types';
 import { HelperService } from '../common/helper.service';
 import { BookDTO } from '../common/dto/book.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
@@ -82,7 +81,7 @@ export class BooksService {
     }
   }
 
-  async findAll(): Promise<Book[]> {
+  async findAll(): Promise<BookDTO[]> {
     try {
       const books = await this.findBooks({}, [{ title: 'asc' }]);
 
@@ -93,7 +92,7 @@ export class BooksService {
     }
   }
 
-  async findOne(id: string): Promise<Book | null> {
+  async findOne(id: string): Promise<BookDTO | null> {
     try {
       const book = await this.findBook({ bookid: id });
       if (!book) return null;
@@ -179,7 +178,7 @@ export class BooksService {
     }
   }
 
-  async search(searchQuery: string): Promise<Book[]> {
+  async search(searchQuery: string): Promise<BookDTO[]> {
     try {
       const condditions: Prisma.booksWhereInput = {
         OR: [
@@ -275,7 +274,7 @@ export class BooksService {
     });
   }
 
-  private transformBookData(book: SelectedBook): Book {
+  private transformBookData(book: SelectedBook): BookDTO {
     return new BookDTO(
       book.bookid,
       book.title,

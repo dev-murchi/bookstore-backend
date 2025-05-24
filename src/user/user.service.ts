@@ -4,7 +4,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RoleEnum } from '../common/role.enum';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { PasswordResetToken } from '../common/types';
 import { HelperService } from '../common/helper.service';
 import { UserDTO } from '../common/dto/user.dto';
 
@@ -190,7 +189,10 @@ export class UserService {
     }
   }
 
-  async createPasswordResetToken(userId: string): Promise<PasswordResetToken> {
+  async createPasswordResetToken(userId: string): Promise<{
+    token: string;
+    expiresAt: Date;
+  }> {
     try {
       const disposableToken = HelperService.generateUUID();
 
