@@ -8,7 +8,7 @@ export class CreateReviewDTO {
   @ApiProperty({
     description: 'ID of the book being reviewed',
     format: 'uuid',
-    example: '3f50a6e1-32c4-4b16-b233-a5a3f2e2b91a',
+    example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
   })
   @IsNotEmpty()
   @IsString()

@@ -30,7 +30,7 @@ export class ReviewDTO {
 
   @ApiProperty({
     description: 'ID of the reviewed book',
-    example: '3f50a6e1-32c4-4b16-b233-a5a3f2e2b91a',
+    example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
   })
   @IsString()
   @IsUUID()
@@ -38,7 +38,7 @@ export class ReviewDTO {
 
   @ApiProperty({
     description: 'ID of the user who wrote the review',
-    example: 'a94b382b-2355-4baa-bfb1-706dbce741aa',
+    example: 'abcdef01-2345-6789-abcd-ef0123456789',
   })
   @IsString()
   @IsUUID()

@@ -24,7 +24,7 @@ export class OrderDTO {
   @ApiProperty({
     description: 'UUID of the user who owns the order',
     type: String,
-    example: 'user-uuid-1234-5678-90ab-cdef12345678',
+    example: 'abcdef01-2345-6789-abcd-ef0123456789',
   })
   @IsUUID()
   owner: string;

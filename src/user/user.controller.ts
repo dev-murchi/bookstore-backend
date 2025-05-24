@@ -230,7 +230,7 @@ export class UserController {
                 data: 'Excellent read!',
                 rating: 5,
                 book: 'book-id-uuid',
-                owner: 'user-id-uuid',
+                owner: 'abcdef01-2345-6789-abcd-ef0123456789',
               },
             ],
             rating: 4.5,

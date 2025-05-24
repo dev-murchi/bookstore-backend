@@ -65,7 +65,7 @@ export class CartController {
         summary: 'Empty cart for a new user or guest',
         value: {
           id: 102,
-          owner: 'a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d9',
+          owner: 'abcdef01-2345-6789-abcd-ef0123456789',
           items: [],
           totalPrice: 0,
         },
@@ -74,7 +74,7 @@ export class CartController {
         summary: 'User already has an existing active cart',
         value: {
           id: 101,
-          owner: 'a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6',
+          owner: 'abcdef01-2345-6789-abcd-ef0123456789',
           items: [
             {
               quantity: 2,

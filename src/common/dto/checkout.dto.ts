@@ -38,7 +38,7 @@ export class CheckoutDTO {
     type: () => OrderDTO,
     example: {
       id: 'a1b2c3d4-e5f6-7890-abcd-123456789abc',
-      owner: 'user-uuid-1234-5678-90ab-cdef12345678',
+      owner: 'abcdef01-2345-6789-abcd-ef0123456789',
       items: [
         {
           quantity: 2,
