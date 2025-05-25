@@ -43,7 +43,7 @@ export class UserAccessGuard implements CanActivate {
 
       // if token is provided, we need to verify and authenticate the user
 
-      const secret = this.configService.get<string>('JWT_SECRET');
+      const secret = this.configService.get<string>('jwt.secret');
       const payload = await this.jwtService.verifyAsync(token, { secret });
 
       const user = await this.prisma.user.findUnique({

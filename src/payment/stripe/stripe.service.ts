@@ -9,8 +9,8 @@ export class StripeService {
   private stripe: Stripe;
 
   constructor(private readonly configService: ConfigService) {
-    this.stripeApiKey = this.configService.get<string>('STRIPE_API_KEY');
-    this.stripeWebhookKey = this.configService.get<string>('STRIPE_API_WHKEY');
+    this.stripeApiKey = this.configService.get<string>('stripe.apiKey');
+    this.stripeWebhookKey = this.configService.get<string>('stripe.whKey');
     this.stripe = new Stripe(this.stripeApiKey);
   }
 

@@ -16,10 +16,10 @@ export class MailSenderService {
   private readonly textMessages = new Map<string, string>();
 
   constructor(private readonly configService: ConfigService) {
-    this.mailHost = this.configService.get<string>('MAIL_HOST');
-    this.mailPort = this.configService.get<number>('MAIL_PORT');
-    this.mailAddress = this.configService.get<string>('MAIL_ADDRESS');
-    this.mailPass = this.configService.get<string>('MAIL_PASS');
+    this.mailHost = this.configService.get<string>('email.host');
+    this.mailPort = this.configService.get<number>('email.port');
+    this.mailAddress = this.configService.get<string>('email.user');
+    this.mailPass = this.configService.get<string>('email.password');
 
     if (
       !this.mailHost ||

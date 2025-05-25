@@ -9,8 +9,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         connection: {
-          host: configService.get('QUEUE_HOST'),
-          port: configService.get('QUEUE_PORT'),
+          host: configService.get('redis.host'),
+          port: configService.get('redis.port'),
         },
       }),
       inject: [ConfigService],
