@@ -25,7 +25,7 @@ import { CreateBookDTO } from '../common/dto/create-book.dto';
 import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';

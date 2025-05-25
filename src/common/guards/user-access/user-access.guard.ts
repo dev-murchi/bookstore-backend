@@ -10,7 +10,7 @@ import { Request } from 'express';
 import { Roles } from '../../decorator/role/role.decorator';
 import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { RoleEnum } from '../../role.enum';
+import { RoleEnum } from '../../enum/role.enum';
 
 @Injectable()
 export class UserAccessGuard implements CanActivate {

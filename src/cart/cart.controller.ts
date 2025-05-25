@@ -19,7 +19,7 @@ import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
 import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CreateCheckoutDTO } from '../common/dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';

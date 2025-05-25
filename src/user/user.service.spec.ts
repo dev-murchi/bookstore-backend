@@ -3,7 +3,7 @@ import { UserService } from './user.service';
 
 import { UpdateUserDTO } from '../common/dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { HelperService } from '../common/helper.service';

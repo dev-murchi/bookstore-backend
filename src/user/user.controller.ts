@@ -21,7 +21,7 @@ import { Request } from 'express';
 import { UpdateUserDTO } from '../common/dto/update-user.dto';
 import { UpdateProfileDTO } from '../common/dto/update-profile.dto';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { UserDTO } from '../common/dto/user.dto';

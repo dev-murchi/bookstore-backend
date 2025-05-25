@@ -5,7 +5,7 @@ import { SignupDTO } from '../common/dto/signup.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 
 import { HelperService } from '../common/helper.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';

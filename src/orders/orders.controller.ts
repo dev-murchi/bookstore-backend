@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 
 import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { OrderStatusDTO } from '../common/dto/order-status.dto';

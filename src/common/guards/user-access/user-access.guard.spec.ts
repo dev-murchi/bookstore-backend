@@ -5,7 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { RoleEnum } from '../../role.enum';
+import { RoleEnum } from '../../enum/role.enum';
 const mockReflector = {
   getAllAndMerge: jest.fn(),
 };

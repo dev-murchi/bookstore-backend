@@ -4,7 +4,7 @@ import { LoginDTO } from '../common/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { EmailService } from '../email/email.service';
 import { PasswordResetDTO } from '../common/dto/password-reset.dto';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { SignupDTO } from '../common/dto/signup.dto';
 import { UserDTO } from 'src/common/dto/user.dto';

@@ -14,7 +14,7 @@ import { SignupDTO } from '../common/dto/signup.dto';
 import { LoginDTO } from '../common/dto/login.dto';
 import { PasswordResetRequestDTO } from '../common/dto/password-reset-request.dto';
 import { PasswordResetDTO } from '../common/dto/password-reset.dto';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';

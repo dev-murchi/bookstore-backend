@@ -13,7 +13,7 @@ import {
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
-import { RoleEnum } from '../common/role.enum';
+import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { ReviewDTO } from '../common/dto/review.dto';
 import {
