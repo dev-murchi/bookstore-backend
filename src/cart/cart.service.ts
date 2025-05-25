@@ -140,7 +140,7 @@ export class CartService {
       const cart = await this.prisma.$transaction(async () => {
         const usersCart = await this.findCartBy({ userid: userId });
 
-        if (usersCart.cart_items.length) {
+        if (usersCart && usersCart.cart_items.length) {
           throw new CustomAPIError('User already has a cart.');
         }
 
