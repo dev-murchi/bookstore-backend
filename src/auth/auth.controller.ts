@@ -100,17 +100,22 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login a user and get access token' })
+  @ApiOperation({ summary: 'Login a user and get access and refresh tokens' })
   @ApiBody({ type: LoginDTO })
   @ApiOkResponse({
     description: 'Login successful',
     schema: {
-      example: { accessToken: 'jwt-token-string' },
+      example: {
+        accessToken: 'jwt-token-string',
+        refreshToken: 'jwt-token-string',
+      },
     },
   })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   @ApiInternalServerErrorResponse({ description: 'Login failed' })
-  async login(@Body() loginDto: LoginDTO): Promise<{ accessToken: string }> {
+  async login(
+    @Body() loginDto: LoginDTO,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       return await this.authService.login(loginDto);
     } catch (error) {

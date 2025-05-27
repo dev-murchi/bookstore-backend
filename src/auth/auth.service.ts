@@ -8,14 +8,25 @@ import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { SignupDTO } from '../common/dto/signup.dto';
 import { UserDTO } from 'src/common/dto/user.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  private readonly jwtSecret: string;
+  private readonly jwtRefresh: string;
+  private readonly jwtExpiresIn: string;
+  private readonly jwtRefreshExpiresIn: string;
   constructor(
     private readonly userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.jwtSecret = this.configService.get('jwt.secret');
+    this.jwtExpiresIn = this.configService.get('jwt.expiresIn');
+    this.jwtRefresh = this.configService.get('jwt.refreshSecret');
+    this.jwtRefreshExpiresIn = this.configService.get('jwt.refreshExpiresIn');
+  }
 
   async register(signupDto: SignupDTO, role: RoleEnum): Promise<UserDTO> {
     const data = {
@@ -27,7 +38,9 @@ export class AuthService {
     return await this.userService.create(data);
   }
 
-  async login(loginDto: LoginDTO): Promise<{ accessToken: string }> {
+  async login(
+    loginDto: LoginDTO,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const { email, password } = loginDto;
       const user = await this.userService.checkUserWithPassword(
@@ -40,8 +53,16 @@ export class AuthService {
         id: user.id,
         role: user.role,
       };
-      const accessToken = await this.jwtService.signAsync(payload);
-      return { accessToken };
+      const accessToken = await this.jwtService.signAsync(payload, {
+        secret: this.jwtSecret,
+        expiresIn: this.jwtExpiresIn,
+      });
+      const refreshToken = await this.jwtService.signAsync(payload, {
+        secret: this.jwtRefresh,
+        expiresIn: this.jwtRefreshExpiresIn,
+      });
+
+      return { accessToken, refreshToken };
     } catch (error) {
       if (error instanceof CustomAPIError)
         throw new UnauthorizedException(error.message);
