@@ -9,6 +9,7 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 import { SignupDTO } from '../common/dto/signup.dto';
 import { UserDTO } from 'src/common/dto/user.dto';
 import { ConfigService } from '@nestjs/config';
+import { HelperService } from 'src/common/helper.service';
 
 @Injectable()
 export class AuthService {
@@ -57,10 +58,11 @@ export class AuthService {
         secret: this.jwtSecret,
         expiresIn: this.jwtExpiresIn,
       });
-      const refreshToken = await this.jwtService.signAsync(payload, {
-        secret: this.jwtRefresh,
-        expiresIn: this.jwtRefreshExpiresIn,
-      });
+
+      const refreshToken = Buffer.from(
+        HelperService.generateUUID(),
+        'utf-8',
+      ).toString('base64');
 
       return { accessToken, refreshToken };
     } catch (error) {
