@@ -20,7 +20,6 @@ import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/enum/role.enum';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CreateCheckoutDTO } from '../common/dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
@@ -38,9 +37,11 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { RoleGuard } from '../common/guards/role/role.guard';
+import { CartGuard } from '../common/guards/auth/cart.guard';
 
 @Controller('cart')
-@UseGuards(UserAccessGuard)
+@UseGuards(CartGuard, RoleGuard)
 @ApiTags('Cart')
 @ApiBearerAuth()
 export class CartController {
