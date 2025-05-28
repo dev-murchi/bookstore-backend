@@ -31,9 +31,11 @@ import {
   ApiInternalServerErrorResponse,
   ApiUnauthorizedResponse,
   ApiOkResponse,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from 'src/common/guards/auth/jwt-auth.guard';
+import { RefreshGuard } from 'src/common/guards/refresh.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -193,17 +195,66 @@ export class AuthController {
     description: 'Successfully logged out',
     schema: { example: { message: 'Logged out successfully' } },
   })
+  @ApiUnauthorizedResponse({
+    description: 'User is not authenticated or session is invalid',
+  })
   @ApiInternalServerErrorResponse({
     description: 'Logout failed due to server error',
   })
   async logout(@Req() request: Request) {
     try {
       const { user } = request;
+      if (!user || !user['id'] || !user['sessionId']) {
+        throw new UnauthorizedException('Please login');
+      }
+      console.log({ user });
       await this.authService.logout(user['id'], user['sessionId']);
       return { message: 'Logged out successfully' };
     } catch (error) {
       console.error('Logout failed. Error:', error);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Logout failed.');
     }
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RefreshGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Refresh access and refresh tokens' })
+  @ApiHeader({
+    name: 'x-refresh-token',
+    description: 'Refresh token (non-JWT)',
+    required: true,
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  @ApiOkResponse({
+    description: 'New access and refresh tokens issued',
+    schema: {
+      example: {
+        accessToken: 'new-access-token.jwt...',
+        refreshToken: 'new-refresh-token',
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: 'Invalid or expired refresh token' })
+  @ApiInternalServerErrorResponse({
+    description: 'Failed to refresh token due to internal error',
+  })
+  async refreshToken(@Req() request: Request) {
+    const { user } = request;
+    const accessToken = await this.authService.accessToken({
+      id: user['id'],
+      role: user['role'],
+      sessionId: user['sessionId'],
+    });
+    const { token: refreshToken } = await this.authService.refreshToken(
+      user['id'],
+      user['sessionId'],
+    );
+
+    return { accessToken, refreshToken };
   }
 }

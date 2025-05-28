@@ -3,10 +3,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from 'src/user/user.module';
 import { EmailModule } from 'src/email/email.module';
+import { RefreshTokenStrategy } from 'src/common/strategies/refresh-token.strategy';
 
 @Module({
   imports: [UserModule, EmailModule],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, RefreshTokenStrategy],
 })
 export class AuthModule {}

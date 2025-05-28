@@ -39,4 +39,24 @@ export class UserSessionService {
       throw new Error('User session delete failed.');
     }
   }
+
+  async updateSession(userId: string, sessionId: string, token: string) {
+    try {
+      await this.prisma.user_session.update({
+        where: {
+          userid_sessionid: {
+            userid: userId,
+            sessionid: sessionId,
+          },
+        },
+        data: {
+          refresh_token: token,
+          refresh_required: false,
+        },
+      });
+    } catch (error) {
+      console.error('User session update failed. Error:', error);
+      throw new Error('User session update failed');
+    }
+  }
 }

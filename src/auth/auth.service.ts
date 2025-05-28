@@ -52,13 +52,10 @@ export class AuthService {
 
       const payload = {
         id: user.id,
-        role: user.role,
+        role: user.role as RoleEnum,
         sessionId,
       };
-      const accessToken = await this.jwtService.signAsync(payload, {
-        secret: this.jwtSecret,
-        expiresIn: this.jwtExpiresIn,
-      });
+      const accessToken = await this.accessToken(payload);
 
       const refreshToken = HelperService.generateToken('base64url');
       const tokenHash = HelperService.hashToken(refreshToken, 'hex');
@@ -109,6 +106,33 @@ export class AuthService {
   }
 
   async logout(userId: string, sessionId: string) {
-    return this.userSessionService.deleteSession(userId, sessionId);
+    return await this.userSessionService.deleteSession(userId, sessionId);
+  }
+
+  async refreshToken(
+    userId: string,
+    sessionId: string,
+  ): Promise<{ token: string }> {
+    try {
+      const token = HelperService.generateToken('base64url');
+      const tokenHash = HelperService.hashToken(token, 'hex');
+      await this.userSessionService.updateSession(userId, sessionId, tokenHash);
+
+      return { token };
+    } catch (error) {
+      console.error('User session update failed. Error:', error);
+      throw new Error('User session update failed');
+    }
+  }
+
+  async accessToken(payload: {
+    id: string;
+    role: RoleEnum;
+    sessionId: string;
+  }) {
+    return await this.jwtService.signAsync(payload, {
+      secret: this.jwtSecret,
+      expiresIn: this.jwtExpiresIn,
+    });
   }
 }
