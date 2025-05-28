@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 const roundsOfHashing = 10;
 
 export class HelperService {
@@ -35,6 +36,48 @@ export class HelperService {
     } catch (error) {
       console.error('Comparison failed. Error:', error);
       throw new Error('comparison failed.');
+    }
+  }
+
+  static generateToken(encoding: 'hex' | 'base64url' = 'hex'): string {
+    try {
+      return crypto.randomBytes(32).toString(encoding);
+    } catch (error) {
+      console.error('Token generation failed:', error);
+      throw new Error('Failed to generate secure token.');
+    }
+  }
+
+  static hashToken(
+    token: string,
+    encoding: 'hex' | 'base64url' = 'hex',
+  ): string {
+    try {
+      return crypto.createHash('sha256').update(token).digest(encoding);
+    } catch (error) {
+      console.error('Token hashing failed:', error);
+      throw new Error('Failed to hash token.');
+    }
+  }
+
+  static verifyTokenHash(
+    token: string,
+    hash: string,
+    encoding: 'hex' | 'base64url' = 'hex',
+  ): boolean {
+    try {
+      const inputHash = this.hashToken(token, encoding);
+      const inputBuffer = Buffer.from(inputHash, encoding);
+      const storedBuffer = Buffer.from(hash, encoding);
+
+      if (inputBuffer.length !== storedBuffer.length) {
+        return false;
+      }
+
+      return crypto.timingSafeEqual(inputBuffer, storedBuffer);
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      return false;
     }
   }
 }
