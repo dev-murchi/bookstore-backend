@@ -23,4 +23,20 @@ export class UserSessionService {
       throw new Error('User session creation failed.');
     }
   }
+
+  async deleteSession(userId: string, sessionId: string) {
+    try {
+      await this.prisma.user_session.delete({
+        where: {
+          userid_sessionid: {
+            userid: userId,
+            sessionid: sessionId,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('User session delete failed. Error:', error);
+      throw new Error('User session delete failed.');
+    }
+  }
 }

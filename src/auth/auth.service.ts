@@ -107,4 +107,8 @@ export class AuthService {
     const { email, token, newPassword } = passwordResetDto;
     return await this.userService.resetPassword(email, token, newPassword);
   }
+
+  async logout(userId: string, sessionId: string) {
+    return this.userSessionService.deleteSession(userId, sessionId);
+  }
 }

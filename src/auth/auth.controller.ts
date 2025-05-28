@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   HttpCode,
   HttpStatus,
   InternalServerErrorException,
   Post,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -30,6 +32,8 @@ import {
   ApiUnauthorizedResponse,
   ApiOkResponse,
 } from '@nestjs/swagger';
+import { Request } from 'express';
+import { JwtAuthGuard } from 'src/common/guards/auth/jwt-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -177,6 +181,29 @@ export class AuthController {
         throw new BadRequestException(error.message);
 
       throw new InternalServerErrorException('Password reset failed.');
+    }
+  }
+
+  @Delete('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Log out of the current session' })
+  @ApiOkResponse({
+    description: 'Successfully logged out',
+    schema: { example: { message: 'Logged out successfully' } },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Logout failed due to server error',
+  })
+  async logout(@Req() request: Request) {
+    try {
+      const { user } = request;
+      await this.authService.logout(user['id'], user['sessionId']);
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      console.error('Logout failed. Error:', error);
+      throw new InternalServerErrorException('Logout failed.');
     }
   }
 }
