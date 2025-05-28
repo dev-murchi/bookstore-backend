@@ -60,15 +60,13 @@ export class AuthService {
         expiresIn: this.jwtExpiresIn,
       });
 
-      const refreshToken = Buffer.from(
-        HelperService.generateUUID(),
-        'utf-8',
-      ).toString('base64');
+      const refreshToken = HelperService.generateToken('base64url');
+      const tokenHash = HelperService.hashToken(refreshToken, 'hex');
 
       await this.userSessionService.createSession(
         user.id,
         sessionId,
-        refreshToken,
+        tokenHash,
       );
 
       return { accessToken, refreshToken };
