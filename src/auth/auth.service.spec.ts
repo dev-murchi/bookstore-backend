@@ -9,6 +9,8 @@ import { RoleEnum } from '../common/enum/role.enum';
 
 import { HelperService } from '../common/helper.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { ConfigService } from '@nestjs/config';
+import { UserSessionService } from '../user/user-session/user-session.service';
 
 const mockUserService = {
   create: jest.fn(),
@@ -25,6 +27,19 @@ const mockJwtService = {
 
 const mockEmailService = {
   sendResetPasswordMail: jest.fn(),
+};
+
+const mockConfigService = {
+  get: jest.fn().mockImplementation((key: any) => {
+    if (key === 'jwt.secret') return 'secret key';
+    if (key === 'jwt.expiresIn') return '15m';
+    return null;
+  }),
+};
+const mockUserSessionService = {
+  createSession: jest.fn(),
+  deleteSession: jest.fn(),
+  updateSession: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -50,6 +65,9 @@ describe('AuthService', () => {
           provide: EmailService,
           useValue: mockEmailService,
         },
+
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: UserSessionService, useValue: mockUserSessionService },
       ],
     }).compile();
 
@@ -156,20 +174,26 @@ describe('AuthService', () => {
       };
 
       mockUserService.checkUserWithPassword.mockResolvedValue(user);
-      const spy = jest.spyOn(HelperService, 'compareHash');
-      spy.mockResolvedValueOnce(true);
+      const spy = jest.spyOn(HelperService, 'generateToken');
+      const spy2 = jest.spyOn(HelperService, 'hashToken');
+      spy.mockReturnValueOnce('refresh-token' as never);
+      spy2.mockReturnValueOnce('refresh-token-hash' as never);
 
-      jest
-        .spyOn(jwtService, 'signAsync')
-        .mockResolvedValue('accesstoken' as never);
+      mockUserSessionService.createSession.mockResolvedValueOnce({});
+
+      mockJwtService.signAsync.mockResolvedValueOnce('accesstoken' as never);
 
       const result = await service.login({
         email: 'testuser@email.com',
         password: 'password123',
       });
 
-      expect(result).toEqual({ accessToken: 'accesstoken' });
+      expect(result).toEqual({
+        accessToken: 'accesstoken',
+        refreshToken: 'refresh-token',
+      });
       spy.mockRestore();
+      spy2.mockRestore();
     });
   });
 

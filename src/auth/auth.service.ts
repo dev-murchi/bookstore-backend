@@ -7,10 +7,10 @@ import { PasswordResetDTO } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { SignupDTO } from '../common/dto/signup.dto';
-import { UserDTO } from 'src/common/dto/user.dto';
+import { UserDTO } from '../common/dto/user.dto';
 import { ConfigService } from '@nestjs/config';
-import { HelperService } from 'src/common/helper.service';
-import { UserSessionService } from 'src/user/user-session/user-session.service';
+import { HelperService } from '../common/helper.service';
+import { UserSessionService } from '../user/user-session/user-session.service';
 
 @Injectable()
 export class AuthService {

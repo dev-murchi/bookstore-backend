@@ -30,8 +30,8 @@ jest.mock('stripe', () => {
 // Mock the ConfigService
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string) => {
-    if (key === 'STRIPE_API_KEY') return 'test-api-key';
-    if (key === 'STRIPE_API_WHKEY') return 'test-webhook-key';
+    if (key === 'stripe.apiKey') return 'test-api-key';
+    if (key === 'stripe.whKey') return 'test-webhook-key';
     return null;
   }),
 };

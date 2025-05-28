@@ -11,10 +11,10 @@ jest.mock('nodemailer', () => ({
 
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string) => {
-    if (key === 'MAIL_HOST') return 'mailhost';
-    if (key === 'MAIL_PORT') return 587;
-    if (key === 'MAIL_ADDRESS') return 'from@email.com';
-    if (key === 'MAIL_PASS') return 'mail-password';
+    if (key === 'email.host') return 'mailhost';
+    if (key === 'email.port') return 587;
+    if (key === 'email.user') return 'from@email.com';
+    if (key === 'email.password') return 'mail-password';
     return null;
   }),
 };

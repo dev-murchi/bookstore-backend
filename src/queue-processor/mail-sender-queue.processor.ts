@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { MailSenderService } from 'src/mail-sender/mail-sender.service';
+import { MailSenderService } from '../mail-sender/mail-sender.service';
 export interface OrderStatusUpdateJob {
   orderId: string;
   status: string;

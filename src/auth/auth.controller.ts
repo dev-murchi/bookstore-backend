@@ -20,7 +20,7 @@ import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { UserDTO } from 'src/common/dto/user.dto';
+import { UserDTO } from '../common/dto/user.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -34,8 +34,8 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { JwtAuthGuard } from 'src/common/guards/auth/jwt-auth.guard';
-import { RefreshGuard } from 'src/common/guards/refresh.guard';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RefreshGuard } from '../common/guards/refresh.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
