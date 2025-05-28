@@ -45,7 +45,7 @@ const mockUserSessionService = {
 describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
-  let jwtService: JwtService;
+
   let emailService: EmailService;
 
   beforeEach(async () => {
@@ -73,7 +73,7 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
-    jwtService = module.get<JwtService>(JwtService);
+
     emailService = module.get<EmailService>(EmailService);
   });
 

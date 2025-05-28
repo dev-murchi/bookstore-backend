@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewsController } from './reviews.controller';
 import { ReviewsService } from './reviews.service';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 const mockReviewsService = {
   create: jest.fn(),
 };
@@ -13,9 +13,9 @@ describe('ReviewsController', () => {
       controllers: [ReviewsController],
       providers: [{ provide: ReviewsService, useValue: mockReviewsService }],
     })
-      .overrideGuard(UserAccessGuard)
+      .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: jest.fn(),
+        handleRequest: jest.fn(),
       })
       .compile();
 

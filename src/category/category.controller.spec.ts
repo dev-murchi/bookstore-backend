@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryController } from './category.controller';
 import { CategoryService } from './category.service';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 
 const mockCategoryService = {
   getAll: jest.fn(),
@@ -15,8 +16,10 @@ describe('CategoryController', () => {
       controllers: [CategoryController],
       providers: [{ provide: CategoryService, useValue: mockCategoryService }],
     })
-      .overrideGuard(UserAccessGuard)
-      .useValue({ canActivate: jest.fn() })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        handleRequest: jest.fn(),
+      })
       .compile();
 
     controller = module.get<CategoryController>(CategoryController);

@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { ReviewDTO } from '../common/dto/review.dto';
@@ -24,6 +23,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
 
 @ApiTags('Reviews')
 @Controller('reviews')
@@ -76,7 +77,7 @@ export class ReviewsController {
       },
     },
   })
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.User])
   async findUserReviews(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
@@ -155,7 +156,7 @@ export class ReviewsController {
       example: { message: 'Review deleted successfully.' },
     },
   })
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.Admin])
   async deleteReview(
     @Param('id', ParseIntPipe) reviewId: number,

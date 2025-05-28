@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 import { UserService } from '../user/user.service';
 import { ReviewsService } from '../reviews/reviews.service';
 
@@ -43,9 +43,9 @@ describe('BooksController', () => {
         },
       ],
     })
-      .overrideGuard(UserAccessGuard)
+      .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: jest.fn(),
+        handleRequest: jest.fn(),
       })
       .compile();
 

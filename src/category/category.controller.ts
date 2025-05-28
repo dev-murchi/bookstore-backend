@@ -15,7 +15,8 @@ import {
 } from '@nestjs/common';
 import { CreateCategoryDTO } from '../common/dto/create-category.dto';
 import { CategoryService } from './category.service';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
@@ -35,7 +36,7 @@ import {
 @ApiTags('Categories')
 @ApiBearerAuth()
 @Controller('category')
-@UseGuards(UserAccessGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
   @Get()

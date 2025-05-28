@@ -18,7 +18,6 @@ import {
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/enum/role.enum';
 import { Request } from 'express';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { OrderStatusDTO } from '../common/dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
@@ -36,9 +35,11 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
 
 @Controller('orders')
-@UseGuards(UserAccessGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 @ApiTags('Orders')
 @ApiBearerAuth()
 export class OrdersController {

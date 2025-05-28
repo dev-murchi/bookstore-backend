@@ -20,7 +20,6 @@ import { UserService } from './user.service';
 import { Request } from 'express';
 import { UpdateUserDTO } from '../common/dto/update-user.dto';
 import { UpdateProfileDTO } from '../common/dto/update-profile.dto';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
@@ -40,11 +39,13 @@ import {
   ApiBadRequestResponse,
   ApiQuery,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
-@UseGuards(UserAccessGuard)
+@UseGuards(JwtAuthGuard, RoleGuard)
 export class UserController {
   constructor(
     private readonly userService: UserService,

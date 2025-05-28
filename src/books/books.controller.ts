@@ -26,7 +26,6 @@ import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/enum/role.enum';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { UserService } from '../user/user.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { BookDTO } from '../common/dto/book.dto';
@@ -46,6 +45,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
 
 @ApiTags('Books')
 @Controller('books')
@@ -56,7 +57,7 @@ export class BooksController {
     private reviewsService: ReviewsService,
   ) {}
 
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -211,7 +212,7 @@ export class BooksController {
     }
   }
 
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.Admin, RoleEnum.Author])
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
@@ -264,7 +265,7 @@ export class BooksController {
   }
 
   @Post(':id/reviews')
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.User])
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

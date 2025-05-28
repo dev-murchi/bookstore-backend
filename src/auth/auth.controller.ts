@@ -18,7 +18,6 @@ import { PasswordResetRequestDTO } from '../common/dto/password-reset-request.dt
 import { PasswordResetDTO } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/enum/role.enum';
 import { Roles } from '../common/decorator/role/role.decorator';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { UserDTO } from '../common/dto/user.dto';
 import {
@@ -36,6 +35,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 import { RefreshGuard } from '../common/guards/refresh.guard';
+import { RoleGuard } from '../common/guards/role/role.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -72,7 +72,7 @@ export class AuthController {
 
   @Post('create-author')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(UserAccessGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.Admin])
   @ApiOperation({ summary: 'Create an author account (admin only)' })
   @ApiBearerAuth()
@@ -188,7 +188,7 @@ export class AuthController {
 
   @Delete('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RoleGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out of the current session' })
   @ApiOkResponse({

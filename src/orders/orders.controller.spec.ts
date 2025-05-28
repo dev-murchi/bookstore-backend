@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersController } from './orders.controller';
-import { UserAccessGuard } from '../common/guards/user-access/user-access.guard';
 
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
 import { StripeService } from '../payment/stripe/stripe.service';
+import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
 
 const mockOrdersService = {
   getOrder: jest.fn(),
@@ -41,9 +41,9 @@ describe('OrdersController', () => {
         { provide: StripeService, useValue: mockStripeService },
       ],
     })
-      .overrideGuard(UserAccessGuard)
+      .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: jest.fn(),
+        handleRequest: jest.fn(),
       })
       .compile();
 

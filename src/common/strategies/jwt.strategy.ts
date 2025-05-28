@@ -58,6 +58,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
               email: true,
               role: { select: { role_name: true } },
               cart: true,
+              password: true,
             },
           },
         },
@@ -102,6 +103,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         role: userSession.user.role.role_name,
         cartId: userSession.user.cart?.id ?? null,
         sessionId: payload.sessionId,
+        password: userSession.user.password,
         tokenRefreshRequired,
       };
     } catch (error) {
