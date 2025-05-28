@@ -37,6 +37,8 @@ model User {
   books books[]
   order orders[]
   reviews reviews[]
+
+  user_session user_session[]
 }
 
 model password_reset_tokens {
@@ -187,4 +189,17 @@ model refunds {
 
   order  orders @relation(fields: [orderid], references: [orderid])
   
+}
+
+model user_session {
+id                      Int     @default(autoincrement()) @id
+userid                  String
+sessionid               String @unique
+refresh_token           String?
+refresh_required        Boolean @default(false)
+created_at              DateTime @default(now())
+expires_at              DateTime
+user                    User @relation(fields: [userid], references: [userid])
+
+@@unique([userid, sessionid])
 }

@@ -119,10 +119,13 @@ export class AuthController {
     try {
       return await this.authService.login(loginDto);
     } catch (error) {
-      if (error instanceof CustomAPIError)
+      if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
+      }
 
-      if (error instanceof UnauthorizedException) throw error;
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
 
       throw new InternalServerErrorException('User login failed.');
     }

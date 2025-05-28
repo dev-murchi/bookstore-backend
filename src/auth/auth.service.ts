@@ -10,23 +10,21 @@ import { SignupDTO } from '../common/dto/signup.dto';
 import { UserDTO } from 'src/common/dto/user.dto';
 import { ConfigService } from '@nestjs/config';
 import { HelperService } from 'src/common/helper.service';
+import { UserSessionService } from 'src/user/user-session/user-session.service';
 
 @Injectable()
 export class AuthService {
   private readonly jwtSecret: string;
-  private readonly jwtRefresh: string;
   private readonly jwtExpiresIn: string;
-  private readonly jwtRefreshExpiresIn: string;
   constructor(
     private readonly userService: UserService,
     private jwtService: JwtService,
     private emailService: EmailService,
     private configService: ConfigService,
+    private userSessionService: UserSessionService,
   ) {
     this.jwtSecret = this.configService.get('jwt.secret');
     this.jwtExpiresIn = this.configService.get('jwt.expiresIn');
-    this.jwtRefresh = this.configService.get('jwt.refreshSecret');
-    this.jwtRefreshExpiresIn = this.configService.get('jwt.refreshExpiresIn');
   }
 
   async register(signupDto: SignupDTO, role: RoleEnum): Promise<UserDTO> {
@@ -50,9 +48,12 @@ export class AuthService {
       );
 
       // generate jwt token
+      const sessionId = HelperService.generateUUID();
+
       const payload = {
         id: user.id,
         role: user.role,
+        sessionId,
       };
       const accessToken = await this.jwtService.signAsync(payload, {
         secret: this.jwtSecret,
@@ -63,6 +64,12 @@ export class AuthService {
         HelperService.generateUUID(),
         'utf-8',
       ).toString('base64');
+
+      await this.userSessionService.createSession(
+        user.id,
+        sessionId,
+        refreshToken,
+      );
 
       return { accessToken, refreshToken };
     } catch (error) {
