@@ -3,7 +3,7 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { ReviewsService } from '../reviews/reviews.service';
 import { OrdersService } from '../orders/orders.service';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const mockUserService = {
   findOne: jest.fn(),

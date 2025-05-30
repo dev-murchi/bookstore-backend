@@ -64,6 +64,7 @@ describe('UserService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         role: { role_name: 'user' },
+        last_password_reset_at: new Date(),
       });
       const spyHash = jest.spyOn(HelperService, 'generateHash');
       spyHash.mockResolvedValueOnce('hashedPassword');
@@ -87,6 +88,7 @@ describe('UserService', () => {
             },
           },
           is_active: true,
+          last_password_reset_at: expect.any(Date),
         },
         select: {
           userid: true,
@@ -305,6 +307,7 @@ describe('UserService', () => {
           name: 'updated test user',
           email: 'updatedtestuser@email.com',
           password: 'hashedPassword',
+          last_password_reset_at: expect.any(Date),
         },
         select: {
           userid: true,

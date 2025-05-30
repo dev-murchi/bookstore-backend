@@ -5,7 +5,7 @@ import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { EmailService } from '../email/email.service';
 import { StripeService } from '../payment/stripe/stripe.service';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const mockOrdersService = {
   getOrder: jest.fn(),

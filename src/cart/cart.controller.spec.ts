@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartController } from './cart.controller';
 import { CartService } from './cart.service';
-import { CartGuard } from '../common/guards/auth/cart.guard';
+import { CartGuard } from './guards/cart.guard';
 import { CheckoutService } from './checkout/checkout.service';
 
 const mockCartService = {
