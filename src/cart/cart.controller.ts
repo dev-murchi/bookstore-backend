@@ -37,8 +37,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { RoleGuard } from '../common/guards/role/role.guard';
-import { CartGuard } from '../common/guards/auth/cart.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { CartGuard } from './guards/cart.guard';
 
 @Controller('cart')
 @UseGuards(CartGuard, RoleGuard)

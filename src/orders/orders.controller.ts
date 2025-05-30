@@ -35,8 +35,8 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
-import { RoleGuard } from '../common/guards/role/role.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RoleGuard)

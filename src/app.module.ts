@@ -22,7 +22,6 @@ import {
   emailConfig,
   redisConfig,
 } from './common/config';
-import { JwtStrategy } from './common/strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -47,6 +46,6 @@ import { JwtStrategy } from './common/strategies/jwt.strategy';
     QueueProcessorModule,
   ],
   controllers: [AppController],
-  providers: [AppService, JwtStrategy],
+  providers: [AppService],
 })
 export class AppModule {}

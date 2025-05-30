@@ -15,8 +15,8 @@ import {
 } from '@nestjs/common';
 import { CreateCategoryDTO } from '../common/dto/create-category.dto';
 import { CategoryService } from './category.service';
-import { RoleGuard } from '../common/guards/role/role.guard';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../common/decorator/role/role.decorator';
 import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';

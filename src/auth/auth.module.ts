@@ -3,11 +3,12 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from 'src/user/user.module';
 import { EmailModule } from 'src/email/email.module';
-import { RefreshTokenStrategy } from 'src/common/strategies/refresh-token.strategy';
+import { RefreshTokenStrategy } from './strategies/refresh-token.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [UserModule, EmailModule],
   controllers: [AuthController],
-  providers: [AuthService, RefreshTokenStrategy],
+  providers: [AuthService, RefreshTokenStrategy, JwtStrategy],
 })
 export class AuthModule {}

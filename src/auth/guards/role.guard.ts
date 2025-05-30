@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { Roles } from '../../decorator/role/role.decorator';
+import { Roles } from '../../common/decorator/role/role.decorator';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -16,8 +16,6 @@ export class RoleGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user;
-
-    console.log({ user });
 
     if (!user) {
       throw new UnauthorizedException('User authentication failed.');

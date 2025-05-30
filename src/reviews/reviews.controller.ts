@@ -23,8 +23,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
-import { RoleGuard } from '../common/guards/role/role.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 
 @ApiTags('Reviews')
 @Controller('reviews')

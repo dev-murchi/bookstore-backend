@@ -33,9 +33,9 @@ import {
   ApiHeader,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { JwtAuthGuard } from '../common/guards/auth/jwt-auth.guard';
-import { RefreshGuard } from '../common/guards/refresh.guard';
-import { RoleGuard } from '../common/guards/role/role.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RefreshGuard } from './guards/refresh.guard';
+import { RoleGuard } from '../auth/guards/role.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -207,7 +207,6 @@ export class AuthController {
       if (!user || !user['id'] || !user['sessionId']) {
         throw new UnauthorizedException('Please login');
       }
-      console.log({ user });
       await this.authService.logout(user['id'], user['sessionId']);
       return { message: 'Logged out successfully' };
     } catch (error) {
