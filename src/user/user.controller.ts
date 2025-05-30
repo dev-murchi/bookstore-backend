@@ -38,6 +38,8 @@ import {
   ApiInternalServerErrorResponse,
   ApiBadRequestResponse,
   ApiQuery,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -78,9 +80,24 @@ export class UserController {
   @Roles([RoleEnum.Admin, RoleEnum.User])
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiBody({ type: UpdateProfileDTO })
+  @ApiExtraModels(UserDTO)
   @ApiOkResponse({
     description: 'Profile updated successfully',
-    type: UserDTO,
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(UserDTO),
+        },
+        loginRequired: {
+          type: 'boolean',
+          example: true,
+          description:
+            'Indicates whether the user must log in again due to password change',
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Invalid request or no changes provided',
@@ -89,7 +106,7 @@ export class UserController {
   async updateProfile(
     @Req() request: Request,
     @Body() updateUserProfileDto: UpdateProfileDTO,
-  ): Promise<UserDTO> {
+  ): Promise<{ data: UserDTO; loginRequired: boolean }> {
     try {
       const { name, email, password, newPassword } = updateUserProfileDto;
 
@@ -113,11 +130,19 @@ export class UserController {
 
       const updateData = new UpdateUserDTO();
 
+      let loginRequired = false;
+
       if (name) updateData.name = name;
       if (email) updateData.email = email;
-      if (newPassword) updateData.password = newPassword;
-
-      return await this.userService.update(request.user['id'], updateData);
+      if (newPassword) {
+        updateData.password = newPassword;
+        loginRequired = true;
+      }
+      const user = await this.userService.update(
+        request.user['id'],
+        updateData,
+      );
+      return { data: user, loginRequired };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       if (error instanceof CustomAPIError) {

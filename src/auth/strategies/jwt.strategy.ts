@@ -59,6 +59,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
               role: { select: { role_name: true } },
               cart: true,
               password: true,
+              last_password_reset_at: true,
             },
           },
         },
@@ -67,6 +68,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
       if (!userSession) {
         throw new UnauthorizedException(
           'User session id not found. Please login',
+        );
+      }
+
+      if (
+        userSession.user.last_password_reset_at > new Date(payload.iat * 1000)
+      ) {
+        throw new UnauthorizedException(
+          'Session expired due to password change. Please log in again.',
         );
       }
 

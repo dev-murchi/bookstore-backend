@@ -57,6 +57,7 @@ export class UserService {
             },
           },
           is_active: true,
+          last_password_reset_at: new Date(),
         },
         select: this.userSelect,
       });
@@ -156,6 +157,7 @@ export class UserService {
 
       if (password) {
         userUpdateObject.password = await HelperService.generateHash(password);
+        userUpdateObject.last_password_reset_at = new Date();
       }
 
       const user = await this.prisma.user.update({

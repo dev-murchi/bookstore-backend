@@ -47,6 +47,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
               email: true,
               role: { select: { role_name: true } },
               cart: true,
+              last_password_reset_at: true,
             },
           },
         },
@@ -64,6 +65,12 @@ export class RefreshTokenStrategy extends PassportStrategy(
 
       if (!validRefresToken) {
         throw new UnauthorizedException('Refresh token is invalid.');
+      }
+
+      if (session.user.last_password_reset_at > new Date(payload.iat * 1000)) {
+        throw new UnauthorizedException(
+          'Session expired due to password change. Please log in again.',
+        );
       }
 
       if (session.expires_at < new Date()) {
