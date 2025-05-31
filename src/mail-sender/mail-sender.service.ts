@@ -40,34 +40,45 @@ export class MailSenderService {
       },
     });
 
-    this.readMaileMessageTemplates('password-reset');
-    this.readMaileMessageTemplates('refund-create');
-    this.readMaileMessageTemplates('refund-complete');
-    this.readMaileMessageTemplates('refund-failed');
+    try {
+      this.readMaileMessageTemplates('password-reset');
+      this.readMaileMessageTemplates('refund-create');
+      this.readMaileMessageTemplates('refund-complete');
+      this.readMaileMessageTemplates('refund-failed');
+    } catch (error) {
+      console.error('Failed to load email templates:', error);
+      throw new Error(
+        'Failed to initialize email service: Could not load templates.',
+      );
+    }
   }
 
   private readMaileMessageTemplates(fileName: string) {
     const mailFolderPath = path.join(__dirname, '../assets/mail-templates');
+    try {
+      this.htmlMessages.set(
+        fileName,
+        fs
+          .readFileSync(
+            path.join(mailFolderPath, `html/${fileName}.html`),
+            'utf8',
+          )
+          .trim(),
+      );
 
-    this.htmlMessages.set(
-      fileName,
-      fs
-        .readFileSync(
-          path.join(mailFolderPath, `html/${fileName}.html`),
-          'utf8',
-        )
-        .trim(),
-    );
-
-    this.textMessages.set(
-      fileName,
-      fs
-        .readFileSync(
-          path.join(mailFolderPath, `text/${fileName}.text`),
-          'utf8',
-        )
-        .trim(),
-    );
+      this.textMessages.set(
+        fileName,
+        fs
+          .readFileSync(
+            path.join(mailFolderPath, `text/${fileName}.text`),
+            'utf8',
+          )
+          .trim(),
+      );
+    } catch (error) {
+      console.error(`Error reading mail template ${fileName}:`, error);
+      throw new Error(`Failed to read mail template: ${fileName}`);
+    }
   }
 
   private async sendMail(
@@ -99,7 +110,8 @@ export class MailSenderService {
         { key: '{{link}}', value: link },
       ]);
     } catch (error) {
-      console.error(error);
+      console.error('Failed to send password reset email. Error:', error);
+      throw new Error('Failed to send password reset email.');
     }
   }
 
@@ -108,22 +120,34 @@ export class MailSenderService {
     orderId: string,
     status: string,
   ) {
-    if (status === 'shipped') {
-      await this.sendMail(
-        email,
-        `Your Books are on Their Way! Order #${orderId}`,
-        'book are shipped',
-        '<p>books are shipped</p>',
+    try {
+      if (status === 'shipped') {
+        await this.sendMail(
+          email,
+          `Your Books are on Their Way! Order #${orderId}`,
+          'book are shipped',
+          '<p>books are shipped</p>',
+        );
+      } else if (status === 'delivered') {
+        await this.sendMail(
+          email,
+          `Your Book Order #${orderId} Has Arrived!`,
+          'book are delivered',
+          '<p>books are delivered</p>',
+        );
+      } else {
+        throw new Error(
+          'Invalid order status provided for email notification.',
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Failed to send order status update email for Order ${orderId}. Error:`,
+        error,
       );
-    } else if (status === 'delivered') {
-      await this.sendMail(
-        email,
-        `Your Book Order #${orderId} Has Arrived!`,
-        'book are delivered',
-        '<p>books are delivered</p>',
+      throw new Error(
+        `Failed to send order status update email for Order ${orderId}.`,
       );
-    } else {
-      throw new Error('Invalid order status');
     }
   }
 
@@ -142,7 +166,13 @@ export class MailSenderService {
         { key: '{{amount}}', value: amount },
       ]);
     } catch (error) {
-      console.error(error);
+      console.error(
+        `Failed to send refund created email for Order ${data.orderId}. Error:`,
+        error,
+      );
+      throw new Error(
+        `Failed to send refund created email for Order ${data.orderId}.`,
+      );
     }
   }
 
@@ -161,7 +191,13 @@ export class MailSenderService {
         { key: '{{amount}}', value: amount },
       ]);
     } catch (error) {
-      console.error(error);
+      console.error(
+        `Failed to send refund completed email for Order ${data.orderId}. Error:`,
+        error,
+      );
+      throw new Error(
+        `Failed to send refund completed email for Order ${data.orderId}.`,
+      );
     }
   }
 
@@ -182,7 +218,13 @@ export class MailSenderService {
         { key: '{{failure_reason}}', value: failureReason },
       ]);
     } catch (error) {
-      console.error(error);
+      console.error(
+        `Failed to send refund failed email for Order ${data.orderId}. Error:`,
+        error,
+      );
+      throw new Error(
+        `Failed to send refund failed email for Order ${data.orderId}.`,
+      );
     }
   }
 
@@ -199,6 +241,11 @@ export class MailSenderService {
     const dataText = fileds.reduce((text, field) => {
       return text.replaceAll(field.key, field.value);
     }, this.textMessages.get(fileName));
+
+    if (!dataHtml || !dataText) {
+      console.warn(`Missing email templates for fileName: ${fileName}`);
+      throw new Error(`Email template content missing for ${fileName}`);
+    }
 
     await this.sendMail(email, subject, dataText, dataHtml);
   }
