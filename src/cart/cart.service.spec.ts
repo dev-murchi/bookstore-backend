@@ -180,6 +180,130 @@ describe('CartService', () => {
         select: cartSelect,
       });
     });
+
+    it('should throw an error if cart creation fails', async () => {
+      mockPrismaService.cart.create.mockRejectedValueOnce(
+        new Error('Database error during create'),
+      );
+
+      await expect(service.createCart(null)).rejects.toThrow(
+        'Cart creation failed.',
+      );
+    });
+
+    it('should throw an error if cart upsert fails', async () => {
+      mockPrismaService.cart.upsert.mockRejectedValueOnce(
+        new Error('Database error during upsert'),
+      );
+
+      await expect(service.createCart('user-uuid-1')).rejects.toThrow(
+        'Cart creation failed.',
+      );
+    });
+  });
+
+  describe('findCartById', () => {
+    it('should return null if cart is not found by ID', async () => {
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
+      const result = await service.findCartById(999);
+      expect(result).toBeNull();
+      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+        where: { id: 999 },
+        select: cartSelect,
+      });
+    });
+
+    it('should return cart data if found by ID', async () => {
+      const mockCart = {
+        id: 1,
+        userid: null,
+        cart_items: [
+          {
+            quantity: 1,
+            book: {
+              bookid: 'book-uuid-1',
+              title: 'Test Book',
+              description: 'test book description',
+              isbn: 'bookisbn',
+              price: 10.99,
+              rating: 4.5,
+              image_url: 'book-image-url',
+              author: { name: 'test author' },
+              category: { id: 1, category_name: 'test category' },
+            },
+          },
+        ],
+      };
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
+      const result = await service.findCartById(1);
+      expect(result).toEqual({
+        id: 1,
+        owner: null,
+        items: [
+          {
+            quantity: 1,
+            item: {
+              id: 'book-uuid-1',
+              title: 'Test Book',
+              description: 'test book description',
+              isbn: 'bookisbn',
+              price: 10.99,
+              rating: 4.5,
+              imageUrl: 'book-image-url',
+              author: { name: 'test author' },
+              category: { id: 1, value: 'test category' },
+            },
+          },
+        ],
+        totalPrice: 10.99,
+      });
+    });
+
+    it('should throw an error if findCartBy fails when finding by ID', async () => {
+      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
+        new Error('Database error'),
+      );
+      await expect(service.findCartById(1)).rejects.toThrow(
+        'Failed to fetch the cart.',
+      );
+    });
+  });
+
+  describe('findCartByUser', () => {
+    it('should return null if cart is not found by userId', async () => {
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
+      const result = await service.findCartByUser('non-existent-user');
+      expect(result).toBeNull();
+      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+        where: { userid: 'non-existent-user' },
+        select: cartSelect,
+      });
+    });
+
+    it('should return cart data if found by userId', async () => {
+      const mockCart = {
+        id: 1,
+        userid: 'user-uuid-1',
+        cart_items: [],
+      };
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
+      const result = await service.findCartByUser('user-uuid-1');
+      expect(result).toEqual({
+        id: 1,
+        owner: 'user-uuid-1',
+        items: [],
+        totalPrice: 0,
+      });
+    });
+
+    it('should throw an error if findCartBy fails when finding by user ID', async () => {
+      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
+        new Error('Database error'),
+      );
+      await expect(service.findCartByUser('user-uuid-1')).rejects.toThrow(
+        'Failed to fetch the cart.',
+      );
+    });
   });
 
   describe('findCartAndTransformData', () => {
@@ -411,9 +535,28 @@ describe('CartService', () => {
         },
       });
     });
+
+    it('should throw a generic error if an unexpected error occurs during upsert', async () => {
+      mockPrismaService.books.findUnique.mockResolvedValueOnce({
+        id: 1,
+        stock_quantity: 10,
+      });
+      mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
+        new Error('Unexpected database error'),
+      );
+      const cartId = 1;
+      const data = {
+        bookId: 'book-uuid-1',
+        quantity: 1,
+      };
+
+      await expect(service.upsertItem(cartId, data)).rejects.toThrow(
+        'Failed to update item. Check input data.',
+      );
+    });
   });
 
-  describe('attachUser', () => {
+  describe('claim', () => {
     it('should throw an error if the user already has items in the cart', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
         id: 1,
@@ -564,6 +707,110 @@ describe('CartService', () => {
         ],
       });
     });
+
+    it('should throw an error if the cart to be claimed does not exist', async () => {
+      // User has an empty cart
+      mockPrismaService.cart.findUnique
+        .mockResolvedValueOnce({
+          id: 1,
+          userid: 'user-uuid-1',
+          cart_items: [],
+        }) // existing user cart
+        .mockResolvedValueOnce(null); // guest cart not found
+
+      try {
+        await service.claim('user-uuid-1', 999);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Cart does not exist.');
+      }
+    });
+
+    it('should claim a guest cart when user has no existing cart', async () => {
+      mockPrismaService.cart.findUnique
+        .mockResolvedValueOnce(null) // user has no cart
+        .mockResolvedValueOnce({
+          id: 2,
+          userid: null,
+          cart_items: [
+            {
+              quantity: 1,
+              book: {
+                bookid: 'book-uuid-2',
+                title: 'Test Book 2',
+                description: 'test book 2 description',
+                isbn: 'bookisbn-2',
+                price: 10.99,
+                rating: 4.5,
+                image_url: 'book2-image-url',
+                author: { name: 'test author' },
+                category: { id: 1, category_name: 'test category' },
+              },
+            },
+          ],
+        }); // guest cart exists and is a guest cart
+
+      mockPrismaService.cart.update.mockResolvedValueOnce({
+        id: 2,
+        userid: 'user-uuid-1',
+        cart_items: [
+          {
+            quantity: 1,
+            book: {
+              bookid: 'book-uuid-2',
+              title: 'Test Book 2',
+              description: 'test book 2 description',
+              isbn: 'bookisbn-2',
+              price: 10.99,
+              rating: 4.5,
+              image_url: 'book2-image-url',
+              author: { name: 'test author' },
+              category: { id: 1, category_name: 'test category' },
+            },
+          },
+        ],
+      });
+
+      const spy = jest.spyOn(service as any, 'cartUpdate');
+      const result = await service.claim('user-uuid-1', 2);
+
+      expect(mockPrismaService.cart.delete).not.toHaveBeenCalled(); // No user cart to delete
+      expect(spy).toHaveBeenCalledWith(
+        { id: 2 },
+        { user: { connect: { userid: 'user-uuid-1' } } },
+      );
+      expect(result).toEqual({
+        id: 2,
+        owner: 'user-uuid-1',
+        totalPrice: 10.99,
+        items: [
+          {
+            quantity: 1,
+            item: {
+              id: 'book-uuid-2',
+              title: 'Test Book 2',
+              description: 'test book 2 description',
+              isbn: 'bookisbn-2',
+              price: 10.99,
+              rating: 4.5,
+              imageUrl: 'book2-image-url',
+              author: { name: 'test author' },
+              category: { id: 1, value: 'test category' },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should throw a generic error if an unexpected error occurs during claim', async () => {
+      mockPrismaService.$transaction.mockImplementationOnce(() => {
+        throw new Error('Unexpected transaction error');
+      });
+
+      await expect(service.claim('user-uuid-1', 1)).rejects.toThrow(
+        'Only guest carts can be claimed.',
+      );
+    });
   });
 
   describe('removeInactiveGuestCarts', () => {
@@ -609,6 +856,232 @@ describe('CartService', () => {
       await expect(service.removeInactiveGuestCarts()).rejects.toThrow(
         'Failed to remove inactive guest carts',
       );
+    });
+  });
+
+  describe('transformCartItemData', () => {
+    it('should correctly transform cart item data', () => {
+      const mockPrismaCartItem = {
+        quantity: 2,
+        book: {
+          bookid: 'book-uuid-test',
+          title: 'Test Book Title',
+          description: 'Test Description',
+          isbn: '1234567890',
+          price: 25.5,
+          rating: 4.0,
+          image_url: 'http://example.com/image.jpg',
+          author: { name: 'Test Author' },
+          category: { id: 5, category_name: 'Fiction' },
+        },
+      };
+
+      const transformedData = (service as any).transformCartItemData(
+        mockPrismaCartItem,
+      );
+
+      expect(transformedData).toEqual({
+        quantity: 2,
+        item: {
+          id: 'book-uuid-test',
+          title: 'Test Book Title',
+          description: 'Test Description',
+          isbn: '1234567890',
+          price: 25.5,
+          rating: 4.0,
+          imageUrl: 'http://example.com/image.jpg',
+          author: { name: 'Test Author' },
+          category: { id: 5, value: 'Fiction' },
+        },
+      });
+    });
+  });
+
+  describe('transformCartData', () => {
+    it('should correctly transform cart data with multiple items', () => {
+      const mockPrismaCart = {
+        id: 101,
+        userid: 'user-id-test',
+        cart_items: [
+          {
+            quantity: 1,
+            book: {
+              bookid: 'book-1',
+              title: 'Book One',
+              description: 'Desc 1',
+              isbn: 'isbn1',
+              price: 10.0,
+              rating: 3.0,
+              image_url: 'img1',
+              author: { name: 'Author A' },
+              category: { id: 1, category_name: 'Cat A' },
+            },
+          },
+          {
+            quantity: 2,
+            book: {
+              bookid: 'book-2',
+              title: 'Book Two',
+              description: 'Desc 2',
+              isbn: 'isbn2',
+              price: 5.0,
+              rating: 4.0,
+              image_url: 'img2',
+              author: { name: 'Author B' },
+              category: { id: 2, category_name: 'Cat B' },
+            },
+          },
+        ],
+      };
+
+      const transformedData = (service as any).transformCartData(
+        mockPrismaCart,
+      );
+
+      expect(transformedData).toEqual({
+        id: 101,
+        owner: 'user-id-test',
+        totalPrice: 20.0, // (1 * 10.00) + (2 * 5.00) = 10 + 10 = 20
+        items: [
+          {
+            quantity: 1,
+            item: {
+              id: 'book-1',
+              title: 'Book One',
+              description: 'Desc 1',
+              isbn: 'isbn1',
+              price: 10.0,
+              rating: 3.0,
+              imageUrl: 'img1',
+              author: { name: 'Author A' },
+              category: { id: 1, value: 'Cat A' },
+            },
+          },
+          {
+            quantity: 2,
+            item: {
+              id: 'book-2',
+              title: 'Book Two',
+              description: 'Desc 2',
+              isbn: 'isbn2',
+              price: 5.0,
+              rating: 4.0,
+              imageUrl: 'img2',
+              author: { name: 'Author B' },
+              category: { id: 2, value: 'Cat B' },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should correctly transform cart data with empty items', () => {
+      const mockPrismaCart = {
+        id: 102,
+        userid: 'user-id-empty',
+        cart_items: [],
+      };
+
+      const transformedData = (service as any).transformCartData(
+        mockPrismaCart,
+      );
+
+      expect(transformedData).toEqual({
+        id: 102,
+        owner: 'user-id-empty',
+        totalPrice: 0,
+        items: [],
+      });
+    });
+  });
+
+  describe('cartCreate', () => {
+    it('should call prisma.cart.create with correct parameters', async () => {
+      const mockCreatedCart = {
+        id: 1,
+        userid: null,
+        cart_items: [],
+      };
+      mockPrismaService.cart.create.mockResolvedValueOnce(mockCreatedCart);
+
+      const result = await (service as any).cartCreate(null);
+      expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
+        data: { userid: null },
+        select: cartSelect,
+      });
+      expect(result).toEqual(mockCreatedCart);
+    });
+  });
+
+  describe('cartUpsert', () => {
+    it('should call prisma.cart.upsert with correct parameters', async () => {
+      const mockUpsertedCart = {
+        id: 1,
+        userid: 'test-user',
+        cart_items: [],
+      };
+      mockPrismaService.cart.upsert.mockResolvedValueOnce(mockUpsertedCart);
+
+      const result = await (service as any).cartUpsert('test-user');
+      expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
+        where: { userid: 'test-user' },
+        update: {},
+        create: { user: { connect: { userid: 'test-user' } } },
+        select: cartSelect,
+      });
+      expect(result).toEqual(mockUpsertedCart);
+    });
+  });
+
+  describe('cartUpdate', () => {
+    it('should call prisma.cart.update with correct parameters', async () => {
+      const mockUpdatedCart = {
+        id: 1,
+        userid: 'test-user',
+        cart_items: [],
+      };
+      mockPrismaService.cart.update.mockResolvedValueOnce(mockUpdatedCart);
+
+      const condition = { id: 1 };
+      const data = { user: { connect: { userid: 'test-user-new' } } }; // Updated data as per service method
+      const result = await (service as any).cartUpdate(condition, data);
+      expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
+        where: condition,
+        data: data,
+        select: cartSelect,
+      });
+      expect(result).toEqual(mockUpdatedCart);
+    });
+  });
+
+  describe('findCartBy', () => {
+    it('should call prisma.cart.findUnique with correct parameters and return data', async () => {
+      const mockFoundCart = {
+        id: 1,
+        userid: 'test-user',
+        cart_items: [],
+      };
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockFoundCart);
+
+      const condition = { id: 1 };
+      const result = await (service as any).findCartBy(condition);
+      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+        where: condition,
+        select: cartSelect,
+      });
+      expect(result).toEqual(mockFoundCart);
+    });
+
+    it('should call prisma.cart.findUnique with correct parameters and return null if not found', async () => {
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
+
+      const condition = { id: 999 };
+      const result = await (service as any).findCartBy(condition);
+      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+        where: condition,
+        select: cartSelect,
+      });
+      expect(result).toBeNull();
     });
   });
 });
