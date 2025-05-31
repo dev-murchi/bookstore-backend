@@ -284,4 +284,38 @@ describe('AuthService', () => {
       expect(result).toEqual({ message: 'Password reset successfully' });
     });
   });
+
+  describe('refreshToken', () => {
+    it('should handle the errors', async () => {
+      mockUserSessionService.updateSession.mockRejectedValueOnce('Error');
+      await expect(
+        service.refreshToken('user-uuid-1', 'session-id-1'),
+      ).rejects.toThrow('User session update failed');
+    });
+
+    it('should create and return the refresh token', async () => {
+      const spy1 = jest.spyOn(HelperService, 'generateToken');
+      const spy2 = jest.spyOn(HelperService, 'hashToken');
+      spy1.mockReturnValueOnce('token-value');
+      spy2.mockReturnValueOnce('token-hash');
+      mockUserSessionService.updateSession.mockResolvedValueOnce({});
+
+      const result = await service.refreshToken('user-uuid-1', 'session-id-1');
+      expect(result).toEqual({ token: 'token-value' });
+      spy1.mockRestore();
+      spy2.mockRestore();
+    });
+  });
+
+  describe('logout', () => {
+    it('shoul call deleteSession method from the user session service', async () => {
+      mockUserSessionService.deleteSession.mockResolvedValueOnce({});
+      await service.logout('user-uuid-1', 'session-id-1');
+      expect(mockUserSessionService.deleteSession).toHaveBeenCalledTimes(1);
+      expect(mockUserSessionService.deleteSession).toHaveBeenCalledWith(
+        'user-uuid-1',
+        'session-id-1',
+      );
+    });
+  });
 });
