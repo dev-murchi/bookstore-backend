@@ -3,6 +3,8 @@ import { CategoryService } from './category.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDTO } from '../common/dto/create-category.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
+import { Prisma } from '@prisma/client';
+import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockPrismaService = {
   category: {
@@ -89,6 +91,25 @@ describe('CategoryService', () => {
       await expect(service.create(createCategoryDTO)).rejects.toThrow(
         'Category could not be created',
       );
+    });
+
+    it('should throw an error if the category is already exist', async () => {
+      const createCategoryDTO: CreateCategoryDTO = { value: 'Science' };
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint failed on the fields: (category_name)',
+        {
+          code: 'P2002',
+        } as any,
+      );
+
+      mockPrismaService.category.create.mockRejectedValue(prismaError);
+
+      try {
+        await service.create(createCategoryDTO);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Category is already exist.');
+      }
     });
   });
 
