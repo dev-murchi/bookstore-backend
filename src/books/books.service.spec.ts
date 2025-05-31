@@ -125,6 +125,31 @@ describe('BooksService', () => {
       expect(result).toEqual(bookDTO);
       spy.mockRestore();
     });
+
+    it('should throw CustomAPIError when an error occurs', async () => {
+      mockPrismaService.books.findUnique.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+
+      try {
+        const createBookDto: CreateBookDTO = {
+          title: 'The Test Book',
+          categoryId: 1,
+          isbn: '9780743273565',
+          price: 1,
+          description: 'Test book description.',
+          stockQuantity: 1,
+          imageUrl: 'testbook-image-url',
+          isActive: true,
+          author: 'testauthor@email.com',
+        };
+
+        await service.create('author-id-1', createBookDto);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Book creation failed.');
+      }
+    });
   });
 
   describe('finAll', () => {
@@ -166,6 +191,19 @@ describe('BooksService', () => {
         ),
       ]);
     });
+
+    it('should throw CustomAPIError when an error occurs', async () => {
+      mockPrismaService.books.findMany.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+
+      try {
+        await service.findAll();
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Books could not retrieved.');
+      }
+    });
   });
 
   describe('findOne', () => {
@@ -206,6 +244,17 @@ describe('BooksService', () => {
           'testbook-image-url-2',
         ),
       );
+    });
+    it('should throw CustomAPIError when an error occurs', async () => {
+      mockPrismaService.books.findUnique.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+      try {
+        await service.findOne('book-uuid-1');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Book could not retrieved.');
+      }
     });
   });
 
@@ -601,6 +650,18 @@ describe('BooksService', () => {
 
       expect(result).toEqual([]);
     });
+
+    it('should throw CustomAPIError when an error occurs', async () => {
+      mockPrismaService.books.findMany.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+      try {
+        await service.search('search something');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Search for the book(s) failed.');
+      }
+    });
   });
 
   describe('filter', () => {
@@ -987,6 +1048,23 @@ describe('BooksService', () => {
       const result = await service.filter(filterParams);
 
       expect(result).toEqual([]);
+    });
+    it('should throw CustomAPIError when an error occurs', async () => {
+      const filterParams = {
+        minPrice: 500,
+        maxPrice: 1000,
+        orderBy: 'asc' as SortType,
+      };
+
+      mockPrismaService.books.findMany.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+      try {
+        await service.filter(filterParams);
+      } catch (error) {
+        expect(error).toBeInstanceOf(CustomAPIError);
+        expect(error.message).toBe('Filter operation for book(s) failed.');
+      }
     });
   });
 });

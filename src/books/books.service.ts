@@ -87,8 +87,8 @@ export class BooksService {
 
       return books.map((book) => this.transformBookData(book));
     } catch (error) {
-      console.error('Books could not fetched. Error:', error);
-      throw new CustomAPIError('Books could not fetched.');
+      console.error('Books could not retrieved. Error:', error);
+      throw new CustomAPIError('Books could not retrieved.');
     }
   }
 
@@ -98,8 +98,8 @@ export class BooksService {
       if (!book) return null;
       return this.transformBookData(book);
     } catch (error) {
-      console.error('Book could be fetched. Error:', error);
-      throw new CustomAPIError('Book could be fetched.');
+      console.error('Book could be retrieved. Error:', error);
+      throw new CustomAPIError('Book could not retrieved.');
     }
   }
 
