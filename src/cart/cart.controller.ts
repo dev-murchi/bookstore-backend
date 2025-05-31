@@ -13,9 +13,9 @@ import {
   UnauthorizedException,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
-import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
 import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
 import { Request } from 'express';
 import { Roles } from '../common/decorator/role/role.decorator';
@@ -265,20 +265,21 @@ export class CartController {
     }
   }
 
-  @Delete(':id/items')
+  @Delete(':id/items/:itemId')
   @Roles([RoleEnum.User, RoleEnum.GuestUser])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Remove an item from the cart (Authenticated User and Guest only)',
   })
   @ApiParam({ name: 'id', type: Number, description: 'Cart ID' })
+  @ApiParam({ name: 'itemId', type: String, description: 'Book ID to remove' })
   @ApiOkResponse({ description: 'Item removed from cart', type: Object })
   @ApiBadRequestResponse({ description: 'Cart is empty or invalid' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async removeItem(
     @Req() request: Request,
     @Param('id', ParseIntPipe) cartId: number,
-    @Body() data: DeleteCartItemDTO,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
   ): Promise<{ message: string }> {
     try {
       if (request.user && request.user['cartId'] === null) {
@@ -299,7 +300,7 @@ export class CartController {
         throw new BadRequestException('Cart is empty!');
       }
 
-      return await this.cartService.removeItem(cartId, data);
+      return await this.cartService.removeItem(cartId, { bookId: itemId });
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException(
