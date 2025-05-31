@@ -3,6 +3,7 @@ import { CheckoutService } from './checkout.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PaymentService } from '../../payment/payment.service';
+import { CustomAPIError } from '../../common/errors/custom-api.error';
 
 const mockPrismaService = {
   $transaction: jest
@@ -190,5 +191,64 @@ describe('CheckoutService', () => {
       where: { id: 1 },
     });
     expect(mockPaymentService.createStripeCheckoutSession).toHaveBeenCalled();
+  });
+
+  it('should throw an error whe stripe checkout session creation failed', async () => {
+    const cartItems = [
+      {
+        quantity: 2,
+        book: {
+          bookid: 'book-1',
+          price: new Prisma.Decimal(15.0),
+          stock_quantity: 10,
+          title: 'Book A',
+          description: 'Book A Description',
+          isbn: 'ISBN-A',
+          rating: new Prisma.Decimal(4.0),
+          image_url: 'img-a.jpg',
+          author: { name: 'Author A' },
+          category: { id: 1, category_name: 'Fiction' },
+        },
+      },
+      {
+        quantity: 1,
+        book: {
+          bookid: 'book-2',
+          price: new Prisma.Decimal(20.0),
+          stock_quantity: 5,
+          title: 'Book B',
+          description: 'Book B Description',
+          isbn: 'ISBN-B',
+          rating: new Prisma.Decimal(4.5),
+          image_url: 'img-b.jpg',
+          author: { name: 'Author B' },
+          category: { id: 2, category_name: 'Non-fiction' },
+        },
+      },
+    ];
+
+    mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+      cart_items: cartItems,
+    });
+
+    mockPrismaService.orders.create.mockResolvedValueOnce({
+      orderid: 'order-uuid-123',
+      totalPrice: new Prisma.Decimal(50.0),
+      status: 'pending',
+    });
+
+    mockPaymentService.createStripeCheckoutSession.mockRejectedValueOnce(
+      new Error('Stripe check session creation failed.'),
+    );
+    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: 1 });
+
+    try {
+      await service.checkout('user-1', { cartId: 1 });
+    } catch (error) {
+      expect(error).toBeInstanceOf(CustomAPIError);
+      expect(error.message).toBe(
+        'Failed to create payment session. Please try again later.',
+      );
+    }
   });
 });
