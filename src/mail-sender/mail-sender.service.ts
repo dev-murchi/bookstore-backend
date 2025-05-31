@@ -193,11 +193,11 @@ export class MailSenderService {
     fileds: { key: string; value: string }[],
   ) {
     const dataHtml = fileds.reduce((text, field) => {
-      return text.replace(field.key, field.value);
+      return text.replaceAll(field.key, field.value);
     }, this.htmlMessages.get(fileName));
 
     const dataText = fileds.reduce((text, field) => {
-      return text.replace(field.key, field.value);
+      return text.replaceAll(field.key, field.value);
     }, this.textMessages.get(fileName));
 
     await this.sendMail(email, subject, dataText, dataHtml);
