@@ -40,7 +40,6 @@ export class EmailService {
         username,
         link,
       });
-      console.log('....');
     } catch (error) {
       console.error('Failed to queue password reset email:', error);
       throw new Error(
@@ -59,8 +58,12 @@ export class EmailService {
       await this.mailSenderQueue.add('order-refund-created', data);
     } catch (error) {
       console.error(error);
+      throw new Error(
+        `Unable to send refund created email for Order ${data.orderId}. Please try again later.`,
+      );
     }
   }
+
   async sendRefundCompleteddMail(data: {
     orderId: string;
     amount: string;
@@ -71,8 +74,12 @@ export class EmailService {
       await this.mailSenderQueue.add('order-refund-completed', data);
     } catch (error) {
       console.error(error);
+      throw new Error(
+        `Unable to send refund completed email for Order ${data.orderId}. Please try again later.`,
+      );
     }
   }
+
   async sendRefundFailedMail(data: {
     orderId: string;
     amount: string;
@@ -84,6 +91,9 @@ export class EmailService {
       await this.mailSenderQueue.add('order-refund-failed', data);
     } catch (error) {
       console.error(error);
+      throw new Error(
+        `Unable to send refund failed email for Order ${data.orderId}. Please try again later.`,
+      );
     }
   }
 }

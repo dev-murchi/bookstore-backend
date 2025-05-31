@@ -17,6 +17,7 @@ describe('EmailService', () => {
     }).compile();
 
     service = module.get<EmailService>(EmailService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -24,7 +25,7 @@ describe('EmailService', () => {
   });
 
   describe('sendOrderStatusUpdate', () => {
-    it('should adds a new job to the queue. ', async () => {
+    it('should add a new job to the queue', async () => {
       const job = {
         orderId: 'order-uuid-1',
         status: 'complete',
@@ -92,6 +93,123 @@ describe('EmailService', () => {
           'Unable to send password reset email at this time. Please try again later.',
         ),
       );
+    });
+  });
+
+  describe('sendRefundCreatedMail', () => {
+    it('should add a new job to the queue for refund creation', async () => {
+      const data = {
+        orderId: 'refund-order-1',
+        amount: '100.00',
+        email: 'customer@email.com',
+        customerName: 'John Doe',
+      };
+
+      await service.sendRefundCreatedMail(data);
+
+      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
+        'order-refund-created',
+        {
+          orderId: 'refund-order-1',
+          amount: '100.00',
+          email: 'customer@email.com',
+          customerName: 'John Doe',
+        },
+      );
+    });
+
+    it('should throw an error if the refund created job could not be added to the queue', async () => {
+      const data = {
+        orderId: 'refund-order-1',
+        amount: '100.00',
+        email: 'customer@email.com',
+        customerName: 'John Doe',
+      };
+      mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
+
+      await expect(service.sendRefundCreatedMail(data)).rejects.toThrow(
+        `Unable to send refund created email for Order refund-order-1. Please try again later.`,
+      );
+      expect(mockMailSenderQueue.add).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('sendRefundCompleteddMail', () => {
+    it('should add a new job to the queue for refund completion', async () => {
+      const data = {
+        orderId: 'refund-order-2',
+        amount: '50.00',
+        email: 'customer2@email.com',
+        customerName: 'Jane Smith',
+      };
+
+      await service.sendRefundCompleteddMail(data);
+
+      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
+        'order-refund-completed',
+        {
+          orderId: 'refund-order-2',
+          amount: '50.00',
+          email: 'customer2@email.com',
+          customerName: 'Jane Smith',
+        },
+      );
+    });
+
+    it('should throw an error if the refund completed job could not be added to the queue', async () => {
+      const data = {
+        orderId: 'refund-order-2',
+        amount: '50.00',
+        email: 'customer2@email.com',
+        customerName: 'Jane Smith',
+      };
+      mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
+
+      await expect(service.sendRefundCompleteddMail(data)).rejects.toThrow(
+        `Unable to send refund completed email for Order refund-order-2. Please try again later.`,
+      );
+      expect(mockMailSenderQueue.add).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('sendRefundFailedMail', () => {
+    it('should add a new job to the queue for refund failure', async () => {
+      const data = {
+        orderId: 'refund-order-3',
+        amount: '75.00',
+        email: 'customer3@email.com',
+        customerName: 'Mike Johnson',
+        failureReason: 'Payment gateway error',
+      };
+
+      await service.sendRefundFailedMail(data);
+
+      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
+        'order-refund-failed',
+        {
+          orderId: 'refund-order-3',
+          amount: '75.00',
+          email: 'customer3@email.com',
+          customerName: 'Mike Johnson',
+          failureReason: 'Payment gateway error',
+        },
+      );
+    });
+
+    it('should throw an error if the refund failed job could not be added to the queue', async () => {
+      const data = {
+        orderId: 'refund-order-3',
+        amount: '75.00',
+        email: 'customer3@email.com',
+        customerName: 'Mike Johnson',
+        failureReason: 'Payment gateway error',
+      };
+      mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
+
+      await expect(service.sendRefundFailedMail(data)).rejects.toThrow(
+        `Unable to send refund failed email for Order refund-order-3. Please try again later.`,
+      );
+      expect(mockMailSenderQueue.add).toHaveBeenCalledTimes(1);
     });
   });
 });
