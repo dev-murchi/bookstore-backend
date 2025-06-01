@@ -91,7 +91,9 @@ export class OrdersService {
         where: condition,
         select: this.orderSelect,
       });
-      return Promise.all(orders.map((order) => this.transformToOrder(order)));
+      return await Promise.all(
+        orders.map((order) => this.transformToOrder(order)),
+      );
     } catch (error) {
       console.error('Orders could not fetched', error);
       throw new Error('Orders could not fetched');

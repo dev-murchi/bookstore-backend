@@ -6,6 +6,9 @@ import { OrderItemDTO } from '../common/dto/order-item.dto';
 import { BookDTO } from '../common/dto/book.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
 import * as classValidator from 'class-validator';
+import { AddressDTO } from '../common/dto/address.dto';
+import { ShippingDTO } from '../common/dto/shipping.dto';
+import { PaymentDTO } from '../common/dto/payment.dto';
 
 const orderId1 = '461802bb-8792-42f6-b4b3-a620f91cedb6'; // just example
 const orderId2 = '58fcf574-f144-4c3e-8eb1-72efe85541db'; // just example
@@ -59,8 +62,24 @@ const mockPrismaOrder2 = {
       },
     },
   ],
-  shipping_details: null,
-  payment: null,
+  shipping_details: {
+    email: 'aragorn@gondor.com',
+    phone: '+44 1234 567890',
+    address: {
+      country: 'Middle-earth',
+      state: 'Gondor',
+      city: 'Minas Tirith',
+      line1: '1 White Tower',
+      line2: 'Room 101',
+      postalCode: 'MT-001',
+    },
+  },
+  payment: {
+    transaction_id: 'lotr_txn_00112233',
+    status: 'completed',
+    method: 'ring_coin',
+    amount: 42.5,
+  },
 };
 
 const mockPrismaService = {
@@ -104,6 +123,25 @@ describe('OrdersService', () => {
         mockPrismaOrder1,
         mockPrismaOrder2,
       ]);
+
+      const expectedAddress = new AddressDTO();
+      expectedAddress.country = 'Middle-earth';
+      expectedAddress.state = 'Gondor';
+      expectedAddress.city = 'Minas Tirith';
+      expectedAddress.line1 = '1 White Tower';
+      expectedAddress.line2 = 'Room 101';
+      expectedAddress.postalCode = 'MT-001';
+
+      const expectedShipping = new ShippingDTO();
+      expectedShipping.address = expectedAddress;
+      expectedShipping.email = 'aragorn@gondor.com';
+      expectedShipping.phone = '+44 1234 567890';
+
+      const expectedPayment = new PaymentDTO();
+      expectedPayment.transactionId = 'lotr_txn_00112233';
+      expectedPayment.status = 'completed';
+      expectedPayment.method = 'ring_coin';
+      expectedPayment.amount = 42.5;
 
       const result = await service.getAll();
 
@@ -154,6 +192,8 @@ describe('OrdersService', () => {
               2,
             ),
           ],
+          shipping: expectedShipping,
+          payment: expectedPayment,
         },
       ]);
     });
