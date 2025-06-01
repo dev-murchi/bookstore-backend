@@ -87,6 +87,15 @@ describe('PaymentService', () => {
         expires: mockSession.expires_at,
       });
     });
+    it('shoudld throw an error when stripe session creation fails', async () => {
+      mockStripeService.createCheckoutSession.mockRejectedValueOnce(
+        new Error('Stripe checkoput creation error.'),
+      );
+
+      await expect(
+        paymentService.createStripeCheckoutSession({}),
+      ).rejects.toThrow('Stripe checkout session creation failed.');
+    });
   });
 
   describe('handleStripeWebhook', () => {
