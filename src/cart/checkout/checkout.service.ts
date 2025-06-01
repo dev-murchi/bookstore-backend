@@ -169,9 +169,7 @@ export class CheckoutService {
   }
 
   private transformToOrderItem(cartItem: any): OrderItemDTO {
-    const orderItem = new OrderItemDTO();
-    orderItem.quantity = cartItem.quantity;
-    orderItem.item = new BookDTO(
+    const item = new BookDTO(
       cartItem.book.bookid,
       cartItem.book.title,
       cartItem.book.description,
@@ -185,6 +183,8 @@ export class CheckoutService {
       Number(cartItem.book.rating.toFixed(2)),
       cartItem.book.image_url,
     );
+
+    const orderItem = new OrderItemDTO(item, cartItem.quantity);
 
     return orderItem;
   }
