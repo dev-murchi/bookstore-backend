@@ -3,33 +3,34 @@ import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
+import { OrderItemDTO } from '../common/dto/order-item.dto';
+import { BookDTO } from '../common/dto/book.dto';
+import { CategoryDTO } from '../common/dto/category.dto';
+
+const orderId1 = '461802bb-8792-42f6-b4b3-a620f91cedb6'; // just example
+const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const bookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
 
 const mockOrder = {
-  id: 1,
-  orderid: 'order-uuid-1',
-  userid: 101,
-  totalPrice: 42.5,
-  status: OrderStatus.Pending,
-  shipping_details: { email: 'user@email.com' },
-  order_items: [
-    {
-      id: 1,
-      quantity: 2,
-      book: {
-        id: 10,
-        title: 'Book Title',
-        author: { name: 'Author Name' },
-      },
-    },
-    {
-      id: 2,
-      quantity: 1,
-      book: {
-        id: 11,
-        title: 'Book Title 2',
-        author: { name: 'Author Name 2' },
-      },
-    },
+  id: orderId1,
+  owner: userId,
+  status: 'pending',
+  price: 21.25,
+  items: [
+    new OrderItemDTO(
+      new BookDTO(
+        bookId,
+        'Test Book',
+        'test book description',
+        'book-isbn',
+        { name: 'Traveller Hobbit' },
+        new CategoryDTO(1, 'test category'),
+        21.25,
+        4.0,
+        'book-image-url',
+      ),
+      1,
+    ),
   ],
 };
 
@@ -58,12 +59,11 @@ describe('OrdersStatusService', () => {
   });
 
   describe('changeStatus', () => {
-    it('throws if order is not found', async () => {
-      const orderId = 1;
+    it('should throw an error if order is not found', async () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(null);
 
       try {
-        await (service as any).changeStatus(orderId, {
+        await service['changeStatus'](orderId1, {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
         });
@@ -73,11 +73,11 @@ describe('OrdersStatusService', () => {
       }
     });
 
-    it('returns early if status already matches target', async () => {
+    it('should return early if status already matches target', async () => {
       const order = { ...mockOrder, status: OrderStatus.Canceled };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
-      const result = await (service as any).changeStatus('order-uuid-1', {
+      const result = await service['changeStatus']('order-uuid-1', {
         from: OrderStatus.Pending,
         to: OrderStatus.Canceled,
       });
@@ -85,12 +85,12 @@ describe('OrdersStatusService', () => {
       expect(result).toEqual(order);
     });
 
-    it('throws if current status does not match rule.from', async () => {
+    it('should throw an error if current status does not match rule.from', async () => {
       const order = { ...mockOrder, status: OrderStatus.Complete };
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
 
       try {
-        await (service as any).changeStatus('order-uuid-1', {
+        await service['changeStatus']('order-uuid-1', {
           from: OrderStatus.Pending,
           to: OrderStatus.Canceled,
         });
@@ -101,10 +101,23 @@ describe('OrdersStatusService', () => {
         );
       }
     });
+
+    it('should thrown an error if the order id is invalid', async () => {
+      mockOrdersService.getOrder.mockRejectedValueOnce(
+        new Error('Invalid order ID'),
+      );
+
+      await expect(
+        service['changeStatus'](1 as unknown as string, {
+          from: OrderStatus.Pending,
+          to: OrderStatus.Canceled,
+        }),
+      ).rejects.toThrow('Unable to complete order canceled process.');
+    });
   });
 
   describe('cancelOrder', () => {
-    it('updates stock and sends mail', async () => {
+    it('should update stock and sends mail', async () => {
       mockOrdersService.getOrder.mockResolvedValueOnce(mockOrder);
       mockOrdersService.updateStatus.mockResolvedValueOnce({
         ...mockOrder,
@@ -121,34 +134,34 @@ describe('OrdersStatusService', () => {
   });
 
   describe('shipOrder', () => {
-    it('updates status and sends mail', async () => {
+    it('should update status and sends mail', async () => {
       const order = { ...mockOrder, status: 'complete' };
       const updated = { ...order, status: 'shipped' };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
       mockOrdersService.updateStatus.mockResolvedValueOnce(updated);
 
-      await service.shipOrder(order.orderid);
+      await service.shipOrder(order.id);
 
       expect(ordersService.updateStatus).toHaveBeenCalledWith(
-        order.orderid,
+        order.id,
         'shipped',
       );
     });
   });
 
   describe('deliverOrder', () => {
-    it('updates status and sends mail', async () => {
+    it('should update status and sends mail', async () => {
       const order = { ...mockOrder, status: 'shipped' };
       const updated = { ...order, status: 'delivered' };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(order);
       mockOrdersService.updateStatus.mockResolvedValueOnce(updated);
 
-      await service.deliverOrder(order.orderid);
+      await service.deliverOrder(order.id);
 
       expect(ordersService.updateStatus).toHaveBeenCalledWith(
-        order.orderid,
+        order.id,
         'delivered',
       );
     });
