@@ -195,6 +195,21 @@ describe('AuthService', () => {
       spy.mockRestore();
       spy2.mockRestore();
     });
+
+    it('should rethrow unknown errors during login', async () => {
+      const email = 'user@mail.com';
+      const password = 'password';
+      mockUserService.checkUserWithPassword.mockRejectedValueOnce(
+        new Error('Error'),
+      );
+
+      try {
+        await service.login({ email, password });
+      } catch (error) {
+        expect(error).not.toBeInstanceOf(UnauthorizedException);
+        expect(error.message).toBe('Error');
+      }
+    });
   });
 
   describe('forgotPassword', () => {
