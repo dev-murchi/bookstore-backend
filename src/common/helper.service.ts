@@ -4,9 +4,11 @@ import * as crypto from 'crypto';
 const roundsOfHashing = 10;
 
 export class HelperService {
-  static slugify(text: string): string {
-    return text
-      .toString()
+  static slugify(data: any): string {
+    if (typeof data !== 'string') {
+      throw new TypeError('Expected a string');
+    }
+    return data
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric characters
@@ -22,8 +24,8 @@ export class HelperService {
     try {
       return await bcrypt.hash(data, roundsOfHashing);
     } catch (error) {
-      console.error('Password generation failed. Error:', error);
-      throw new Error('Password generation failed.');
+      console.error('Failed to generate hash. Error:', error);
+      throw new Error('Failed to generate hash.');
     }
   }
 
@@ -34,8 +36,8 @@ export class HelperService {
     try {
       return await bcrypt.compare(data, encrypted);
     } catch (error) {
-      console.error('Comparison failed. Error:', error);
-      throw new Error('comparison failed.');
+      console.error('Hash comparison failed. Error:', error);
+      throw new Error('Failed to compare provided data with encrypted hash.');
     }
   }
 
@@ -69,10 +71,6 @@ export class HelperService {
       const inputHash = this.hashToken(token, encoding);
       const inputBuffer = Buffer.from(inputHash, encoding);
       const storedBuffer = Buffer.from(hash, encoding);
-
-      if (inputBuffer.length !== storedBuffer.length) {
-        return false;
-      }
 
       return crypto.timingSafeEqual(inputBuffer, storedBuffer);
     } catch (error) {
