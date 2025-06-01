@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { ReviewDTO } from '../common/dto/review.dto';
 import { Prisma } from '@prisma/client';
+import { validate } from 'class-validator';
 
 @Injectable()
 export class ReviewsService {
@@ -80,8 +81,8 @@ export class ReviewsService {
 
       return reviews;
     } catch (error) {
-      console.error('Reviews could not fetched.Error:', error);
-      throw new Error('Reviews could not fetched.');
+      console.error('Reviews could not retrieved.Error:', error);
+      throw new Error('Reviews could not retrieved.');
     }
   }
 
@@ -101,8 +102,8 @@ export class ReviewsService {
     try {
       const entityReviews = await this.getReviews(condition, page, limit);
 
-      const reviews = entityReviews.map((review) =>
-        this.transformSelectedReview(review),
+      const reviews = await Promise.all(
+        entityReviews.map((review) => this.transformSelectedReview(review)),
       );
 
       const averageRating = await this.averageRating(condition);
@@ -185,14 +186,23 @@ export class ReviewsService {
     };
   }
 
-  private transformSelectedReview(review: any): ReviewDTO {
-    return new ReviewDTO(
+  private async transformSelectedReview(review: any): Promise<ReviewDTO> {
+    const reviewDTO = new ReviewDTO(
       review.id,
       review.data,
       review.rating,
       review.bookid,
       review.userid,
     );
+
+    const errors = await validate(reviewDTO);
+
+    if (errors.length > 0) {
+      console.log('Validation failed for ReviewDTO. Error:', errors);
+      throw new Error('Validation failed.');
+    }
+
+    return reviewDTO;
   }
 
   async findReview(id: number): Promise<ReviewDTO | null> {
@@ -210,10 +220,10 @@ export class ReviewsService {
 
       if (!review) return null;
 
-      return this.transformSelectedReview(review);
+      return await this.transformSelectedReview(review);
     } catch (error) {
-      console.error('Review could not fetched.Error:', error);
-      throw new Error('Review could not fetched.');
+      console.error('Review could not retrieved.Error:', error);
+      throw new Error('Review could not retrieved.');
     }
   }
 
