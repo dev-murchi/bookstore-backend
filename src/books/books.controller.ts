@@ -10,8 +10,6 @@ import {
   Patch,
   Get,
   Query,
-  ParseFloatPipe,
-  ParseBoolPipe,
   InternalServerErrorException,
   UnauthorizedException,
   NotFoundException,
@@ -47,6 +45,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { BookFilterDTO } from '../common/dto/book-filter.dto';
 
 @ApiTags('Books')
 @Controller('books')
@@ -152,27 +151,22 @@ export class BooksController {
   @Get('filter')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Filter books by price, rating, stock, and sort' })
-  @ApiQuery({ name: 'minPrice', type: Number, required: false })
-  @ApiQuery({ name: 'maxPrice', type: Number, required: false })
-  @ApiQuery({ name: 'rating', type: Number, required: false })
-  @ApiQuery({ name: 'stock', type: Boolean, required: false })
-  @ApiQuery({ name: 'sort', enum: ['asc', 'desc'], required: false })
-  @ApiOkResponse({ description: 'Filtered list of books', type: [BookDTO] })
-  async filter(
-    @Query('minPrice', ParseFloatPipe) minPrice?: number,
-    @Query('maxPrice', ParseFloatPipe) maxPrice?: number,
-    @Query('rating', ParseIntPipe) rating?: number,
-    @Query('stock', ParseBoolPipe) stock?: boolean,
-    @Query('sort') sort?: 'asc' | 'desc',
-  ): Promise<{ data: BookDTO[] }> {
+  @ApiBadRequestResponse({
+    description: 'Validation error or custom filtering logic failure.',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Unexpected server error while filtering books.',
+  })
+  async filter(@Query() query: BookFilterDTO): Promise<{ data: BookDTO[] }> {
     try {
-      const orderBy = sort === 'desc' ? 'desc' : 'asc';
+      const { minPrice, maxPrice, rating, sort, stock } = query;
+
       const filteredBooks = await this.booksService.filter({
         minPrice,
         maxPrice,
         rating,
         stock,
-        orderBy,
+        orderBy: sort,
       });
 
       return { data: filteredBooks };

@@ -227,7 +227,7 @@ export class BooksService {
 
       // minimum rating
       if (filterParams.rating >= 0) {
-        rating = { ...rating, gte: filterParams.rating };
+        rating = { gte: Math.ceil(filterParams.rating) };
       }
 
       const orderBy = filterParams.orderBy;
