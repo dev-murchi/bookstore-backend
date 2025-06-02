@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { HelperService } from '../common/helper.service';
 import { UserDTO } from '../common/dto/user.dto';
+import { validate } from 'class-validator';
 
 @Injectable()
 export class UserService {
@@ -81,10 +82,12 @@ export class UserService {
         select: this.userSelect,
       });
 
-      return users.map((user) => this.transformSelectedUserToUser(user));
+      return await Promise.all(
+        users.map((user) => this.transformSelectedUserToUser(user)),
+      );
     } catch (error) {
-      console.error('Users could not fetched. Error:', error);
-      throw new Error('Users could not fetched');
+      console.error('Users could not retrieved. Error:', error);
+      throw new Error('Users could not retrieved.');
     }
   }
 
@@ -94,10 +97,10 @@ export class UserService {
 
       if (!user) return null;
 
-      return this.transformSelectedUserToUser(user);
+      return await this.transformSelectedUserToUser(user);
     } catch (error) {
-      console.error('User could not be fetched. Error:', error);
-      throw new Error('User could not be fetched.');
+      console.error('User could not retrieved. Error:', error);
+      throw new Error('User could not retrieved.');
     }
   }
 
@@ -107,10 +110,10 @@ export class UserService {
 
       if (!user) return null;
 
-      return this.transformSelectedUserToUser(user);
+      return await this.transformSelectedUserToUser(user);
     } catch (error) {
-      console.error('User could not be fetched. Error:', error);
-      throw new Error('User could not be fetched.');
+      console.error('User could not retrieved. Error:', error);
+      throw new Error('User could not retrieved.');
     }
   }
 
@@ -285,7 +288,7 @@ export class UserService {
 
       if (!isCorrect) throw new CustomAPIError('Invalid user credentials');
 
-      return this.transformSelectedUserToUser(user);
+      return await this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User password check failed. Error:', error);
 
@@ -295,12 +298,23 @@ export class UserService {
     }
   }
 
-  private transformSelectedUserToUser(selectedUser: any): UserDTO {
-    return new UserDTO(
+  private async transformSelectedUserToUser(
+    selectedUser: any,
+  ): Promise<UserDTO> {
+    const user = new UserDTO(
       selectedUser.userid,
       selectedUser.name,
       selectedUser.email,
       selectedUser.role.role_name,
     );
+
+    const errors = await validate(user);
+
+    if (errors.length > 0) {
+      console.error('Validation failed. Error:', errors);
+      throw new Error('Validation failed');
+    }
+
+    return user;
   }
 }
