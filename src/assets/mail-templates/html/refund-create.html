@@ -1,12 +1,17 @@
-<p>Hi {{customer_name}},</p>
+<!DOCTYPE html>
+<html>
 
-<p>We've initiated your refund for Order <strong>#{{order_id}}</strong>.</p>
+<head>
+  <title>Refund Initiated - {{company_name}}</title>
+</head>
 
-<ul>
-  <li><strong>Amount:</strong> ${{amount}}</li>
-  <li><strong>Refunded to:</strong> Card ending in {{last4}}</li>
-</ul>
+<body>
+  <h1>Refund Initiated</h1>
+  <p>Hello {{customer_name}},</p>
+  <p>We’ve initiated a refund process for your order <strong>#{{order_id}}</strong> at {{company_name}}.</p>
+  <p>Refunds typically take a few business days to complete. We’ll notify you once it’s finalized.</p>
+  <p>You can reach our support team at <a href="mailto:{{support_email}}">{{support_email}}</a>.</p>
+  <p>Thank you,<br>{{company_name}} Team</p>
+</body>
 
-<p>You should see the funds reflected in your account within 5–10 business days, depending on your bank.</p>
-
-<p>Thank you for shopping with us,<br />The BookStore Team</p>
+</html>

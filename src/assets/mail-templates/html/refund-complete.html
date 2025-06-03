@@ -1,12 +1,17 @@
-<p>Hi {{customer_name}},</p>
+<!DOCTYPE html>
+<html>
 
-<p>Your refund for Order <strong>#{{order_id}}</strong> has been successfully completed.</p>
+<head>
+  <title>Refund Completed - {{company_name}}</title>
+</head>
 
-<ul>
-  <li><strong>Amount:</strong> ${{amount}}</li>
-  <li><strong>Refunded to:</strong> Card ending in {{last4}}</li>
-</ul>
+<body>
+  <h1>Refund Completed</h1>
+  <p>Hello {{customer_name}},</p>
+  <p>The refund for your order <strong>#{{order_id}}</strong> has been successfully completed.</p>
+  <p>If you don’t see the funds in your account within a few days, please contact your bank for more details..</p>
+  <p>You can reach our support team at <a href="mailto:{{support_email}}">{{support_email}}</a>.</p>
+  <p>Thank you,<br>{{company_name}} Team</p>
+</body>
 
-<p>If you don’t see the funds in your account within a few days, please contact your bank for more details.</p>
-
-<p>Thanks again,<br />BookStore Support</p>
+</html>

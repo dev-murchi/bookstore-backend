@@ -1,13 +1,10 @@
-Hi {{customer_name}},
+Hello {{customer_name}},
 
-We've initiated your refund for Order #{{order_id}}.
+We’ve initiated a refund process for your order #{{order_id}} at {{company_name}}.
 
-Amount: ${{amount}}
+Refunds typically take a few business days to complete. We’ll notify you once it’s finalized.
 
-Refunded to: Card ending in {{last4}}
+You can reach our support team at {{support_email}}.
 
-
-You should see the funds reflected in your account within 5–10 business days, depending on your bank.
-
-Thank you for shopping with us,
-The BookStore Team
+Thank you,  
+{{company_name}} Team

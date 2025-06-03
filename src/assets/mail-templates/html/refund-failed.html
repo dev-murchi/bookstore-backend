@@ -1,14 +1,20 @@
-<p>Hi {{customer_name}},</p>
+<!DOCTYPE html>
+<html>
 
-<p>Unfortunately, we were unable to process your refund for Order <strong>#{{order_id}}</strong>.</p>
+<head>
+  <title>Refund Failed - {{company_name}}</title>
+</head>
 
-<ul>
-  <li><strong>Amount:</strong> ${{amount}}</li>
-  <li><strong>Reason:</strong> {{failure_reason}}</li>
-</ul>
+<body>
+  <h1>Refund Attempt Failed</h1>
+  <p>Hello {{customer_name}},</p>
+  <p>We attempted to process a refund for your order <strong>#{{order_id}}</strong>, but unfortunately, the transaction
+    failed.</p>
+  <p>This may be due to an issue with your payment method or bank. Please contact us as soon as possible so we can
+    assist in resolving this issue.</p>
+  <p>You can reach our support team at <a href="mailto:{{support_email}}">{{support_email}}</a>.</p>
+  <p>We’re here to help.</p>
+  <p>Sincerely,<br>{{company_name}} Team</p>
+</body>
 
-<p>Please contact us or update your payment information so we can try again.</p>
-
-<p>We’re here to help!<br />Contact us: <a href="mailto:support@bookstore.com">support@bookstore.com</a></p>
-
-<p>The BookStore Team</p>
+</html>

@@ -1,14 +1,12 @@
-Hi {{customer_name}},
+Hello {{customer_name}},
 
-Unfortunately, we were unable to process your refund for Order #{{order_id}}.
+We attempted to process a refund for your order #{{order_id}}, but unfortunately, the transaction failed.
 
-Amount: ${{amount}}
+This may be due to an issue with your payment method or bank. Please contact us as soon as possible so we can assist in resolving this issue.
 
-Reason: {{failure_reason}}
+You can reach our support team at {{support_email}}.
 
-Please contact us or update your payment information so we can try again.
+We’re here to help.
 
-We’re here to help!
-
-Contact us: support@bookstore.com.
-The BookStore Team
+Sincerely,  
+{{company_name}} Team
