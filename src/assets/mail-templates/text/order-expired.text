@@ -1,0 +1,10 @@
+Hello {{customer_name}},
+
+Your order #{{order_id}} has expired due to non-payment or inactivity.
+
+Please visit our store again to place a new order.
+
+You can reach our support team at {{support_email}}.
+
+Warm wishes,  
+{{company_name}} Team

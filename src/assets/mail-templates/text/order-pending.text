@@ -1,0 +1,12 @@
+Hello {{customer_name}},
+
+Thank you for your order #{{order_id}} at {{company_name}}. Your order has been received and is currently pending.
+
+We will notify you once your order is processed and shipped.
+
+You can reach our support team at {{support_email}}.
+
+Happy reading!
+
+Best regards,  
+{{company_name}} Team

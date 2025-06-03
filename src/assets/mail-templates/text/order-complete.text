@@ -1,0 +1,10 @@
+Hello {{customer_name}},
+
+Your order #{{order_id}} has been completed successfully. We hope you enjoy your new books!
+
+Thank you for shopping at {{company_name}}.
+
+You can reach our support team at {{support_email}}.
+
+Warm regards,  
+{{company_name}} Team

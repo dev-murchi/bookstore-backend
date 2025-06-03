@@ -1,0 +1,10 @@
+Hello {{customer_name}},
+
+Your order #{{order_id}} has been shipped and is on its way!
+
+Track your shipment using the following number: {{tracking_id}}.
+
+You can reach our support team at {{support_email}}.
+
+Enjoy your books!  
+{{company_name}} Team

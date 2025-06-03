@@ -1,0 +1,10 @@
+Hello {{customer_name}},
+
+Your order #{{order_id}} has been canceled.
+
+If this was a mistake or you need assistance, please contact us.
+
+You can reach our support team at {{support_email}}.
+
+Best,  
+{{company_name}} Team
