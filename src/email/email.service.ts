@@ -1,99 +1,72 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import {
-  OrderRefundJob,
+  MailSenderQueueJob,
   OrderStatusUpdateJob,
   PasswordResetJob,
-} from '../queue-processor/mail-sender-queue.processor';
+} from '../common/types/mail-sender-queue-job.type';
+import { OrderStatus } from '../common/enum/order-status.enum';
+import { EmailTemplateKey } from '../common/config';
 
 @Injectable()
 export class EmailService {
+  private static readonly mailStatusToTemplate = new Map<
+    OrderStatus,
+    EmailTemplateKey
+  >([
+    [OrderStatus.RefundCreated, 'refundCreated'],
+    [OrderStatus.RefundComplete, 'refundComplete'],
+    [OrderStatus.RefundFailed, 'refundFailed'],
+    [OrderStatus.Pending, 'orderPending'],
+    [OrderStatus.Complete, 'orderComplete'],
+    [OrderStatus.Shipped, 'orderShipped'],
+    [OrderStatus.Delivered, 'orderDelivered'],
+    [OrderStatus.Canceled, 'orderCanceled'],
+    [OrderStatus.Expired, 'orderExipred'],
+  ]);
+
   constructor(
     @Inject('MailSenderQueue')
     private readonly mailSenderQueue: Queue<
-      OrderStatusUpdateJob | PasswordResetJob | OrderRefundJob
+      MailSenderQueueJob,
+      any,
+      EmailTemplateKey
     >,
   ) {}
 
-  async sendOrderStatusUpdate(orderId: string, status: string, email: string) {
-    try {
-      await this.mailSenderQueue.add('order-status-mail', {
-        orderId,
-        status,
-        email,
-      });
-    } catch (error) {
-      console.error(
-        `Mail for Order ${orderId} could not be added to the queue. Error:`,
-        error,
-      );
-      throw new Error(
-        `Mail for Order ${orderId} could not be added to the queue.`,
-      );
-    }
+  async sendResetPasswordMail(data: PasswordResetJob) {
+    await this.enqueueJob(
+      'passwordReset',
+      data,
+      `password reset to ${data.email}`,
+    );
   }
 
-  async sendResetPasswordMail(email: string, username: string, link: string) {
-    try {
-      await this.mailSenderQueue.add('password-reset', {
-        email,
-        username,
-        link,
-      });
-    } catch (error) {
-      console.error('Failed to queue password reset email:', error);
-      throw new Error(
-        'Unable to send password reset email at this time. Please try again later.',
-      );
+  async sendOrderStatusChangeMail(
+    status: OrderStatus,
+    data: OrderStatusUpdateJob,
+  ) {
+    const key = EmailService.mailStatusToTemplate.get(status);
+    if (!key) {
+      throw new Error(`Unknown order status: ${status}.`);
     }
+    await this.enqueueJob(
+      key,
+      data,
+      `order ${data.orderId} with status ${status}`,
+    );
   }
 
-  async sendRefundCreatedMail(data: {
-    orderId: string;
-    amount: string;
-    email: string;
-    customerName: string;
-  }) {
+  async enqueueJob(
+    jobName: EmailTemplateKey,
+    data: MailSenderQueueJob,
+    context: string,
+  ) {
     try {
-      await this.mailSenderQueue.add('order-refund-created', data);
+      await this.mailSenderQueue.add(jobName, data);
     } catch (error) {
-      console.error(error);
-      throw new Error(
-        `Unable to send refund created email for Order ${data.orderId}. Please try again later.`,
-      );
-    }
-  }
-
-  async sendRefundCompleteddMail(data: {
-    orderId: string;
-    amount: string;
-    email: string;
-    customerName: string;
-  }) {
-    try {
-      await this.mailSenderQueue.add('order-refund-completed', data);
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        `Unable to send refund completed email for Order ${data.orderId}. Please try again later.`,
-      );
-    }
-  }
-
-  async sendRefundFailedMail(data: {
-    orderId: string;
-    amount: string;
-    email: string;
-    customerName: string;
-    failureReason: string;
-  }) {
-    try {
-      await this.mailSenderQueue.add('order-refund-failed', data);
-    } catch (error) {
-      console.error(error);
-      throw new Error(
-        `Unable to send refund failed email for Order ${data.orderId}. Please try again later.`,
-      );
+      console.error(`Failed to enqueue job for ${context}`, error);
+      throw new Error(`Could not send email for ${context}`);
     }
   }
 }

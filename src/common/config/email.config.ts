@@ -24,6 +24,30 @@ export const emailConfig = registerAs('email', () => ({
       subject: 'Refund Attempt Failed for Order #{{order_id}}',
       fileName: 'refund-failed',
     },
+    orderPending: {
+      subject: 'Your Order Has Been Received - {{company_name}}',
+      fileName: 'order-pending',
+    },
+    orderComplete: {
+      subject: 'Your Order #{{order_id}} Is Complete – Enjoy Your Books!',
+      fileName: 'order-complete',
+    },
+    orderShipped: {
+      subject: 'Your Order #{{order_id}} Has Shipped – Track It Now',
+      fileName: 'order-shipped',
+    },
+    orderDelivered: {
+      subject: 'Your Order #{{order_id}} Was Delivered – Happy Reading!',
+      fileName: 'order-delivered',
+    },
+    orderCanceled: {
+      subject: 'Your Order #{{order_id}} Has Been Canceled',
+      fileName: 'order-canceled',
+    },
+    orderExipred: {
+      subject: 'Order #{{order_id}} Expired – Time to Reorder Your Books',
+      fileName: 'order-expired',
+    },
   },
 }));
 
