@@ -4,33 +4,71 @@ import { createTransport, Transporter } from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import { EmailTemplateKey, EmailTemplates } from '../common/config';
+import {
+  OrderStatusUpdateJob,
+  PasswordResetJob,
+} from '../common/types/mail-sender-queue-job.type';
+import { MailConfigError } from '../common/errors/mail-config.error';
+import { MailTemplateError } from '../common/errors/mail-template.error';
+import { MailSendError } from '../common/errors/mail-send.error';
+
+type TemplateContent = { subject: string; text: string; html: string };
+type TemplateFields = { key: string; value: string }[];
+
 @Injectable()
 export class MailSenderService {
   private transporter: Transporter;
-  private mailHost: string;
-  private mailPort: number;
-  private mailAddress: string;
-  private mailPass: string;
+  private readonly templates = new Map<EmailTemplateKey, TemplateContent>();
+  private readonly emailTemplates: EmailTemplates;
 
-  private readonly htmlMessages = new Map<string, string>();
-  private readonly textMessages = new Map<string, string>();
+  private readonly mailHost: string;
+  private readonly mailPort: number;
+  private readonly mailAddress: string;
+  private readonly mailPass: string;
+
+  private readonly companyName: string;
+  private readonly supportEmail: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.mailHost = this.configService.get<string>('email.host');
-    this.mailPort = this.configService.get<number>('email.port');
-    this.mailAddress = this.configService.get<string>('email.user');
-    this.mailPass = this.configService.get<string>('email.password');
+    this.mailHost = this.getConfig<string>('email.host');
+    this.mailPort = this.getConfig<number>('email.port');
+    this.mailAddress = this.getConfig<string>('email.user');
+    this.mailPass = this.getConfig<string>('email.password');
+    this.companyName = this.getConfig<string>('email.companyName');
+    this.supportEmail = this.getConfig<string>('email.supportEmail');
+    this.emailTemplates = this.getConfig<EmailTemplates>('email.templates');
 
-    if (
-      !this.mailHost ||
-      !this.mailPort ||
-      !this.mailAddress ||
-      !this.mailPass
-    ) {
-      throw new Error('Mail configuration missing.');
+    this.validateConfig();
+
+    this.transporter = this.createMailTransporter();
+    this.initializeTemplates();
+  }
+
+  private getConfig<T>(key: string): T {
+    const value = this.configService.get<T>(key);
+    if (!value) throw new MailConfigError(`Missing config value: ${key}`);
+    return value;
+  }
+
+  private validateConfig() {
+    const required = [
+      this.mailHost,
+      this.mailPort,
+      this.mailAddress,
+      this.mailPass,
+      this.companyName,
+      this.supportEmail,
+      this.emailTemplates,
+    ];
+
+    if (required.some((val) => !val)) {
+      throw new MailConfigError('Mail configuration incomplete.');
     }
+  }
 
-    this.transporter = createTransport({
+  private createMailTransporter(): Transporter {
+    return createTransport({
       host: this.mailHost,
       port: this.mailPort,
       secure: true,
@@ -39,45 +77,38 @@ export class MailSenderService {
         pass: this.mailPass,
       },
     });
+  }
 
+  private readTemplateFile(fileName: string): string {
+    const filePath = path.join(__dirname, '../assets/mail-templates', fileName);
     try {
-      this.readMaileMessageTemplates('password-reset');
-      this.readMaileMessageTemplates('refund-create');
-      this.readMaileMessageTemplates('refund-complete');
-      this.readMaileMessageTemplates('refund-failed');
+      return fs.readFileSync(filePath, 'utf-8').trim();
     } catch (error) {
-      console.error('Failed to load email templates:', error);
-      throw new Error(
-        'Failed to initialize email service: Could not load templates.',
-      );
+      throw new MailTemplateError(`Failed to read template: ${fileName}`);
     }
   }
 
-  private readMaileMessageTemplates(fileName: string) {
-    const mailFolderPath = path.join(__dirname, '../assets/mail-templates');
-    try {
-      this.htmlMessages.set(
-        fileName,
-        fs
-          .readFileSync(
-            path.join(mailFolderPath, `html/${fileName}.html`),
-            'utf8',
-          )
-          .trim(),
-      );
+  private loadTemplate(subject: string, fileName: string): TemplateContent {
+    return {
+      subject,
+      text: this.readTemplateFile(`text/${fileName}.text`),
+      html: this.readTemplateFile(`html/${fileName}.html`),
+    };
+  }
 
-      this.textMessages.set(
-        fileName,
-        fs
-          .readFileSync(
-            path.join(mailFolderPath, `text/${fileName}.text`),
-            'utf8',
-          )
-          .trim(),
-      );
+  private initializeTemplates() {
+    try {
+      for (const [key, { subject, fileName }] of Object.entries(
+        this.emailTemplates,
+      )) {
+        this.templates.set(
+          key as EmailTemplateKey,
+          this.loadTemplate(subject, fileName),
+        );
+      }
     } catch (error) {
-      console.error(`Error reading mail template ${fileName}:`, error);
-      throw new Error(`Failed to read mail template: ${fileName}`);
+      console.error('Failed to load email templates:', error);
+      throw new MailTemplateError('Failed to load email templates');
     }
   }
 
@@ -99,154 +130,76 @@ export class MailSenderService {
       return info;
     } catch (error) {
       console.error('Failed to send the email. Error:', error);
-      throw new Error('Failed to send the email');
+      throw new MailSendError('Failed to send the email');
     }
   }
 
-  async sendResetPasswordMail(email: string, username: string, link: string) {
-    try {
-      const subject = 'Reset your password';
-      await this.updateFieldsAndSendMail('password-reset', email, subject, [
-        { key: '{{link}}', value: link },
-      ]);
-    } catch (error) {
-      console.error('Failed to send password reset email. Error:', error);
-      throw new Error('Failed to send password reset email.');
-    }
+  private fillTemplate(template: string, fields: TemplateFields): string {
+    return fields.reduce(
+      (result, { key, value }) => result.replaceAll(key, value),
+      template,
+    );
   }
 
-  async sendOrderStatusUpdateMail(
-    email: string,
-    orderId: string,
-    status: string,
+  private async sendTemplatedEmail(
+    templateKey: EmailTemplateKey,
+    to: string,
+    fields: TemplateFields,
   ) {
-    try {
-      if (status === 'shipped') {
-        await this.sendMail(
-          email,
-          `Your Books are on Their Way! Order #${orderId}`,
-          'book are shipped',
-          '<p>books are shipped</p>',
-        );
-      } else if (status === 'delivered') {
-        await this.sendMail(
-          email,
-          `Your Book Order #${orderId} Has Arrived!`,
-          'book are delivered',
-          '<p>books are delivered</p>',
-        );
-      } else {
-        throw new Error(
-          'Invalid order status provided for email notification.',
-        );
-      }
-    } catch (error) {
-      console.error(
-        `Failed to send order status update email for Order ${orderId}. Error:`,
-        error,
-      );
-      throw new Error(
-        `Failed to send order status update email for Order ${orderId}.`,
+    const template = this.templates.get(templateKey);
+    if (!template) {
+      throw new MailTemplateError(`Template '${templateKey}' not found`);
+    }
+
+    const { subject, text, html } = template;
+
+    if (!subject || !text || !html) {
+      throw new MailTemplateError(
+        `Incomplete template content for '${templateKey}'`,
       );
     }
-  }
 
-  async sendRefundCreatedMail(data: {
-    orderId: string;
-    amount: string;
-    email: string;
-    customerName: string;
-  }) {
-    try {
-      const { orderId, amount, email, customerName } = data;
-      const subject = 'We’ve initiated your refund';
-      await this.updateFieldsAndSendMail('refund-create', email, subject, [
-        { key: '{{customer_name}}', value: customerName },
-        { key: '{{order_id}}', value: orderId },
-        { key: '{{amount}}', value: amount },
-      ]);
-    } catch (error) {
-      console.error(
-        `Failed to send refund created email for Order ${data.orderId}. Error:`,
-        error,
-      );
-      throw new Error(
-        `Failed to send refund created email for Order ${data.orderId}.`,
-      );
+    const dataSubject = this.fillTemplate(subject, fields);
+    const dataText = this.fillTemplate(text, fields);
+    const dataHtml = this.fillTemplate(html, fields);
+
+    if (
+      dataText.includes('{{') ||
+      dataHtml.includes('{{') ||
+      dataSubject.includes('{{')
+    ) {
+      console.warn(`Template '${templateKey}' contains unfilled placeholders`);
     }
+
+    await this.sendMail(to, dataSubject, dataText, dataHtml);
   }
 
-  async sendRefundCompletedMail(data: {
-    orderId: string;
-    amount: string;
-    email: string;
-    customerName: string;
-  }) {
-    try {
-      const { orderId, amount, email, customerName } = data;
-      const subject = 'Your refund has been completed';
-      await this.updateFieldsAndSendMail('refund-complete', email, subject, [
-        { key: '{{customer_name}}', value: customerName },
-        { key: '{{order_id}}', value: orderId },
-        { key: '{{amount}}', value: amount },
-      ]);
-    } catch (error) {
-      console.error(
-        `Failed to send refund completed email for Order ${data.orderId}. Error:`,
-        error,
-      );
-      throw new Error(
-        `Failed to send refund completed email for Order ${data.orderId}.`,
-      );
-    }
+  async sendResetPasswordMail(data: PasswordResetJob) {
+    const fields: TemplateFields = [
+      { key: '{{link}}', value: data.link },
+      { key: '{{customer_name}}', value: data.username },
+      { key: '{{company_name}}', value: this.companyName },
+      { key: '{{support_email}}', value: this.supportEmail },
+    ];
+
+    await this.sendTemplatedEmail('passwordReset', data.email, fields);
   }
 
-  async sendRefundFailedMail(data: {
-    email: string;
-    orderId: string;
-    customerName: string;
-    amount: string;
-    failureReason: string;
-  }) {
-    try {
-      const { orderId, amount, email, customerName, failureReason } = data;
-      const subject = 'There was a problem with your refund';
-      await this.updateFieldsAndSendMail('refund-failed', email, subject, [
-        { key: '{{customer_name}}', value: customerName },
-        { key: '{{order_id}}', value: orderId },
-        { key: '{{amount}}', value: amount },
-        { key: '{{failure_reason}}', value: failureReason },
-      ]);
-    } catch (error) {
-      console.error(
-        `Failed to send refund failed email for Order ${data.orderId}. Error:`,
-        error,
-      );
-      throw new Error(
-        `Failed to send refund failed email for Order ${data.orderId}.`,
-      );
-    }
-  }
-
-  private async updateFieldsAndSendMail(
-    fileName: string,
-    email: string,
-    subject: string,
-    fileds: { key: string; value: string }[],
+  async sendOrderStatusChangeMail(
+    type: EmailTemplateKey,
+    data: OrderStatusUpdateJob,
   ) {
-    const dataHtml = fileds.reduce((text, field) => {
-      return text.replaceAll(field.key, field.value);
-    }, this.htmlMessages.get(fileName));
+    const fields: TemplateFields = [
+      { key: '{{customer_name}}', value: data.username },
+      { key: '{{order_id}}', value: data.orderId },
+      { key: '{{company_name}}', value: this.companyName },
+      { key: '{{support_email}}', value: this.supportEmail },
+    ];
 
-    const dataText = fileds.reduce((text, field) => {
-      return text.replaceAll(field.key, field.value);
-    }, this.textMessages.get(fileName));
-
-    if (!dataHtml || !dataText) {
-      console.warn(`Missing email templates for fileName: ${fileName}`);
-      throw new Error(`Email template content missing for ${fileName}`);
+    if (data.trackingId) {
+      fields.push({ key: '{{tracking_id}}', value: data.trackingId });
     }
 
-    await this.sendMail(email, subject, dataText, dataHtml);
+    await this.sendTemplatedEmail(type, data.email, fields);
   }
 }
