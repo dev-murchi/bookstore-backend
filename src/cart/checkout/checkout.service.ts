@@ -10,6 +10,7 @@ import { OrderDTO } from '../../common/dto/order.dto';
 import { OrderItemDTO } from '../../common/dto/order-item.dto';
 import { BookDTO } from '../../common/dto/book.dto';
 import { CategoryDTO } from '../../common/dto/category.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
 
 @Injectable()
 export class CheckoutService {
@@ -150,7 +151,7 @@ export class CheckoutService {
         orderData.id = order.orderid;
         orderData.owner = userId;
         orderData.price = totalPrice;
-        orderData.status = order.status;
+        orderData.status = order.status as OrderStatus;
         orderData.items = orderItems;
 
         const checkoutData = new CheckoutDTO();

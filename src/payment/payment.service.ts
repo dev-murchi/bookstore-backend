@@ -3,7 +3,7 @@ import { Queue } from 'bullmq';
 import Stripe from 'stripe';
 import { StripeService } from './stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentData } from '../common/interfaces/payment-data.interface';
+import { PaymentData } from 'src/common/types/payment-data.interface';
 
 @Injectable()
 export class PaymentService {

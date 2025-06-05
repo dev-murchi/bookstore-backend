@@ -1,8 +1,8 @@
 import {
   IsArray,
+  IsEnum,
   IsNumber,
   IsOptional,
-  IsString,
   IsUUID,
   ValidateNested,
 } from 'class-validator';
@@ -11,6 +11,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ShippingDTO } from './shipping.dto';
 import { PaymentDTO } from './payment.dto';
 import { OrderItemDTO } from './order-item.dto';
+import { OrderStatus } from '../enum/order-status.enum';
 
 export class OrderDTO {
   @ApiProperty({
@@ -43,8 +44,8 @@ export class OrderDTO {
     type: String,
     example: 'pending',
   })
-  @IsString()
-  status: string;
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
 
   @ApiProperty({
     description: 'Total price of the order',
