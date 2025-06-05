@@ -248,11 +248,11 @@ describe('AuthService', () => {
       expect(userService.findByEmail).toHaveBeenCalledWith(
         'testuser@email.com',
       );
-      expect(emailService.sendResetPasswordMail).toHaveBeenCalledWith(
-        'testuser@email.com',
-        'test user',
-        'http://localhost/reset-password?token=mockToken',
-      );
+      expect(emailService.sendResetPasswordMail).toHaveBeenCalledWith({
+        email: 'testuser@email.com',
+        username: 'test user',
+        link: 'http://localhost/reset-password?token=mockToken',
+      });
     });
     it('should handle unexpected errors gracefully in the userService', async () => {
       mockUserService.findByEmail.mockRejectedValue(

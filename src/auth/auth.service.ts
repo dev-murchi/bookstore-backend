@@ -86,11 +86,11 @@ export class AuthService {
       // send password reset mail
       const link = `http://localhost/reset-password?token=${resetToken.token}`;
 
-      await this.emailService.sendResetPasswordMail(
-        user.email,
-        user.name,
+      await this.emailService.sendResetPasswordMail({
+        username: user.name,
+        email: user.email,
         link,
-      );
+      });
     }
 
     return {
