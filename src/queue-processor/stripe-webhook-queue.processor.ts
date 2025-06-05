@@ -9,7 +9,7 @@ import {
   ShippingCustomerDetails,
   ShippingService,
 } from '../orders/shipping/shipping.service';
-import { PaymentData } from '../common/interfaces/payment-data.interface';
+import { PaymentData } from 'src/common/types/payment-data.interface';
 import { PaymentStatus } from '../common/enum/payment-status.enum';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import Stripe from 'stripe';
@@ -143,11 +143,11 @@ export class StripeWebhookProcessor extends WorkerHost {
         await this.paymentService.createOrUpdatePayment(paymentData);
       });
 
-      await this.emailService.sendOrderStatusUpdate(
+      await this.emailService.sendOrderStatusChangeMail(OrderStatus.Expired, {
         orderId,
-        OrderStatus.Expired,
-        data.customer_details.email,
-      );
+        username: data.customer_details.email,
+        email: data.customer_details.email,
+      });
 
       console.warn(
         `Order #[${orderId}] expired and expiration email added to the queue.`,
@@ -216,11 +216,11 @@ export class StripeWebhookProcessor extends WorkerHost {
         return { existingOrder, updatedOrder, shipping, payment };
       });
 
-      await this.emailService.sendOrderStatusUpdate(
+      await this.emailService.sendOrderStatusChangeMail(OrderStatus.Complete, {
         orderId,
-        OrderStatus.Complete,
-        data.customer_details.email,
-      );
+        username: data.customer_details.email,
+        email: data.customer_details.email,
+      });
 
       if (existingOrder.status === 'canceled') {
         const transactionId =
@@ -253,7 +253,7 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async refundCreated(eventData: Stripe.Refund) {
-    const { id, payment_intent, amount, metadata, status } = eventData;
+    const { id, payment_intent, metadata, status, amount } = eventData;
 
     const orderId = metadata?.orderId;
     if (!orderId) {
@@ -282,12 +282,14 @@ export class StripeWebhookProcessor extends WorkerHost {
     });
 
     try {
-      await this.emailService.sendRefundCreatedMail({
-        orderId: orderId,
-        amount: (amount / 100).toFixed(2),
-        email: shipping.email,
-        customerName: shipping.name,
-      });
+      await this.emailService.sendOrderStatusChangeMail(
+        OrderStatus.RefundCreated,
+        {
+          orderId,
+          username: shipping.name,
+          email: shipping.email,
+        },
+      );
     } catch (err) {
       console.error(
         `Failed to send refund created email for refund ${id}`,
@@ -297,7 +299,7 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async refundUpdated(eventData: Stripe.Refund) {
-    const { id, status, amount } = eventData;
+    const { id, status } = eventData;
 
     const refund = await this.prisma.refunds.update({
       where: { refundid: id },
@@ -312,12 +314,14 @@ export class StripeWebhookProcessor extends WorkerHost {
           select: { email: true, name: true },
         });
 
-        await this.emailService.sendRefundCompleteddMail({
-          orderId: refund.orderid,
-          amount: (amount / 100).toFixed(2),
-          email: shipping.email,
-          customerName: shipping.name,
-        });
+        await this.emailService.sendOrderStatusChangeMail(
+          OrderStatus.RefundComplete,
+          {
+            orderId: refund.orderid,
+            username: shipping.name,
+            email: shipping.email,
+          },
+        );
       } catch (err) {
         console.error(
           `Failed to send refund updated email for refund ${id}`,
@@ -328,7 +332,7 @@ export class StripeWebhookProcessor extends WorkerHost {
   }
 
   private async refundFailed(eventData: Stripe.Refund) {
-    const { id, status, amount, failure_reason } = eventData;
+    const { id, status, failure_reason } = eventData;
 
     const refund = await this.prisma.refunds.update({
       where: { refundid: id },
@@ -345,13 +349,14 @@ export class StripeWebhookProcessor extends WorkerHost {
 
     if (refund.orderid) {
       try {
-        await this.emailService.sendRefundFailedMail({
-          orderId: refund.orderid,
-          amount: (amount / 100).toFixed(2),
-          email: shipping.email,
-          customerName: shipping.name,
-          failureReason: failure_reason ?? 'unknown',
-        });
+        await this.emailService.sendOrderStatusChangeMail(
+          OrderStatus.RefundFailed,
+          {
+            orderId: refund.orderid,
+            username: shipping.name,
+            email: shipping.email,
+          },
+        );
       } catch (err) {
         console.error(
           `Failed to send refund failed email for refund ${id}`,

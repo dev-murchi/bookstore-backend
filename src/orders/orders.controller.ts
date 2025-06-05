@@ -72,7 +72,7 @@ export class OrdersController {
     @Body() orderStatusDTO: OrderStatusDTO,
   ): Promise<OrderDTO> {
     try {
-      let order;
+      let order: OrderDTO;
 
       switch (orderStatusDTO.status) {
         case 'delivered':
@@ -88,11 +88,11 @@ export class OrdersController {
           throw new Error('Invalid order status.');
       }
 
-      await this.emailService.sendOrderStatusUpdate(
-        order.orderid,
-        order.status,
-        order.shipping_details.email,
-      );
+      await this.emailService.sendOrderStatusChangeMail(order.status, {
+        orderId,
+        username: order.shipping.email,
+        email: order.shipping.email,
+      });
 
       return order;
     } catch (error) {

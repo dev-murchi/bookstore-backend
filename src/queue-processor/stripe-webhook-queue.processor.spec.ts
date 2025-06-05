@@ -47,7 +47,7 @@ const mockStripeService = {
 };
 
 const mockEmailService = {
-  sendOrderStatusUpdate: jest.fn(),
+  sendOrderStatusChangeMail: jest.fn(),
 };
 
 describe('StripeWebhookProcessor', () => {
@@ -199,10 +199,13 @@ describe('StripeWebhookProcessor', () => {
         amount: 1000,
       });
 
-      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        'order-uuid-123',
+      expect(mockEmailService.sendOrderStatusChangeMail).toHaveBeenCalledWith(
         OrderStatus.Expired,
-        'user@email.com',
+        {
+          orderId: 'order-uuid-123',
+          username: 'user@email.com',
+          email: 'user@email.com',
+        },
       );
 
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -353,10 +356,13 @@ describe('StripeWebhookProcessor', () => {
         paymentData,
       );
 
-      expect(mockEmailService.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        'order-uuid-123',
+      expect(mockEmailService.sendOrderStatusChangeMail).toHaveBeenCalledWith(
         OrderStatus.Complete,
-        'user@email.com',
+        {
+          orderId: 'order-uuid-123',
+          username: 'user@email.com',
+          email: 'user@email.com',
+        },
       );
 
       expect(mockStripeService.createRefundForPayment).not.toHaveBeenCalled();
