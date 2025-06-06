@@ -29,7 +29,7 @@ model User {
   role      Roles @relation(fields: [roleid], references: [id])
   roleid    Int
   cart      cart?
-  is_active Boolean
+  is_active Boolean @default(true)
   last_password_reset_at DateTime
 
   password_reset_tokens password_reset_tokens[]
@@ -67,7 +67,7 @@ model books {
   price         Decimal  @db.Decimal(10, 2)
   description   String? 
   stock_quantity Int     @default(0)
-  rating        Int      @default(0)
+  rating        Float      @default(0)
   image_url     String? 
   is_active     Boolean  @default(false)
   created_at    DateTime @default(now())
@@ -83,6 +83,7 @@ model cart {
   userid      String? @unique
   cart_items  cart_items[]
   created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   user      User? @relation(fields: [userid], references: [id])
 }
@@ -94,17 +95,21 @@ model cart_items {
   quantity Int
   cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 
   book     books  @relation(fields: [bookid], references: [id])
-  
+  created_at  DateTime @default(now()) 
+  updated_at  DateTime @updatedAt 
+
   @@unique([cartid, bookid])
 }
 
 model orders {
   id  String @id @default(uuid())
   userid String?
-  totalPrice  Float @default(0)
+  totalPrice  Decimal @db.Decimal(10, 2)
   shipping_details  shipping?
   status  String  @default("pending")
   user  User? @relation(fields: [userid], references: [id])
+  created_at        DateTime  @default(now()) 
+  updated_at        DateTime  @default(now()) @updatedAt 
 
   order_items order_items[]
   payment payment?
@@ -116,10 +121,14 @@ model order_items {
   orderid String
   bookid String
   quantity  Int
-  price Float @default(0)
+  price Decimal  @db.Decimal(10, 2) @default(0)
 
   order orders @relation(fields: [orderid], references: [id])
   book  books @relation(fields: [bookid], references: [id])
+  created_at  DateTime @default(now()) 
+  updated_at  DateTime @updatedAt 
+
+  @@unique([orderid, bookid])
 }
 
 model address {
@@ -152,7 +161,7 @@ model payment {
   transaction_id String?
   status String
   method  String
-  amount Float
+  amount Decimal   @db.Decimal(10, 2)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
@@ -178,7 +187,7 @@ model refunds {
   orderid String 
   transaction_id String
   status String
-  amount Float
+  amount Decimal   @db.Decimal(10, 2)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
   failure_reason  String?
