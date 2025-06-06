@@ -50,7 +50,7 @@ export class PaymentService {
         where: { orderid: data.orderId },
         create: {
           transaction_id: data.transactionId,
-          order: { connect: { orderid: data.orderId } },
+          order: { connect: { id: data.orderId } },
           status: data.status,
           method: 'card',
           amount: data.amount,

@@ -9,7 +9,7 @@ export class UserSessionService {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
       const session = await this.prisma.user_session.create({
         data: {
-          user: { connect: { userid: userId } },
+          user: { connect: { id: userId } },
           sessionid: sessionId,
           refresh_token: tokenHash,
           refresh_required: false,
@@ -28,10 +28,8 @@ export class UserSessionService {
     try {
       await this.prisma.user_session.delete({
         where: {
-          userid_sessionid: {
-            userid: userId,
-            sessionid: sessionId,
-          },
+          userid: userId,
+          sessionid: sessionId,
         },
       });
     } catch (error) {
@@ -44,10 +42,8 @@ export class UserSessionService {
     try {
       await this.prisma.user_session.update({
         where: {
-          userid_sessionid: {
-            userid: userId,
-            sessionid: sessionId,
-          },
+          userid: userId,
+          sessionid: sessionId,
         },
         data: {
           refresh_token: token,

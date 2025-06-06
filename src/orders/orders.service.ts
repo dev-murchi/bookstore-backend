@@ -14,7 +14,7 @@ import { validate } from 'class-validator';
 @Injectable()
 export class OrdersService {
   private readonly bookSelect = {
-    bookid: true,
+    id: true,
     title: true,
     description: true,
     isbn: true,
@@ -63,7 +63,7 @@ export class OrdersService {
   };
 
   private readonly orderSelect = {
-    orderid: true,
+    id: true,
     status: true,
     userid: true,
     totalPrice: true,
@@ -105,7 +105,7 @@ export class OrdersService {
     }
     const order = await this.prisma.orders.findUnique({
       where: {
-        orderid: orderId,
+        id: orderId,
       },
       select: this.orderSelect,
     });
@@ -119,7 +119,7 @@ export class OrdersService {
     }
     try {
       const order = await this.prisma.orders.update({
-        where: { orderid: orderId },
+        where: { id: orderId },
         data: { status },
         select: this.orderSelect,
       });
@@ -143,7 +143,7 @@ export class OrdersService {
         await Promise.all(
           orderItems.map((item) =>
             prisma.books.update({
-              where: { bookid: item.bookid },
+              where: { id: item.bookid },
               data: { stock_quantity: { increment: item.quantity } },
             }),
           ),
@@ -162,7 +162,7 @@ export class OrdersService {
   private async transformToOrderItem(data: any): Promise<OrderItemDTO> {
     try {
       const item = new BookDTO(
-        data.book.bookid,
+        data.book.id,
         data.book.title,
         data.book.description,
         data.book.isbn,
@@ -192,7 +192,7 @@ export class OrdersService {
   private async transformToOrder(order: any): Promise<OrderDTO> {
     try {
       const {
-        orderid,
+        id,
         userid,
         status,
         totalPrice,
@@ -206,7 +206,7 @@ export class OrdersService {
       );
 
       const orderData = new OrderDTO();
-      orderData.id = orderid;
+      orderData.id = id;
       orderData.owner = userid;
       orderData.status = status;
       orderData.items = items;

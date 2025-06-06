@@ -162,7 +162,7 @@ describe('PaymentService', () => {
         update: { status: 'paid' },
         create: {
           transaction_id: 'pi_123',
-          order: { connect: { orderid: 'order-uuid-1' } },
+          order: { connect: { id: 'order-uuid-1' } },
           status: 'paid',
           method: 'card',
           amount: 1000,

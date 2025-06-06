@@ -11,7 +11,8 @@ import { UserDTO } from '../common/dto/user.dto';
 
 import * as classValidator from 'class-validator';
 
-const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example
 const mockPrismaService = {
   user: {
     findUnique: jest.fn(),
@@ -67,11 +68,9 @@ describe('UserService', () => {
         role: RoleEnum.User,
       };
 
-      const spyUUID = jest.spyOn(HelperService, 'generateUUID');
-      spyUUID.mockReturnValueOnce('user-1');
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.user.create.mockResolvedValueOnce({
-        userid: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         role: { role_name: 'user' },
@@ -87,7 +86,6 @@ describe('UserService', () => {
           name: 'test user',
           email: 'testuser@email.com',
           password: 'hashedPassword',
-          userid: 'user-1',
           role: {
             connectOrCreate: {
               where: {
@@ -102,7 +100,7 @@ describe('UserService', () => {
           last_password_reset_at: expect.any(Date),
         },
         select: {
-          userid: true,
+          id: true,
           name: true,
           email: true,
           password: true,
@@ -113,14 +111,13 @@ describe('UserService', () => {
       expect(spyHash).toHaveBeenCalledWith(userData.password);
 
       expect(result).toEqual({
-        id: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         role: 'user',
       });
 
       spyHash.mockRestore();
-      spyUUID.mockRestore();
     });
 
     it('should throw an error if email is already in use', async () => {
@@ -132,7 +129,7 @@ describe('UserService', () => {
       };
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 1,
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -170,8 +167,7 @@ describe('UserService', () => {
   describe('transformSelectedUserToUser', () => {
     it('should transform user as UserDTO', async () => {
       const result = await service['transformSelectedUserToUser']({
-        id: 1,
-        userid: userId,
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -182,13 +178,12 @@ describe('UserService', () => {
         is_active: true,
       });
       expect(result).toEqual(
-        new UserDTO(userId, 'test user', 'testuser@email.com', 'user'),
+        new UserDTO(mockUserId, 'test user', 'testuser@email.com', 'user'),
       );
     });
     it('should throw error when validation fails', async () => {
       const user = {
-        id: 1,
-        userid: 1 as unknown as string,
+        id: 1 as unknown as string,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -221,8 +216,7 @@ describe('UserService', () => {
     it('should return all users', async () => {
       mockPrismaService.user.findMany.mockResolvedValueOnce([
         {
-          id: 1,
-          userid: 'user-1',
+          id: mockUserId,
           name: 'test user',
           email: 'testuser@email.com',
           role: {
@@ -235,7 +229,7 @@ describe('UserService', () => {
 
       expect(await service.findAll()).toEqual([
         {
-          id: 'user-1',
+          id: mockUserId,
           name: 'test user',
           email: 'testuser@email.com',
           role: 'user',
@@ -256,8 +250,7 @@ describe('UserService', () => {
   describe('findById', () => {
     it('should return a user by id', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 1,
-        userid: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -268,15 +261,14 @@ describe('UserService', () => {
         is_active: true,
       });
 
-      const user = await service.findById('user-1');
+      const user = await service.findById(mockUserId);
 
       expect(prismaService.user.findUnique).toHaveBeenCalledWith({
         where: {
-          userid: 'user-1',
+          id: mockUserId,
         },
         select: {
           id: true,
-          userid: true,
           name: true,
           email: true,
           password: true,
@@ -291,7 +283,7 @@ describe('UserService', () => {
       });
 
       expect(user).toEqual({
-        id: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         role: 'user',
@@ -308,7 +300,7 @@ describe('UserService', () => {
         new Error('DB Error'),
       );
 
-      await expect(service.findById(userId)).rejects.toThrow(
+      await expect(service.findById(mockUserId)).rejects.toThrow(
         'User could not retrieved.',
       );
     });
@@ -317,8 +309,7 @@ describe('UserService', () => {
   describe('findByEmail', () => {
     it('should return a user by email', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 1,
-        userid: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -337,7 +328,6 @@ describe('UserService', () => {
         },
         select: {
           id: true,
-          userid: true,
           name: true,
           email: true,
           password: true,
@@ -352,7 +342,7 @@ describe('UserService', () => {
       });
 
       expect(user).toEqual({
-        id: 'user-1',
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         role: 'user',
@@ -385,8 +375,7 @@ describe('UserService', () => {
       };
 
       mockPrismaService.user.update.mockResolvedValueOnce({
-        id: 1,
-        userid: 'user-1',
+        id: mockUserId,
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         role: {
@@ -399,10 +388,10 @@ describe('UserService', () => {
       const spy = jest.spyOn(HelperService, 'generateHash');
       spy.mockResolvedValueOnce('hashedPassword');
 
-      const result = await service.update('user-1', updatedUserDTO);
+      const result = await service.update(mockUserId, updatedUserDTO);
 
       expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { userid: 'user-1' },
+        where: { id: mockUserId },
         data: {
           name: 'updated test user',
           email: 'updatedtestuser@email.com',
@@ -411,7 +400,7 @@ describe('UserService', () => {
           role: { connect: { role_name: 'author' } },
         },
         select: {
-          userid: true,
+          id: true,
           name: true,
           email: true,
           password: true,
@@ -420,7 +409,7 @@ describe('UserService', () => {
       });
 
       expect(result).toEqual({
-        id: 'user-1',
+        id: mockUserId,
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         role: 'author',
@@ -461,8 +450,7 @@ describe('UserService', () => {
   describe('remove', () => {
     it('should successfully delete a user', async () => {
       mockPrismaService.user.delete.mockResolvedValueOnce({
-        id: 1,
-        user: 'user-1',
+        id: mockUserId,
         name: 'updated test user',
         email: 'updatedtestuser@email.com',
         password: 'newpassword123',
@@ -475,17 +463,17 @@ describe('UserService', () => {
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
 
-      const result = await service.remove('user-1');
+      const result = await service.remove(mockUserId);
       expect(result).toEqual({ message: 'User deleted successfully' });
 
-      expect(await service.findById('user-1')).toBeNull();
+      expect(await service.findById(mockUserId)).toBeNull();
     });
     it('should throw an error if user does not exist', async () => {
       mockPrismaService.user.delete.mockRejectedValueOnce(
         'User to delete not found',
       );
       try {
-        await service.remove('user-1');
+        await service.remove(mockUserId);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('User could not be deleted');
@@ -506,7 +494,7 @@ describe('UserService', () => {
 
       expect(spy).toHaveBeenCalled();
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { userid: mockUserId },
+        where: { id: mockUserId },
         data: {
           password_reset_tokens: {
             create: {
@@ -524,11 +512,6 @@ describe('UserService', () => {
     });
 
     it('should throw an error if Prisma update fails', async () => {
-      const mockUserId = 'user-1';
-
-      const spy = jest.spyOn(HelperService, 'generateUUID');
-      spy.mockReturnValueOnce('mock-uuid-token');
-
       mockPrismaService.user.update.mockRejectedValueOnce(
         new Error('DB error'),
       );
@@ -538,7 +521,6 @@ describe('UserService', () => {
       ).rejects.toThrow(
         new CustomAPIError('Password reset token could not be created.'),
       );
-      spy.mockRestore();
     });
   });
 
@@ -572,7 +554,7 @@ describe('UserService', () => {
 
       const mockPasswordResetData = {
         token_id: 1,
-        userid: 1,
+        userid: mockUserId,
         token: 'token',
         expires_at: new Date(currentDateTime - 60 * 1000), // token expired 1 minute ago
       };
@@ -610,7 +592,7 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       const mockPasswordResetData = {
         token_id: 1,
-        userid: 'user-1',
+        userid: mockUserId,
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       };
@@ -622,8 +604,7 @@ describe('UserService', () => {
         .mockReturnValueOnce(null)
         .mockReturnValueOnce({
           name: 'second user',
-          id: 2,
-          userid: 'user-2',
+          id: mockUserId2,
           email: 'seconduser@email.com',
           password: 'oldpassword',
           role: { id: 1, role_name: 'user' },
@@ -659,15 +640,14 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
         token_id: 1,
-        userid: 'user-1',
+        userid: mockUserId,
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
 
       mockPrismaService.user.findUnique.mockReturnValueOnce({
         name: 'test user',
-        id: 1,
-        userid: 'user-1',
+        id: mockUserId,
         email: 'testuser@email.com',
         password: 'oldpassword',
         role: { id: 1, role_name: 'user' },
@@ -696,15 +676,14 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
       mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
         token_id: 1,
-        userid: 'user-1',
+        userid: mockUserId,
         token: 'token',
         expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
 
       mockPrismaService.user.findUnique.mockReturnValueOnce({
         name: 'test user',
-        id: 1,
-        userid: 'user-1',
+        id: mockUserId,
         email: 'testuser@email.com',
         password: 'oldpassword',
         role: { id: 1, role_name: 'user' },
@@ -713,7 +692,7 @@ describe('UserService', () => {
 
       mockPrismaService.user.update.mockResolvedValueOnce({
         name: 'test user',
-        userid: 'user-1',
+        userid: mockUserId,
         email: 'testuser@email.com',
         role: { role_name: 'user' },
       });
@@ -732,7 +711,7 @@ describe('UserService', () => {
         'newpassword',
       );
 
-      expect(updateSpy).toHaveBeenCalledWith('user-1', {
+      expect(updateSpy).toHaveBeenCalledWith(mockUserId, {
         password: 'newpassword',
       });
 
@@ -784,8 +763,7 @@ describe('UserService', () => {
 
     it('should throw error when password is incorrect', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 1,
-        userid: userId,
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -807,8 +785,7 @@ describe('UserService', () => {
 
     it('should return user when credentials are correct', async () => {
       mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 1,
-        userid: userId,
+        id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
@@ -827,7 +804,7 @@ describe('UserService', () => {
       );
 
       expect(result).toEqual(
-        new UserDTO(userId, 'test user', 'testuser@email.com', 'user'),
+        new UserDTO(mockUserId, 'test user', 'testuser@email.com', 'user'),
       );
     });
   });

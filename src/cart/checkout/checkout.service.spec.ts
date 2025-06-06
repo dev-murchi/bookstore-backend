@@ -68,7 +68,7 @@ describe('CheckoutService', () => {
         {
           quantity: 5,
           book: {
-            bookid: 'book-1',
+            id: 'book-1',
             stock_quantity: 2,
             price: new Prisma.Decimal(10.0),
             title: 'Book One',
@@ -97,7 +97,7 @@ describe('CheckoutService', () => {
       {
         quantity: 2,
         book: {
-          bookid: 'book-1',
+          id: 'book-1',
           price: new Prisma.Decimal(15.0),
           stock_quantity: 10,
           title: 'Book A',
@@ -112,7 +112,7 @@ describe('CheckoutService', () => {
       {
         quantity: 1,
         book: {
-          bookid: 'book-2',
+          id: 'book-2',
           price: new Prisma.Decimal(20.0),
           stock_quantity: 5,
           title: 'Book B',
@@ -131,7 +131,7 @@ describe('CheckoutService', () => {
     });
 
     mockPrismaService.orders.create.mockResolvedValueOnce({
-      orderid: 'order-uuid-123',
+      id: 'order-uuid-123',
       totalPrice: new Prisma.Decimal(50.0),
       status: 'pending',
     });
@@ -198,7 +198,7 @@ describe('CheckoutService', () => {
       {
         quantity: 2,
         book: {
-          bookid: 'book-1',
+          id: 'book-1',
           price: new Prisma.Decimal(15.0),
           stock_quantity: 10,
           title: 'Book A',
@@ -213,7 +213,7 @@ describe('CheckoutService', () => {
       {
         quantity: 1,
         book: {
-          bookid: 'book-2',
+          id: 'book-2',
           price: new Prisma.Decimal(20.0),
           stock_quantity: 5,
           title: 'Book B',
@@ -232,7 +232,7 @@ describe('CheckoutService', () => {
     });
 
     mockPrismaService.orders.create.mockResolvedValueOnce({
-      orderid: 'order-uuid-123',
+      id: 'order-uuid-123',
       totalPrice: new Prisma.Decimal(50.0),
       status: 'pending',
     });

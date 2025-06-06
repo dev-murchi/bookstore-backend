@@ -11,7 +11,7 @@ import { validate } from 'class-validator';
 @Injectable()
 export class UserService {
   private readonly userSelect = {
-    userid: true,
+    id: true,
     name: true,
     email: true,
     password: true,
@@ -39,14 +39,12 @@ export class UserService {
         userData.password,
       );
 
-      const userId = HelperService.generateUUID();
       // create new user
       const user = await this.prisma.user.create({
         data: {
           name: userData.name,
           email: userData.email,
           password: hashedPassword,
-          userid: userId,
           role: {
             connectOrCreate: {
               where: {
@@ -64,7 +62,7 @@ export class UserService {
       });
 
       return {
-        id: user.userid,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role.role_name,
@@ -93,7 +91,7 @@ export class UserService {
 
   async findById(id: string): Promise<UserDTO | null> {
     try {
-      const user = await this.findUser({ userid: id });
+      const user = await this.findUser({ id });
 
       if (!user) return null;
 
@@ -122,7 +120,6 @@ export class UserService {
       where,
       select: {
         id: true,
-        userid: true,
         name: true,
         email: true,
         password: true,
@@ -164,13 +161,13 @@ export class UserService {
       }
 
       const user = await this.prisma.user.update({
-        where: { userid: id },
+        where: { id },
         data: userUpdateObject,
         select: this.userSelect,
       });
 
       return {
-        id: user.userid,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role.role_name,
@@ -185,7 +182,7 @@ export class UserService {
   async remove(id: string): Promise<{ message: string }> {
     try {
       await this.prisma.user.delete({
-        where: { userid: id },
+        where: { id },
       });
       return { message: 'User deleted successfully' };
     } catch (error) {
@@ -205,7 +202,7 @@ export class UserService {
 
       const expiresAt = new Date(Date.now() + tenMinutes);
       await this.prisma.user.update({
-        where: { userid: userId },
+        where: { id: userId },
         data: {
           password_reset_tokens: {
             create: {
@@ -249,7 +246,7 @@ export class UserService {
       const user = await this.findUser({ email });
 
       // check user correctness
-      if (!user || user.userid !== passwordResetToken.userid)
+      if (!user || user.id !== passwordResetToken.userid)
         throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
@@ -260,7 +257,7 @@ export class UserService {
       }
 
       // update user password
-      await this.update(user.userid, { password: newPassword });
+      await this.update(user.id, { password: newPassword });
 
       return { message: 'Password reset successfully' };
     } catch (error) {
@@ -302,7 +299,7 @@ export class UserService {
     selectedUser: any,
   ): Promise<UserDTO> {
     const user = new UserDTO(
-      selectedUser.userid,
+      selectedUser.id,
       selectedUser.name,
       selectedUser.email,
       selectedUser.role.role_name,

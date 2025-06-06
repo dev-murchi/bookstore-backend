@@ -32,17 +32,15 @@ export class RefreshTokenStrategy extends PassportStrategy(
 
       const session = await this.prisma.user_session.findUnique({
         where: {
-          userid_sessionid: {
-            userid: payload.id,
-            sessionid: payload.sessionId,
-          },
+          userid: payload.id,
+          sessionid: payload.sessionId,
         },
         select: {
           refresh_token: true,
           expires_at: true,
           user: {
             select: {
-              userid: true,
+              id: true,
               name: true,
               email: true,
               role: { select: { role_name: true } },
@@ -80,7 +78,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
       }
 
       return {
-        id: session.user.userid,
+        id: session.user.id,
         name: session.user.name,
         email: session.user.email,
         role: session.user.role.role_name,

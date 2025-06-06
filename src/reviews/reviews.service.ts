@@ -30,8 +30,8 @@ export class ReviewsService {
 
       const savedReview = await this.prisma.reviews.create({
         data: {
-          user: { connect: { userid: userId } },
-          book: { connect: { bookid: bookId } },
+          user: { connect: { id: userId } },
+          book: { connect: { id: bookId } },
           data: data,
           rating: rating,
         },

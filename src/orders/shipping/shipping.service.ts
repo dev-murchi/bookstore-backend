@@ -25,7 +25,7 @@ export class ShippingService {
         data: {
           email: data.email,
           name: data.name,
-          order: { connect: { orderid: orderId } },
+          order: { connect: { id: orderId } },
           address: {
             create: {
               country: data.address.country,

@@ -68,8 +68,8 @@ describe('ReviewsService', () => {
 
       expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
         data: {
-          user: { connect: { userid: userId } },
-          book: { connect: { bookid: createReviewDTO.bookId } },
+          user: { connect: { id: userId } },
+          book: { connect: { id: createReviewDTO.bookId } },
           data: createReviewDTO.data,
           rating: createReviewDTO.rating,
         },
@@ -102,8 +102,8 @@ describe('ReviewsService', () => {
         expect(error.message).toBe('User can create only one review per book.');
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
-            user: { connect: { userid: userId } },
-            book: { connect: { bookid: createReviewDTO.bookId } },
+            user: { connect: { id: userId } },
+            book: { connect: { id: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
           },
@@ -147,8 +147,8 @@ describe('ReviewsService', () => {
 
         expect(mockPrismaService.reviews.create).toHaveBeenCalledWith({
           data: {
-            user: { connect: { userid: userId } },
-            book: { connect: { bookid: createReviewDTO.bookId } },
+            user: { connect: { id: userId } },
+            book: { connect: { id: createReviewDTO.bookId } },
             data: createReviewDTO.data,
             rating: createReviewDTO.rating,
           },

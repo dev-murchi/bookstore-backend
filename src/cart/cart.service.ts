@@ -15,7 +15,7 @@ export class CartService {
 
   // selection objects
   private readonly bookSelect = {
-    bookid: true,
+    id: true,
     title: true,
     description: true,
     isbn: true,
@@ -94,7 +94,7 @@ export class CartService {
   async upsertItem(cartId: number, data: AddToCartDTO): Promise<CartItemDTO> {
     try {
       const book = await this.prisma.books.findUnique({
-        where: { bookid: data.bookId },
+        where: { id: data.bookId },
         select: { stock_quantity: true },
       });
 
@@ -118,7 +118,7 @@ export class CartService {
         update: { quantity: data.quantity },
         create: {
           cart: { connect: { id: cartId } },
-          book: { connect: { bookid: data.bookId } },
+          book: { connect: { id: data.bookId } },
           quantity: data.quantity,
         },
         select: {
@@ -155,7 +155,7 @@ export class CartService {
 
         const updatedCart = await this.cartUpdate(
           { id: cartId },
-          { user: { connect: { userid: userId } } },
+          { user: { connect: { id: userId } } },
         );
 
         return this.transformCartData(updatedCart);
@@ -198,7 +198,7 @@ export class CartService {
     return this.prisma.cart.upsert({
       where: { userid: userId },
       update: {},
-      create: { user: { connect: { userid: userId } } },
+      create: { user: { connect: { id: userId } } },
       select: this.cartSelect,
     });
   }
@@ -227,7 +227,7 @@ export class CartService {
     const cartItem = new CartItemDTO();
     cartItem.quantity = data.quantity;
     cartItem.item = new BookDTO(
-      data.book.bookid,
+      data.book.id,
       data.book.title,
       data.book.description,
       data.book.isbn,

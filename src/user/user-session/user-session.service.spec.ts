@@ -10,7 +10,7 @@ const mockPrismaService = {
   },
 };
 
-const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 
 describe('UserSessionService', () => {
   let service: UserSessionService;
@@ -38,14 +38,13 @@ describe('UserSessionService', () => {
       );
 
       await expect(
-        service.createSession(userId, 'session-id', 'refreshTokenHash'),
+        service.createSession(mockUserId, 'session-id', 'refreshTokenHash'),
       ).rejects.toThrow('User session creation failed.');
     });
     it('should return user session', async () => {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
       mockPrismaService.user_session.create.mockResolvedValueOnce({
-        id: 1,
-        userid: userId,
+        id: mockUserId,
         sessionid: 'session-id',
         refresh_token: 'refreshTokenHash',
         refresh_required: false,
@@ -53,14 +52,13 @@ describe('UserSessionService', () => {
       });
 
       const result = await service.createSession(
-        userId,
+        mockUserId,
         'session-id',
         'refreshTokenHash',
       );
 
       expect(result).toEqual({
-        id: 1,
-        userid: userId,
+        id: mockUserId,
         sessionid: 'session-id',
         refresh_token: 'refreshTokenHash',
         refresh_required: false,
@@ -68,7 +66,7 @@ describe('UserSessionService', () => {
       });
       expect(mockPrismaService.user_session.create).toHaveBeenCalledWith({
         data: {
-          user: { connect: { userid: userId } },
+          user: { connect: { id: mockUserId } },
           sessionid: 'session-id',
           refresh_token: 'refreshTokenHash',
           refresh_required: false,
@@ -83,24 +81,22 @@ describe('UserSessionService', () => {
         new Error('DB Error'),
       );
 
-      await expect(service.deleteSession(userId, 'session-id')).rejects.toThrow(
-        'User session delete failed.',
-      );
+      await expect(
+        service.deleteSession(mockUserId, 'session-id'),
+      ).rejects.toThrow('User session delete failed.');
     });
 
     it('should successfully delete the user session', async () => {
       mockPrismaService.user_session.delete.mockResolvedValueOnce({});
 
       await expect(
-        service.deleteSession(userId, 'session-id'),
+        service.deleteSession(mockUserId, 'session-id'),
       ).resolves.toBeUndefined();
 
       expect(mockPrismaService.user_session.delete).toHaveBeenCalledWith({
         where: {
-          userid_sessionid: {
-            userid: userId,
-            sessionid: 'session-id',
-          },
+          userid: mockUserId,
+          sessionid: 'session-id',
         },
       });
     });
@@ -113,7 +109,7 @@ describe('UserSessionService', () => {
       );
 
       await expect(
-        service.updateSession(userId, 'session-id', 'newTokenHash'),
+        service.updateSession(mockUserId, 'session-id', 'newTokenHash'),
       ).rejects.toThrow('User session update failed');
     });
 
@@ -121,15 +117,13 @@ describe('UserSessionService', () => {
       mockPrismaService.user_session.update.mockResolvedValueOnce({});
 
       await expect(
-        service.updateSession(userId, 'session-id', 'newTokenHash'),
+        service.updateSession(mockUserId, 'session-id', 'newTokenHash'),
       ).resolves.toBeUndefined();
 
       expect(mockPrismaService.user_session.update).toHaveBeenCalledWith({
         where: {
-          userid_sessionid: {
-            userid: userId,
-            sessionid: 'session-id',
-          },
+          userid: mockUserId,
+          sessionid: 'session-id',
         },
         data: {
           refresh_token: 'newTokenHash',

@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
 import Stripe from 'stripe';
-import { HelperService } from '../../common/helper.service';
 import { CheckoutDTO } from '../../common/dto/checkout.dto';
 import { OrderDTO } from '../../common/dto/order.dto';
 import { OrderItemDTO } from '../../common/dto/order-item.dto';
@@ -31,7 +30,7 @@ export class CheckoutService {
               select: {
                 book: {
                   select: {
-                    bookid: true,
+                    id: true,
                     title: true,
                     price: true,
                     stock_quantity: true,
@@ -63,7 +62,7 @@ export class CheckoutService {
         for (const cartItem of cart.cart_items) {
           if (cartItem.book.stock_quantity < cartItem.quantity) {
             throw new CustomAPIError(
-              `Not enough stock for book ID: ${cartItem.book.bookid}`,
+              `Not enough stock for book ID: ${cartItem.book.id}`,
             );
           }
 
@@ -76,7 +75,7 @@ export class CheckoutService {
 
           updateStockPromises.push(
             pr.books.update({
-              where: { bookid: cartItem.book.bookid },
+              where: { id: cartItem.book.id },
               data: {
                 stock_quantity: { decrement: cartItem.quantity },
               },
@@ -84,7 +83,7 @@ export class CheckoutService {
           );
 
           orderItemsToCreate.push({
-            bookid: cartItem.book.bookid,
+            bookid: cartItem.book.id,
             quantity: cartItem.quantity,
           });
         }
@@ -94,7 +93,6 @@ export class CheckoutService {
         // Create the order
         const order = await pr.orders.create({
           data: {
-            orderid: HelperService.generateUUID(),
             totalPrice,
             status: 'pending',
             userid: userId,
@@ -105,7 +103,7 @@ export class CheckoutService {
             },
           },
           select: {
-            orderid: true,
+            id: true,
             status: true,
             user: { select: { name: true, email: true } },
           },
@@ -127,11 +125,11 @@ export class CheckoutService {
               allowed_countries: ['TR', 'GB', 'US', 'JP'],
             },
             metadata: {
-              orderId: order.orderid,
+              orderId: order.id,
             },
             payment_intent_data: {
               metadata: {
-                orderId: order.orderid,
+                orderId: order.id,
               },
             },
             customer_email: order.user ? order.user.email : undefined,
@@ -148,7 +146,7 @@ export class CheckoutService {
         }
 
         const orderData = new OrderDTO();
-        orderData.id = order.orderid;
+        orderData.id = order.id;
         orderData.owner = userId;
         orderData.price = totalPrice;
         orderData.status = order.status as OrderStatus;
@@ -171,7 +169,7 @@ export class CheckoutService {
 
   private transformToOrderItem(cartItem: any): OrderItemDTO {
     const item = new BookDTO(
-      cartItem.book.bookid,
+      cartItem.book.id,
       cartItem.book.title,
       cartItem.book.description,
       cartItem.book.isbn,

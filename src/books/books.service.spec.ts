@@ -4,10 +4,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { CreateBookDTO } from '../common/dto/create-book.dto';
 import { UpdateBookDTO } from '../common/dto/update-book.dto';
-import { HelperService } from '../common/helper.service';
 import { BookDTO } from '../common/dto/book.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
 
+const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example
+const mockBookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
+const mockBookId2 = 'ba22e8c2-1234-4ae2-835d-12f488667aed'; // just example
+const mockBookId3 = 'ba22e8c2-1234-1234-835d-12f488667aed'; // just example
+const mockBookId5 = 'ba22e8c2-1234-1234-1234-12f488667aed'; // just example
+const mockBookId6 = 'ba22e8c2-1234-1234-835d-123488667aed'; // just example
+const mockBookId7 = '1234e8c2-1234-1234-835d-123488667aed'; // just example
 const mockPrismaService = {
   books: {
     create: jest.fn(),
@@ -52,7 +59,6 @@ describe('BooksService', () => {
         id: 1,
       });
 
-      const userId = 'user-1';
       const createBookDto: CreateBookDTO = {
         title: 'The Test Book',
         categoryId: 1,
@@ -66,7 +72,7 @@ describe('BooksService', () => {
       };
 
       try {
-        await service.create(userId, createBookDto);
+        await service.create(mockUserId, createBookDto);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('The book with same ISBN is already exist');
@@ -87,14 +93,12 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const spy = jest.spyOn(HelperService, 'generateUUID');
-      spy.mockReturnValueOnce('book-uuid');
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.books.create.mockResolvedValueOnce({
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -109,7 +113,7 @@ describe('BooksService', () => {
       });
 
       const bookDTO = new BookDTO(
-        'book-uuid',
+        mockBookId,
         'The Test Book',
         'Test book description.',
         '9780743273565',
@@ -120,10 +124,9 @@ describe('BooksService', () => {
         'testbook-image-url',
       );
 
-      const result = await service.create('author-id-1', createBookDto);
+      const result = await service.create(mockUserId, createBookDto);
 
       expect(result).toEqual(bookDTO);
-      spy.mockRestore();
     });
 
     it('should throw CustomAPIError when an error occurs', async () => {
@@ -144,7 +147,7 @@ describe('BooksService', () => {
           author: 'testauthor@email.com',
         };
 
-        await service.create('author-id-1', createBookDto);
+        await service.create(mockUserId, createBookDto);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book creation failed.');
@@ -160,10 +163,10 @@ describe('BooksService', () => {
 
     it('should return all books', async () => {
       const book = {
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -179,7 +182,7 @@ describe('BooksService', () => {
       mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
       expect(await service.findAll()).toEqual([
         new BookDTO(
-          'book-uuid',
+          mockBookId,
           'The Test Book',
           'Test book description.',
           '9780743273565',
@@ -209,15 +212,14 @@ describe('BooksService', () => {
   describe('findOne', () => {
     it('should return null if there is no book', async () => {
       mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
-      const id = 'book-id-1';
-      expect(await service.findOne(id)).toBeNull();
+      expect(await service.findOne(mockBookId)).toBeNull();
     });
     it('should return a book by id', async () => {
       const book = {
-        bookid: 'book-uuid-2',
+        id: mockBookId2,
         title: 'The Test Book 2',
         author: {
-          userid: 'author-id-2',
+          id: mockUserId2,
           name: 'test author 2',
           email: 'testauthor2@email.com',
           role: { role_name: 'author' },
@@ -231,9 +233,9 @@ describe('BooksService', () => {
         image_url: 'testbook-image-url-2',
       };
       mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
-      expect(await service.findOne('book-uuid-2')).toEqual(
+      expect(await service.findOne(mockBookId2)).toEqual(
         new BookDTO(
-          'book-uuid-2',
+          mockBookId2,
           'The Test Book 2',
           'Test book description.',
           '9780743273565',
@@ -250,7 +252,7 @@ describe('BooksService', () => {
         new Error('Error'),
       );
       try {
-        await service.findOne('book-uuid-1');
+        await service.findOne(mockBookId);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book could not retrieved.');
@@ -263,9 +265,9 @@ describe('BooksService', () => {
       const updateBookDto: UpdateBookDTO = {
         author: 'testauthor@email.com',
       };
-      const authorId = 'author-1';
+
       try {
-        await service.update('book-id-1', updateBookDto, authorId);
+        await service.update(mockBookId, updateBookDto, mockUserId);
       } catch (error) {
         expect(error).toEqual(new CustomAPIError('No changes provided.'));
         expect(prisma.books.update).toHaveBeenCalledTimes(0);
@@ -285,14 +287,11 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const bookId = 'book-id-1';
-      const authorId = 'author-1';
-
       mockPrismaService.books.update.mockResolvedValueOnce({
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'Updated Book Title',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -305,11 +304,15 @@ describe('BooksService', () => {
         rating: 5,
         image_url: 'testbook-image-url',
       });
-      const result = await service.update(bookId, updateBookDto, authorId);
+      const result = await service.update(
+        mockBookId,
+        updateBookDto,
+        mockUserId,
+      );
 
       expect(result).toEqual(
         new BookDTO(
-          'book-uuid',
+          mockBookId,
           'Updated Book Title',
           'Updated description.',
           '1234567890123',
@@ -322,10 +325,8 @@ describe('BooksService', () => {
       );
       expect(prisma.books.update).toHaveBeenCalledWith({
         where: {
-          bookid_authorid: {
-            authorid: 'author-1',
-            bookid: 'book-id-1',
-          },
+          authorid: mockUserId,
+          id: mockBookId,
         },
         data: {
           title: updateBookDto.title,
@@ -339,11 +340,11 @@ describe('BooksService', () => {
           image_url: updateBookDto.imageUrl,
         },
         select: {
-          bookid: true,
+          id: true,
           title: true,
           author: {
             select: {
-              userid: true,
+              id: true,
               name: true,
               email: true,
               role: { select: { role_name: true } },
@@ -374,10 +375,10 @@ describe('BooksService', () => {
       };
 
       mockPrismaService.books.update.mockResolvedValueOnce({
-        bookid: 'book-id-1',
+        id: mockBookId,
         title: 'Updated Book Title',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -392,13 +393,13 @@ describe('BooksService', () => {
       });
 
       const result = await service.update(
-        'book-id-1',
+        mockBookId,
         updateBookDto,
-        'author-id-1',
+        mockUserId,
       );
 
       expect(result).toEqual({
-        id: 'book-id-1',
+        id: mockBookId,
         title: 'Updated Book Title',
         description: 'Updated description.',
         isbn: '1234567890123',
@@ -412,10 +413,8 @@ describe('BooksService', () => {
       });
       expect(prisma.books.update).toHaveBeenCalledWith({
         where: {
-          bookid_authorid: {
-            authorid: 'author-id-1',
-            bookid: 'book-id-1',
-          },
+          id: mockBookId,
+          authorid: mockUserId,
         },
         data: {
           price: updateBookDto.price,
@@ -438,11 +437,9 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      const bookId = 'book-id-1';
-      const authorId = 'author-1';
       mockPrismaService.books.update.mockRejectedValueOnce('Update failed.');
       try {
-        await service.update(bookId, updateBookDto, authorId);
+        await service.update(mockBookId, updateBookDto, mockUserId);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book informations could not be updated');
@@ -453,9 +450,9 @@ describe('BooksService', () => {
   describe('remove', () => {
     it('should throw an error if book does not exist', async () => {
       mockPrismaService.books.delete.mockRejectedValueOnce('Delete failed');
-      const bookId = 'book-id-1';
+
       try {
-        await service.remove(bookId);
+        await service.remove(mockBookId);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Book could not be deleted');
@@ -464,7 +461,7 @@ describe('BooksService', () => {
 
     it('should successfully delete a book', async () => {
       mockPrismaService.books.delete.mockResolvedValueOnce({});
-      const result = await service.remove('book-id-1');
+      const result = await service.remove(mockBookId);
       expect(result).toEqual({ message: 'Book deleted successfully' });
     });
   });
@@ -472,10 +469,10 @@ describe('BooksService', () => {
   describe('search', () => {
     it('should return books matching the search query in title', async () => {
       const book = {
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Title Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -495,7 +492,7 @@ describe('BooksService', () => {
 
       expect(result).toEqual([
         {
-          id: 'book-uuid',
+          id: mockBookId,
           title: 'The Test Title Book',
           description: 'Test book description.',
           isbn: '9780743273565',
@@ -532,10 +529,10 @@ describe('BooksService', () => {
 
     it('should return books matching the search query in author', async () => {
       const book = {
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -555,7 +552,7 @@ describe('BooksService', () => {
 
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid',
+          mockBookId,
           'The Test Book',
           'Test book description.',
           '9780743273565',
@@ -570,10 +567,10 @@ describe('BooksService', () => {
 
     it('should return books matching the search query in isbn', async () => {
       const book = {
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -593,7 +590,7 @@ describe('BooksService', () => {
 
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid',
+          mockBookId,
           'The Test Book',
           'Test book description.',
           '9780743273565',
@@ -608,10 +605,10 @@ describe('BooksService', () => {
 
     it('should return books matching the search query in category', async () => {
       const book = {
-        bookid: 'book-uuid',
+        id: mockBookId,
         title: 'The Test Book',
         author: {
-          userid: 'author-id-1',
+          id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
           role: { role_name: 'author' },
@@ -631,7 +628,7 @@ describe('BooksService', () => {
 
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid',
+          mockBookId,
           'The Test Book',
           'Test book description.',
           '9780743273565',
@@ -676,10 +673,10 @@ describe('BooksService', () => {
 
       const books = [
         {
-          bookid: 'book-uuid-1',
+          id: mockBookId,
           title: 'Book One',
           author: {
-            userid: 'author-id-1',
+            id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
             role: { role_name: 'author' },
@@ -693,12 +690,12 @@ describe('BooksService', () => {
           image_url: 'book-one.image.url',
         },
         {
-          bookid: 'book-uuid-2',
+          id: mockBookId2,
           title: 'Book Two',
           author: {
-            userid: 'author-id-1',
-            name: 'author two',
-            email: 'author2@email.com',
+            id: mockUserId,
+            name: 'author one',
+            email: 'author1@email.com',
             role: { role_name: 'author' },
           },
           category: { id: 2, category_name: 'category two' },
@@ -710,12 +707,12 @@ describe('BooksService', () => {
           image_url: 'book-two.image.url',
         },
         {
-          bookid: 'book-uuid-3',
+          id: mockBookId3,
           title: 'Book Three',
           author: {
-            userid: 'author-id-1',
-            name: 'author three',
-            email: 'author3@email.com',
+            id: mockUserId,
+            name: 'author one',
+            email: 'author1@email.com',
             role: { role_name: 'author' },
           },
           category: { id: 3, category_name: 'category three' },
@@ -733,7 +730,7 @@ describe('BooksService', () => {
       const result = await service.filter(filterParams);
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid-1',
+          mockBookId,
           'Book One',
           'Description of book one',
           '0123456789',
@@ -744,22 +741,22 @@ describe('BooksService', () => {
           'book-one.image.url',
         ),
         new BookDTO(
-          'book-uuid-2',
+          mockBookId2,
           'Book Two',
           'Description of book two',
           '0987654321',
-          { name: 'author two' },
+          { name: 'author one' },
           new CategoryDTO(2, 'category two'),
           11,
           5,
           'book-two.image.url',
         ),
         new BookDTO(
-          'book-uuid-3',
+          mockBookId3,
           'Book Three',
           'Description of book three',
           '0123456789',
-          { name: 'author three' },
+          { name: 'author one' },
           new CategoryDTO(3, 'category three'),
           99,
           4.5,
@@ -773,11 +770,11 @@ describe('BooksService', () => {
           stock_quantity: { gt: 0 },
         },
         select: {
-          bookid: true,
+          id: true,
           title: true,
           author: {
             select: {
-              userid: true,
+              id: true,
               name: true,
               email: true,
               role: { select: { role_name: true } },
@@ -802,10 +799,10 @@ describe('BooksService', () => {
 
       const books = [
         {
-          bookid: 'book-uuid-1',
+          id: mockBookId,
           title: 'Book One',
           author: {
-            userid: 'author-id-1',
+            id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
             role: { role_name: 'author' },
@@ -825,7 +822,7 @@ describe('BooksService', () => {
       const result = await service.filter(filterParams);
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid-1',
+          mockBookId,
           'Book One',
           'Description of book one',
           '0123456789',
@@ -854,12 +851,12 @@ describe('BooksService', () => {
 
       const books = [
         {
-          bookid: 'book-uuid-5',
+          id: mockBookId5,
           title: 'Book Five',
           author: {
-            userid: 'author-id-5',
-            name: 'author five',
-            email: 'author5@email.com',
+            id: mockUserId,
+            name: 'author one',
+            email: 'author1@email.com',
             role: { role_name: 'author' },
           },
           category: { id: 5, category_name: 'category five' },
@@ -871,12 +868,12 @@ describe('BooksService', () => {
           image_url: 'book-five.image.url',
         },
         {
-          bookid: 'book-uuid-7',
+          id: mockBookId7,
           title: 'Book Seven',
           author: {
-            userid: 'author-id-7',
-            name: 'author seven',
-            email: 'author7@email.com',
+            id: mockUserId,
+            name: 'author one',
+            email: 'author1@email.com',
             role: { role_name: 'author' },
           },
           category: { id: 7, category_name: 'category seven' },
@@ -888,12 +885,12 @@ describe('BooksService', () => {
           image_url: 'book-seven.image.url',
         },
         {
-          bookid: 'book-uuid-6',
+          id: mockBookId6,
           title: 'Book Six',
           author: {
-            userid: 'author-id-6',
-            name: 'author six',
-            email: 'author6@email.com',
+            id: mockUserId,
+            name: 'author one',
+            email: 'author1@email.com',
             role: { role_name: 'author' },
           },
           category: { id: 6, category_name: 'category six' },
@@ -911,33 +908,33 @@ describe('BooksService', () => {
       const result = await service.filter(filterParams);
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid-5',
+          mockBookId5,
           'Book Five',
           'Description of book five',
           '0123456789',
-          { name: 'author five' },
+          { name: 'author one' },
           new CategoryDTO(5, 'category five'),
           99,
           4.5,
           'book-five.image.url',
         ),
         new BookDTO(
-          'book-uuid-7',
+          mockBookId7,
           'Book Seven',
           'Description of book seven',
           '0987654321',
-          { name: 'author seven' },
+          { name: 'author one' },
           new CategoryDTO(7, 'category seven'),
           11,
           5,
           'book-seven.image.url',
         ),
         new BookDTO(
-          'book-uuid-6',
+          mockBookId6,
           'Book Six',
           'Description of book six',
           '0123456789',
-          { name: 'author six' },
+          { name: 'author one' },
           new CategoryDTO(6, 'category six'),
           11,
           4.1,
@@ -963,10 +960,10 @@ describe('BooksService', () => {
 
       const books = [
         {
-          bookid: 'book-uuid-1',
+          id: mockBookId,
           title: 'Book One',
           author: {
-            userid: 'author-id-1',
+            id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
             role: { role_name: 'author' },
@@ -981,10 +978,10 @@ describe('BooksService', () => {
         },
 
         {
-          bookid: 'book-uuid-2',
+          id: mockBookId2,
           title: 'Book Two',
           author: {
-            userid: 'author-id-1',
+            id: mockUserId,
             name: 'author two',
             email: 'author2@email.com',
             role: { role_name: 'author' },
@@ -1004,7 +1001,7 @@ describe('BooksService', () => {
       const result = await service.filter(filterParams);
       expect(result).toEqual([
         new BookDTO(
-          'book-uuid-1',
+          mockBookId,
           'Book One',
           'Description of book one',
           '0123456789',
@@ -1016,7 +1013,7 @@ describe('BooksService', () => {
         ),
 
         new BookDTO(
-          'book-uuid-2',
+          mockBookId2,
           'Book Two',
           'Description of book two',
           '0123456789',

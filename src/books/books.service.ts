@@ -4,18 +4,17 @@ import { UpdateBookDTO } from '../common/dto/update-book.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { HelperService } from '../common/helper.service';
 import { BookDTO } from '../common/dto/book.dto';
 import { CategoryDTO } from '../common/dto/category.dto';
 
 export type SortType = 'asc' | 'desc';
 
 const selectedBookInformations: Prisma.booksSelect = {
-  bookid: true,
+  id: true,
   title: true,
   author: {
     select: {
-      userid: true,
+      id: true,
       name: true,
       email: true,
       role: { select: { role_name: true } },
@@ -51,11 +50,10 @@ export class BooksService {
       // save the book
       const savedBook = await this.prisma.books.create({
         data: {
-          bookid: HelperService.generateUUID(),
           title: createBookDto.title,
           author: {
             connect: {
-              userid: authorId,
+              id: authorId,
             },
           },
           category: {
@@ -94,7 +92,7 @@ export class BooksService {
 
   async findOne(id: string): Promise<BookDTO | null> {
     try {
-      const book = await this.findBook({ bookid: id });
+      const book = await this.findBook({ id });
       if (!book) return null;
       return this.transformBookData(book);
     } catch (error) {
@@ -149,10 +147,8 @@ export class BooksService {
 
       const book = await this.prisma.books.update({
         where: {
-          bookid_authorid: {
-            bookid: id,
-            authorid: authorId,
-          },
+          id,
+          authorid: authorId,
         },
         data: data,
         select: selectedBookInformations,
@@ -169,7 +165,7 @@ export class BooksService {
   async remove(id: string): Promise<{ message: string }> {
     try {
       await this.prisma.books.delete({
-        where: { bookid: id },
+        where: { id },
       });
       return { message: 'Book deleted successfully' };
     } catch (error) {
@@ -276,7 +272,7 @@ export class BooksService {
 
   private transformBookData(book: SelectedBook): BookDTO {
     return new BookDTO(
-      book.bookid,
+      book.id,
       book.title,
       book.description,
       book.isbn,

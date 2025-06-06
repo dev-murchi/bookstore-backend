@@ -17,7 +17,7 @@ const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 const bookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
 
 const mockPrismaOrder1 = {
-  orderid: orderId1,
+  id: orderId1,
   userid: userId,
   totalPrice: 21.25,
   status: 'pending',
@@ -25,7 +25,7 @@ const mockPrismaOrder1 = {
     {
       quantity: 1,
       book: {
-        bookid: bookId,
+        id: bookId,
         title: 'Test Book',
         description: 'test book description',
         isbn: 'book-isbn',
@@ -42,7 +42,7 @@ const mockPrismaOrder1 = {
 };
 
 const mockPrismaOrder2 = {
-  orderid: orderId2,
+  id: orderId2,
   userid: userId,
   totalPrice: 42.5,
   status: 'complete',
@@ -50,7 +50,7 @@ const mockPrismaOrder2 = {
     {
       quantity: 2,
       book: {
-        bookid: bookId,
+        id: bookId,
         title: 'Test Book',
         description: 'test book description',
         isbn: 'book-isbn',
@@ -240,7 +240,7 @@ describe('OrdersService', () => {
       const result = await service.getOrder(orderId1);
 
       expect(mockPrismaService.orders.findUnique).toHaveBeenCalledWith({
-        where: { orderid: orderId1 },
+        where: { id: orderId1 },
         select: expect.anything(),
       });
       expect(result).toEqual({
@@ -289,7 +289,7 @@ describe('OrdersService', () => {
       const result = await service.updateStatus(orderId1, OrderStatus.Canceled);
 
       expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
-        where: { orderid: orderId1 },
+        where: { id: orderId1 },
         data: { status: 'canceled' },
         select: expect.anything(),
       });
@@ -351,7 +351,7 @@ describe('OrdersService', () => {
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({
-        where: { bookid: 'booki-uuid-10' },
+        where: { id: 'booki-uuid-10' },
         data: { stock_quantity: { increment: 2 } },
       });
     });
@@ -380,7 +380,7 @@ describe('OrdersService', () => {
       });
 
       expect(mockPrismaService.books.update).toHaveBeenCalledWith({
-        where: { bookid: 'booki-uuid-10' },
+        where: { id: 'booki-uuid-10' },
         data: { stock_quantity: { increment: 2 } },
       });
     });
@@ -391,7 +391,7 @@ describe('OrdersService', () => {
       const result = await service['transformToOrderItem']({
         quantity: 3,
         book: {
-          bookid: bookId,
+          id: bookId,
           title: 'Test Book',
           description: 'test book description',
           isbn: 'book-isbn',
@@ -432,7 +432,7 @@ describe('OrdersService', () => {
         service['transformToOrderItem']({
           quantity: 1,
           book: {
-            bookid: bookId,
+            id: bookId,
             title: 'Test Book',
             description: 'test book description',
             isbn: 'book-isbn',

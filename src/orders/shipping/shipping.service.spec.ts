@@ -50,7 +50,7 @@ describe('ShippingService', () => {
         data: {
           email: shippingData.email,
           name: shippingData.name,
-          order: { connect: { orderid: orderId } },
+          order: { connect: { id: orderId } },
           address: {
             create: {
               country: shippingData.address.country,
@@ -88,7 +88,7 @@ describe('ShippingService', () => {
         data: {
           email: shippingData.email,
           name: shippingData.name,
-          order: { connect: { orderid: orderId } },
+          order: { connect: { id: orderId } },
           address: {
             create: {
               country: shippingData.address.country,

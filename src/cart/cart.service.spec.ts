@@ -3,6 +3,13 @@ import { CartService } from './cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 
+const mockBookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
+const mockBookId2 = 'ba22e8c2-1234-4ae2-835d-12f488667aed'; // just example
+const mockBookId3 = 'ba22e8c2-1234-1234-835d-12f488667aed'; // just example
+
+const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
+const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example
+
 const mockPrismaService = {
   books: {
     findUnique: jest.fn(),
@@ -35,7 +42,7 @@ const cartSelect = {
       quantity: true,
       book: {
         select: {
-          bookid: true,
+          id: true,
           title: true,
           description: true,
           isbn: true,
@@ -87,7 +94,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             book: {
-              bookid: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -109,7 +116,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -132,12 +139,12 @@ describe('CartService', () => {
     it('should find or create a cart for a user with userId is provided', async () => {
       mockPrismaService.cart.upsert.mockReturnValueOnce({
         id: 1,
-        userid: 'user-uuid-1',
+        userid: mockUserId,
         cart_items: [
           {
             quantity: 2,
             book: {
-              bookid: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -151,15 +158,15 @@ describe('CartService', () => {
         ],
       });
 
-      const result = await service.createCart('user-uuid-1');
+      const result = await service.createCart(mockUserId);
       expect(result).toEqual({
         id: 1,
-        owner: 'user-uuid-1',
+        owner: mockUserId,
         items: [
           {
             quantity: 2,
             item: {
-              id: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -174,9 +181,9 @@ describe('CartService', () => {
         totalPrice: 21.98,
       });
       expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
-        where: { userid: 'user-uuid-1' },
+        where: { userid: mockUserId },
         update: {},
-        create: { user: { connect: { userid: 'user-uuid-1' } } },
+        create: { user: { connect: { id: mockUserId } } },
         select: cartSelect,
       });
     });
@@ -196,7 +203,7 @@ describe('CartService', () => {
         new Error('Database error during upsert'),
       );
 
-      await expect(service.createCart('user-uuid-1')).rejects.toThrow(
+      await expect(service.createCart(mockUserId)).rejects.toThrow(
         'Cart creation failed.',
       );
     });
@@ -221,7 +228,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             book: {
-              bookid: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -243,7 +250,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -283,14 +290,14 @@ describe('CartService', () => {
     it('should return cart data if found by userId', async () => {
       const mockCart = {
         id: 1,
-        userid: 'user-uuid-1',
+        userid: mockUserId,
         cart_items: [],
       };
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
-      const result = await service.findCartByUser('user-uuid-1');
+      const result = await service.findCartByUser(mockUserId);
       expect(result).toEqual({
         id: 1,
-        owner: 'user-uuid-1',
+        owner: mockUserId,
         items: [],
         totalPrice: 0,
       });
@@ -300,7 +307,7 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique.mockRejectedValueOnce(
         new Error('Database error'),
       );
-      await expect(service.findCartByUser('user-uuid-1')).rejects.toThrow(
+      await expect(service.findCartByUser(mockUserId)).rejects.toThrow(
         'Failed to fetch the cart.',
       );
     });
@@ -334,7 +341,7 @@ describe('CartService', () => {
         {
           quantity: 1,
           book: {
-            bookid: 'book-uuid-1',
+            id: mockBookId,
             title: 'Test Book',
             description: 'test book description',
             isbn: 'bookisbn',
@@ -348,7 +355,7 @@ describe('CartService', () => {
         {
           quantity: 1,
           book: {
-            bookid: 'book-uuid-2',
+            id: mockBookId2,
             title: 'Test Book Two',
             description: 'test book 2description',
             isbn: 'bookisbn-2',
@@ -375,7 +382,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -389,7 +396,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-2',
+              id: mockBookId2,
               title: 'Test Book Two',
               description: 'test book 2description',
               isbn: 'bookisbn-2',
@@ -410,7 +417,7 @@ describe('CartService', () => {
     it('should throw an error if a database error occurs when the user tries to remove a product from the cart', async () => {
       const cartId = 2;
       const data = {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
       };
       mockPrismaService.cart_items.delete.mockRejectedValueOnce('DB error.');
 
@@ -425,7 +432,7 @@ describe('CartService', () => {
 
     it('should remove an item from the cart', async () => {
       const cartId = 1;
-      const data = { bookId: 'book-uuid-1' };
+      const data = { bookId: mockBookId };
 
       mockPrismaService.cart_items.delete.mockResolvedValueOnce({});
 
@@ -442,21 +449,21 @@ describe('CartService', () => {
       mockPrismaService.books.findUnique.mockReturnValueOnce(null);
       const cartId = 1;
       const data = {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
         quantity: 1,
       };
 
       try {
         await service.upsertItem(cartId, data);
       } catch (error) {
-        expect(error.message).toBe('Book ID #book-uuid-1 does not exist.');
+        expect(error.message).toBe(`Book ID #${mockBookId} does not exist.`);
       }
     });
 
     it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
       const cartId = 1;
       const data = {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
         quantity: 10,
       };
       mockPrismaService.books.findUnique.mockReturnValueOnce({
@@ -468,7 +475,7 @@ describe('CartService', () => {
         await service.upsertItem(cartId, data);
       } catch (error) {
         expect(error.message).toBe(
-          'Insufficient stock for book ID: book-uuid-1',
+          `Insufficient stock for book ID: ${mockBookId}`,
         );
       }
     });
@@ -483,7 +490,7 @@ describe('CartService', () => {
       );
       const cartId = 2;
       const data = {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
         quantity: 1,
       };
 
@@ -502,7 +509,7 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockResolvedValueOnce({
         quantity: 5,
         book: {
-          bookid: 'book-uuid-1',
+          id: mockBookId,
           title: 'Test Book',
           description: 'test book description',
           isbn: 'book-isbn',
@@ -516,14 +523,14 @@ describe('CartService', () => {
 
       const cartId = 1;
       const result = await service.upsertItem(cartId, {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
         quantity: 5,
       });
 
       expect(result).toEqual({
         quantity: 5,
         item: {
-          id: 'book-uuid-1',
+          id: mockBookId,
           title: 'Test Book',
           description: 'test book description',
           isbn: 'book-isbn',
@@ -546,7 +553,7 @@ describe('CartService', () => {
       );
       const cartId = 1;
       const data = {
-        bookId: 'book-uuid-1',
+        bookId: mockBookId,
         quantity: 1,
       };
 
@@ -560,12 +567,12 @@ describe('CartService', () => {
     it('should throw an error if the user already has items in the cart', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
         id: 1,
-        userid: 'user-uuid-1',
+        userid: mockUserId,
         cart_items: [
           {
             quantity: 1,
             book: {
-              bookid: 'book-uuid-1',
+              id: mockBookId,
               title: 'Test Book',
               description: 'test book description',
               isbn: 'bookisbn',
@@ -580,7 +587,7 @@ describe('CartService', () => {
       });
 
       try {
-        await service.claim('user-uuid-1', 2);
+        await service.claim(mockUserId, 2);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User already has a cart.');
@@ -591,17 +598,17 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
           id: 1,
-          userid: 'user-uuid-1',
+          userid: mockUserId,
           cart_items: [],
         })
         .mockResolvedValueOnce({
           id: 2,
-          userid: 'user-uuid-2',
+          userid: mockUserId2,
           cart_items: [
             {
               quantity: 1,
               book: {
-                bookid: 'book-uuid-2',
+                id: mockBookId2,
                 title: 'Test Book 2',
                 description: 'test book 2 description',
                 isbn: 'bookisbn-2',
@@ -616,7 +623,7 @@ describe('CartService', () => {
         });
 
       try {
-        await service.claim('user-uuid-1', 2);
+        await service.claim(mockUserId, 2);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Cart is not a guest cart.');
@@ -627,7 +634,7 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
           id: 1,
-          userid: 'user-uuid-1',
+          userid: mockUserId,
           cart_items: [],
         })
         .mockResolvedValueOnce({
@@ -637,7 +644,7 @@ describe('CartService', () => {
             {
               quantity: 1,
               book: {
-                bookid: 'book-uuid-2',
+                id: mockBookId2,
                 title: 'Test Book 2',
                 description: 'test book 2 description',
                 isbn: 'bookisbn-2',
@@ -653,12 +660,12 @@ describe('CartService', () => {
 
       mockPrismaService.cart.update.mockResolvedValueOnce({
         id: 2,
-        userid: 'user-uuid-1',
+        userid: mockUserId,
         cart_items: [
           {
             quantity: 1,
             book: {
-              bookid: 'book-uuid-2',
+              id: mockBookId2,
               title: 'Test Book 2',
               description: 'test book 2 description',
               isbn: 'bookisbn-2',
@@ -674,26 +681,26 @@ describe('CartService', () => {
 
       const spy = jest.spyOn(service as any, 'cartUpdate');
 
-      const result = await service.claim('user-uuid-1', 2);
+      const result = await service.claim(mockUserId, 2);
 
       expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
-        where: { userid: 'user-uuid-1' },
+        where: { userid: mockUserId },
       });
 
       expect(spy).toHaveBeenCalledWith(
         { id: 2 },
-        { user: { connect: { userid: 'user-uuid-1' } } },
+        { user: { connect: { id: mockUserId } } },
       );
 
       expect(result).toEqual({
         id: 2,
-        owner: 'user-uuid-1',
+        owner: mockUserId,
         totalPrice: 10.99,
         items: [
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-2',
+              id: mockBookId2,
               title: 'Test Book 2',
               description: 'test book 2 description',
               isbn: 'bookisbn-2',
@@ -713,13 +720,13 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
           id: 1,
-          userid: 'user-uuid-1',
+          userid: mockUserId,
           cart_items: [],
         }) // existing user cart
         .mockResolvedValueOnce(null); // guest cart not found
 
       try {
-        await service.claim('user-uuid-1', 999);
+        await service.claim(mockUserId, 999);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Cart does not exist.');
@@ -736,7 +743,7 @@ describe('CartService', () => {
             {
               quantity: 1,
               book: {
-                bookid: 'book-uuid-2',
+                id: mockBookId2,
                 title: 'Test Book 2',
                 description: 'test book 2 description',
                 isbn: 'bookisbn-2',
@@ -752,12 +759,12 @@ describe('CartService', () => {
 
       mockPrismaService.cart.update.mockResolvedValueOnce({
         id: 2,
-        userid: 'user-uuid-1',
+        userid: mockUserId,
         cart_items: [
           {
             quantity: 1,
             book: {
-              bookid: 'book-uuid-2',
+              id: mockBookId2,
               title: 'Test Book 2',
               description: 'test book 2 description',
               isbn: 'bookisbn-2',
@@ -772,22 +779,22 @@ describe('CartService', () => {
       });
 
       const spy = jest.spyOn(service as any, 'cartUpdate');
-      const result = await service.claim('user-uuid-1', 2);
+      const result = await service.claim(mockUserId, 2);
 
       expect(mockPrismaService.cart.delete).not.toHaveBeenCalled(); // No user cart to delete
       expect(spy).toHaveBeenCalledWith(
         { id: 2 },
-        { user: { connect: { userid: 'user-uuid-1' } } },
+        { user: { connect: { id: mockUserId } } },
       );
       expect(result).toEqual({
         id: 2,
-        owner: 'user-uuid-1',
+        owner: mockUserId,
         totalPrice: 10.99,
         items: [
           {
             quantity: 1,
             item: {
-              id: 'book-uuid-2',
+              id: mockBookId2,
               title: 'Test Book 2',
               description: 'test book 2 description',
               isbn: 'bookisbn-2',
@@ -807,7 +814,7 @@ describe('CartService', () => {
         throw new Error('Unexpected transaction error');
       });
 
-      await expect(service.claim('user-uuid-1', 1)).rejects.toThrow(
+      await expect(service.claim(mockUserId, 1)).rejects.toThrow(
         'Only guest carts can be claimed.',
       );
     });
@@ -864,7 +871,7 @@ describe('CartService', () => {
       const mockPrismaCartItem = {
         quantity: 2,
         book: {
-          bookid: 'book-uuid-test',
+          id: mockBookId3,
           title: 'Test Book Title',
           description: 'Test Description',
           isbn: '1234567890',
@@ -883,7 +890,7 @@ describe('CartService', () => {
       expect(transformedData).toEqual({
         quantity: 2,
         item: {
-          id: 'book-uuid-test',
+          id: mockBookId3,
           title: 'Test Book Title',
           description: 'Test Description',
           isbn: '1234567890',
@@ -906,7 +913,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             book: {
-              bookid: 'book-1',
+              id: mockBookId,
               title: 'Book One',
               description: 'Desc 1',
               isbn: 'isbn1',
@@ -920,7 +927,7 @@ describe('CartService', () => {
           {
             quantity: 2,
             book: {
-              bookid: 'book-2',
+              id: mockBookId2,
               title: 'Book Two',
               description: 'Desc 2',
               isbn: 'isbn2',
@@ -946,7 +953,7 @@ describe('CartService', () => {
           {
             quantity: 1,
             item: {
-              id: 'book-1',
+              id: mockBookId,
               title: 'Book One',
               description: 'Desc 1',
               isbn: 'isbn1',
@@ -960,7 +967,7 @@ describe('CartService', () => {
           {
             quantity: 2,
             item: {
-              id: 'book-2',
+              id: mockBookId2,
               title: 'Book Two',
               description: 'Desc 2',
               isbn: 'isbn2',
@@ -1017,16 +1024,16 @@ describe('CartService', () => {
     it('should call prisma.cart.upsert with correct parameters', async () => {
       const mockUpsertedCart = {
         id: 1,
-        userid: 'test-user',
+        userid: mockUserId2,
         cart_items: [],
       };
       mockPrismaService.cart.upsert.mockResolvedValueOnce(mockUpsertedCart);
 
-      const result = await (service as any).cartUpsert('test-user');
+      const result = await (service as any).cartUpsert(mockUserId2);
       expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
-        where: { userid: 'test-user' },
+        where: { userid: mockUserId2 },
         update: {},
-        create: { user: { connect: { userid: 'test-user' } } },
+        create: { user: { connect: { id: mockUserId2 } } },
         select: cartSelect,
       });
       expect(result).toEqual(mockUpsertedCart);
@@ -1037,13 +1044,13 @@ describe('CartService', () => {
     it('should call prisma.cart.update with correct parameters', async () => {
       const mockUpdatedCart = {
         id: 1,
-        userid: 'test-user',
+        userid: mockUserId2,
         cart_items: [],
       };
       mockPrismaService.cart.update.mockResolvedValueOnce(mockUpdatedCart);
 
       const condition = { id: 1 };
-      const data = { user: { connect: { userid: 'test-user-new' } } }; // Updated data as per service method
+      const data = { user: { connect: { id: 'test-user-new' } } }; // Updated data as per service method
       const result = await (service as any).cartUpdate(condition, data);
       expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
         where: condition,
@@ -1058,7 +1065,7 @@ describe('CartService', () => {
     it('should call prisma.cart.findUnique with correct parameters and return data', async () => {
       const mockFoundCart = {
         id: 1,
-        userid: 'test-user',
+        userid: mockUserId2,
         cart_items: [],
       };
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockFoundCart);
@@ -1076,7 +1083,7 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
 
       const condition = { id: 999 };
-      const result = await (service as any).findCartBy(condition);
+      const result = await service['findCartBy'](condition);
       expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
         where: condition,
         select: cartSelect,
