@@ -156,7 +156,7 @@ model shipping {
 }
 
 model payment {
-  id Int  @id @default(autoincrement())
+  id String  @id @default(uuid())
   orderid String @unique
   transaction_id String?
   status String

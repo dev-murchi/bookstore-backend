@@ -1,7 +1,20 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PaymentDTO {
+  @ApiProperty({
+    description: 'Unique identifier for the review',
+    example: 'uuid',
+  })
+  @IsUUID()
+  id: string;
+
   @ApiProperty({
     description: 'Transaction ID for the payment (optional)',
     type: String,

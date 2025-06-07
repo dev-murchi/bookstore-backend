@@ -36,6 +36,7 @@ export class OrdersService {
 
   private readonly paymentSelect = {
     select: {
+      id: true,
       transaction_id: true,
       status: true,
       method: true,
@@ -230,6 +231,7 @@ export class OrdersService {
 
       if (payment) {
         const paymentData = new PaymentDTO();
+        paymentData.id = payment.id;
         paymentData.transactionId = payment.transaction_id;
         paymentData.status = payment.status;
         paymentData.method = payment.method;

@@ -145,7 +145,7 @@ describe('PaymentService', () => {
       };
 
       mockPrismaService.payment.upsert.mockResolvedValueOnce({
-        id: 1,
+        id: 'payment-uuid-1',
         orderid: 'order-uuid-1',
         transaction_id: 'pi_123',
         status: 'paid',
@@ -170,13 +170,11 @@ describe('PaymentService', () => {
       });
 
       expect(receivedPayment).toEqual({
-        id: 1,
-        orderid: 'order-uuid-1',
-        transaction_id: 'pi_123',
+        id: 'payment-uuid-1',
+        transactionId: 'pi_123',
         status: 'paid',
         method: 'card',
         amount: 1000,
-        payment_date: expect.any(Date),
       });
     });
 

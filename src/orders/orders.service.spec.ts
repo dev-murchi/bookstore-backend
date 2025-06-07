@@ -15,6 +15,7 @@ const orderId2 = '58fcf574-f144-4c3e-8eb1-72efe85541db'; // just example
 const orderIdNotFound = '2588f1af-b483-4c4d-ab2c-e5b3efd8c155'; // just example
 const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 const bookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
+const mockPaymentId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
 
 const mockPrismaOrder1 = {
   id: orderId1,
@@ -75,6 +76,7 @@ const mockPrismaOrder2 = {
     },
   },
   payment: {
+    id: mockPaymentId,
     transaction_id: 'lotr_txn_00112233',
     status: 'completed',
     method: 'ring_coin',
@@ -138,6 +140,7 @@ describe('OrdersService', () => {
       expectedShipping.phone = '+44 1234 567890';
 
       const expectedPayment = new PaymentDTO();
+      expectedPayment.id = mockPaymentId;
       expectedPayment.transactionId = 'lotr_txn_00112233';
       expectedPayment.status = 'completed';
       expectedPayment.method = 'ring_coin';

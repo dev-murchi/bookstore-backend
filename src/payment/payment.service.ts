@@ -3,7 +3,8 @@ import { Queue } from 'bullmq';
 import Stripe from 'stripe';
 import { StripeService } from './stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { PaymentData } from 'src/common/types/payment-data.interface';
+import { PaymentData } from '../common/types/payment-data.interface';
+import { PaymentDTO } from '../common/dto/payment.dto';
 
 @Injectable()
 export class PaymentService {
@@ -46,7 +47,7 @@ export class PaymentService {
 
   async createOrUpdatePayment(data: PaymentData) {
     try {
-      const payment = await this.prisma.payment.upsert({
+      const savedPayment = await this.prisma.payment.upsert({
         where: { orderid: data.orderId },
         create: {
           transaction_id: data.transactionId,
@@ -59,6 +60,13 @@ export class PaymentService {
           status: data.status,
         },
       });
+
+      const payment = new PaymentDTO();
+      payment.id = savedPayment.id;
+      payment.amount = Number(savedPayment.amount.toFixed(2));
+      payment.method = savedPayment.method;
+      payment.status = savedPayment.status;
+      payment.transactionId = savedPayment.transaction_id;
 
       return payment;
     } catch (error) {
