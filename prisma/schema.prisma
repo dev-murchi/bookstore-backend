@@ -79,7 +79,7 @@ model books {
 }
 
 model cart {
-  id          Int          @id @default(autoincrement())
+  id          String          @id @default(uuid())
   userid      String? @unique
   cart_items  cart_items[]
   created_at  DateTime @default(now())
@@ -90,7 +90,7 @@ model cart {
 
 model cart_items {
   id       Int    @id @default(autoincrement())
-  cartid   Int
+  cartid   String
   bookid   String
   quantity Int
   cart     cart   @relation(fields: [cartid], references: [id], onDelete: Cascade) 

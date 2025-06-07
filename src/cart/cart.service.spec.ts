@@ -3,6 +3,9 @@ import { CartService } from './cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 
+const mockCartId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
+const mockCartId2 = 'bcdef01a-2345-6789-abcd-ef0123456789'; // just example
+
 const mockBookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
 const mockBookId2 = 'ba22e8c2-1234-4ae2-835d-12f488667aed'; // just example
 const mockBookId3 = 'ba22e8c2-1234-1234-835d-12f488667aed'; // just example
@@ -88,7 +91,7 @@ describe('CartService', () => {
   describe('createCart', () => {
     it('should create a new cart for guest user when userId is null', async () => {
       mockPrismaService.cart.create.mockReturnValueOnce({
-        id: 1,
+        id: mockCartId,
         userid: null,
         cart_items: [
           {
@@ -110,7 +113,7 @@ describe('CartService', () => {
 
       const result = await service.createCart(null);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: null,
         items: [
           {
@@ -138,7 +141,7 @@ describe('CartService', () => {
 
     it('should find or create a cart for a user with userId is provided', async () => {
       mockPrismaService.cart.upsert.mockReturnValueOnce({
-        id: 1,
+        id: mockCartId,
         userid: mockUserId,
         cart_items: [
           {
@@ -160,7 +163,7 @@ describe('CartService', () => {
 
       const result = await service.createCart(mockUserId);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: mockUserId,
         items: [
           {
@@ -212,17 +215,17 @@ describe('CartService', () => {
   describe('findCartById', () => {
     it('should return null if cart is not found by ID', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-      const result = await service.findCartById(999);
+      const result = await service.findCartById('nonexist-cart-id');
       expect(result).toBeNull();
       expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-        where: { id: 999 },
+        where: { id: 'nonexist-cart-id' },
         select: cartSelect,
       });
     });
 
     it('should return cart data if found by ID', async () => {
       const mockCart = {
-        id: 1,
+        id: mockCartId,
         userid: null,
         cart_items: [
           {
@@ -242,9 +245,9 @@ describe('CartService', () => {
         ],
       };
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
-      const result = await service.findCartById(1);
+      const result = await service.findCartById(mockCartId);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: null,
         items: [
           {
@@ -270,7 +273,7 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique.mockRejectedValueOnce(
         new Error('Database error'),
       );
-      await expect(service.findCartById(1)).rejects.toThrow(
+      await expect(service.findCartById(mockCartId)).rejects.toThrow(
         'Failed to fetch the cart.',
       );
     });
@@ -289,14 +292,14 @@ describe('CartService', () => {
 
     it('should return cart data if found by userId', async () => {
       const mockCart = {
-        id: 1,
+        id: mockCartId,
         userid: mockUserId,
         cart_items: [],
       };
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
       const result = await service.findCartByUser(mockUserId);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: mockUserId,
         items: [],
         totalPrice: 0,
@@ -316,20 +319,20 @@ describe('CartService', () => {
   describe('findCartAndTransformData', () => {
     it('should throw an error if the cart is not exist', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-      const cartId = 1;
+      const cartId = mockCartId;
       const result = await (service as any).findCartAndTransformData(cartId);
       expect(result).toBeNull();
     });
     it('should handle empty cart items', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: 1,
+        id: mockCartId,
         userid: 'user-1',
         cart_items: [],
       });
 
       const result = await (service as any).findCartAndTransformData(1);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: 'user-1',
         items: [],
         totalPrice: 0,
@@ -369,14 +372,14 @@ describe('CartService', () => {
       ];
 
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: 1,
+        id: mockCartId,
         userid: 'user-1',
         cart_items: cartItems,
       });
 
       const result = await (service as any).findCartAndTransformData(1);
       expect(result).toEqual({
-        id: 1,
+        id: mockCartId,
         owner: 'user-1',
         items: [
           {
@@ -415,7 +418,7 @@ describe('CartService', () => {
 
   describe('removeItem', () => {
     it('should throw an error if a database error occurs when the user tries to remove a product from the cart', async () => {
-      const cartId = 2;
+      const cartId = mockCartId;
       const data = {
         bookId: mockBookId,
       };
@@ -431,7 +434,7 @@ describe('CartService', () => {
     });
 
     it('should remove an item from the cart', async () => {
-      const cartId = 1;
+      const cartId = mockCartId;
       const data = { bookId: mockBookId };
 
       mockPrismaService.cart_items.delete.mockResolvedValueOnce({});
@@ -447,7 +450,7 @@ describe('CartService', () => {
   describe('upsertItem', () => {
     it('it should throw an error if the book with the specified id does not exist', async () => {
       mockPrismaService.books.findUnique.mockReturnValueOnce(null);
-      const cartId = 1;
+      const cartId = mockCartId;
       const data = {
         bookId: mockBookId,
         quantity: 1,
@@ -461,7 +464,7 @@ describe('CartService', () => {
     });
 
     it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
-      const cartId = 1;
+      const cartId = mockCartId;
       const data = {
         bookId: mockBookId,
         quantity: 10,
@@ -488,7 +491,7 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
         'This is not your cart.',
       );
-      const cartId = 2;
+      const cartId = mockCartId;
       const data = {
         bookId: mockBookId,
         quantity: 1,
@@ -521,7 +524,7 @@ describe('CartService', () => {
         },
       });
 
-      const cartId = 1;
+      const cartId = mockCartId;
       const result = await service.upsertItem(cartId, {
         bookId: mockBookId,
         quantity: 5,
@@ -551,7 +554,7 @@ describe('CartService', () => {
       mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
         new Error('Unexpected database error'),
       );
-      const cartId = 1;
+      const cartId = mockCartId;
       const data = {
         bookId: mockBookId,
         quantity: 1,
@@ -566,7 +569,7 @@ describe('CartService', () => {
   describe('claim', () => {
     it('should throw an error if the user already has items in the cart', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: 1,
+        id: mockCartId2,
         userid: mockUserId,
         cart_items: [
           {
@@ -587,7 +590,7 @@ describe('CartService', () => {
       });
 
       try {
-        await service.claim(mockUserId, 2);
+        await service.claim(mockUserId, mockCartId2);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('User already has a cart.');
@@ -597,12 +600,12 @@ describe('CartService', () => {
     it('should throw an error if the user tries to claim a cart that is not created by guest user', async () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
-          id: 1,
+          id: mockCartId,
           userid: mockUserId,
           cart_items: [],
         })
         .mockResolvedValueOnce({
-          id: 2,
+          id: mockCartId2,
           userid: mockUserId2,
           cart_items: [
             {
@@ -623,7 +626,7 @@ describe('CartService', () => {
         });
 
       try {
-        await service.claim(mockUserId, 2);
+        await service.claim(mockUserId, mockCartId2);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Cart is not a guest cart.');
@@ -633,12 +636,12 @@ describe('CartService', () => {
     it('should attach the user to the cart', async () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
-          id: 1,
+          id: mockCartId,
           userid: mockUserId,
           cart_items: [],
         })
         .mockResolvedValueOnce({
-          id: 2,
+          id: mockCartId2,
           userid: null,
           cart_items: [
             {
@@ -659,7 +662,7 @@ describe('CartService', () => {
         });
 
       mockPrismaService.cart.update.mockResolvedValueOnce({
-        id: 2,
+        id: mockCartId2,
         userid: mockUserId,
         cart_items: [
           {
@@ -681,19 +684,19 @@ describe('CartService', () => {
 
       const spy = jest.spyOn(service as any, 'cartUpdate');
 
-      const result = await service.claim(mockUserId, 2);
+      const result = await service.claim(mockUserId, mockCartId2);
 
       expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
         where: { userid: mockUserId },
       });
 
       expect(spy).toHaveBeenCalledWith(
-        { id: 2 },
+        { id: mockCartId2 },
         { user: { connect: { id: mockUserId } } },
       );
 
       expect(result).toEqual({
-        id: 2,
+        id: mockCartId2,
         owner: mockUserId,
         totalPrice: 10.99,
         items: [
@@ -719,14 +722,14 @@ describe('CartService', () => {
       // User has an empty cart
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce({
-          id: 1,
+          id: mockCartId,
           userid: mockUserId,
           cart_items: [],
         }) // existing user cart
         .mockResolvedValueOnce(null); // guest cart not found
 
       try {
-        await service.claim(mockUserId, 999);
+        await service.claim(mockUserId, mockCartId);
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Cart does not exist.');
@@ -737,7 +740,7 @@ describe('CartService', () => {
       mockPrismaService.cart.findUnique
         .mockResolvedValueOnce(null) // user has no cart
         .mockResolvedValueOnce({
-          id: 2,
+          id: mockCartId2,
           userid: null,
           cart_items: [
             {
@@ -758,7 +761,7 @@ describe('CartService', () => {
         }); // guest cart exists and is a guest cart
 
       mockPrismaService.cart.update.mockResolvedValueOnce({
-        id: 2,
+        id: mockCartId2,
         userid: mockUserId,
         cart_items: [
           {
@@ -779,15 +782,15 @@ describe('CartService', () => {
       });
 
       const spy = jest.spyOn(service as any, 'cartUpdate');
-      const result = await service.claim(mockUserId, 2);
+      const result = await service.claim(mockUserId, mockCartId2);
 
       expect(mockPrismaService.cart.delete).not.toHaveBeenCalled(); // No user cart to delete
       expect(spy).toHaveBeenCalledWith(
-        { id: 2 },
+        { id: mockCartId2 },
         { user: { connect: { id: mockUserId } } },
       );
       expect(result).toEqual({
-        id: 2,
+        id: mockCartId2,
         owner: mockUserId,
         totalPrice: 10.99,
         items: [
@@ -814,7 +817,7 @@ describe('CartService', () => {
         throw new Error('Unexpected transaction error');
       });
 
-      await expect(service.claim(mockUserId, 1)).rejects.toThrow(
+      await expect(service.claim(mockUserId, mockCartId)).rejects.toThrow(
         'Only guest carts can be claimed.',
       );
     });
@@ -907,7 +910,7 @@ describe('CartService', () => {
   describe('transformCartData', () => {
     it('should correctly transform cart data with multiple items', () => {
       const mockPrismaCart = {
-        id: 101,
+        id: mockCartId,
         userid: 'user-id-test',
         cart_items: [
           {
@@ -946,7 +949,7 @@ describe('CartService', () => {
       );
 
       expect(transformedData).toEqual({
-        id: 101,
+        id: mockCartId,
         owner: 'user-id-test',
         totalPrice: 20.0, // (1 * 10.00) + (2 * 5.00) = 10 + 10 = 20
         items: [
@@ -984,7 +987,7 @@ describe('CartService', () => {
 
     it('should correctly transform cart data with empty items', () => {
       const mockPrismaCart = {
-        id: 102,
+        id: mockCartId,
         userid: 'user-id-empty',
         cart_items: [],
       };
@@ -994,7 +997,7 @@ describe('CartService', () => {
       );
 
       expect(transformedData).toEqual({
-        id: 102,
+        id: mockCartId,
         owner: 'user-id-empty',
         totalPrice: 0,
         items: [],
@@ -1005,7 +1008,7 @@ describe('CartService', () => {
   describe('cartCreate', () => {
     it('should call prisma.cart.create with correct parameters', async () => {
       const mockCreatedCart = {
-        id: 1,
+        id: mockCartId,
         userid: null,
         cart_items: [],
       };
@@ -1023,7 +1026,7 @@ describe('CartService', () => {
   describe('cartUpsert', () => {
     it('should call prisma.cart.upsert with correct parameters', async () => {
       const mockUpsertedCart = {
-        id: 1,
+        id: mockCartId,
         userid: mockUserId2,
         cart_items: [],
       };
@@ -1043,13 +1046,13 @@ describe('CartService', () => {
   describe('cartUpdate', () => {
     it('should call prisma.cart.update with correct parameters', async () => {
       const mockUpdatedCart = {
-        id: 1,
+        id: mockCartId,
         userid: mockUserId2,
         cart_items: [],
       };
       mockPrismaService.cart.update.mockResolvedValueOnce(mockUpdatedCart);
 
-      const condition = { id: 1 };
+      const condition = { id: mockCartId };
       const data = { user: { connect: { id: 'test-user-new' } } }; // Updated data as per service method
       const result = await (service as any).cartUpdate(condition, data);
       expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
@@ -1064,13 +1067,13 @@ describe('CartService', () => {
   describe('findCartBy', () => {
     it('should call prisma.cart.findUnique with correct parameters and return data', async () => {
       const mockFoundCart = {
-        id: 1,
+        id: mockCartId,
         userid: mockUserId2,
         cart_items: [],
       };
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockFoundCart);
 
-      const condition = { id: 1 };
+      const condition = { id: mockCartId };
       const result = await (service as any).findCartBy(condition);
       expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
         where: condition,
@@ -1082,7 +1085,7 @@ describe('CartService', () => {
     it('should call prisma.cart.findUnique with correct parameters and return null if not found', async () => {
       mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
 
-      const condition = { id: 999 };
+      const condition = { id: mockCartId };
       const result = await service['findCartBy'](condition);
       expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
         where: condition,

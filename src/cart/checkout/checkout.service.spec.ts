@@ -5,6 +5,8 @@ import { Prisma } from '@prisma/client';
 import { PaymentService } from '../../payment/payment.service';
 import { CustomAPIError } from '../../common/errors/custom-api.error';
 
+const mockCartId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
+
 const mockPrismaService = {
   $transaction: jest
     .fn()
@@ -50,17 +52,17 @@ describe('CheckoutService', () => {
 
   it('should throw an error if the cart does not exist', async () => {
     mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Please check if the cart ID is correct.',
-    );
+    await expect(
+      service.checkout('user-1', { cartId: mockCartId }),
+    ).rejects.toThrow('Please check if the cart ID is correct.');
   });
   it('should throw an error if a DB error occurs', async () => {
     mockPrismaService.cart.findUnique.mockRejectedValueOnce(
       new Error('DB error'),
     );
-    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Checkout failed. Please try again later.',
-    );
+    await expect(
+      service.checkout('user-1', { cartId: mockCartId }),
+    ).rejects.toThrow('Checkout failed. Please try again later.');
   });
   it('should throw an error if there is not enough stock for a book', async () => {
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
@@ -83,9 +85,9 @@ describe('CheckoutService', () => {
       ],
     });
 
-    await expect(service.checkout('user-1', { cartId: 1 })).rejects.toThrow(
-      'Not enough stock for book ID: book-1',
-    );
+    await expect(
+      service.checkout('user-1', { cartId: mockCartId }),
+    ).rejects.toThrow('Not enough stock for book ID: book-1');
   });
 
   it('should complete checkout and return expected data', async () => {
@@ -139,9 +141,9 @@ describe('CheckoutService', () => {
     mockPaymentService.createStripeCheckoutSession.mockResolvedValueOnce(
       session,
     );
-    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: 1 });
+    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: mockCartId });
 
-    const result = await service.checkout('user-1', { cartId: 1 });
+    const result = await service.checkout('user-1', { cartId: mockCartId });
 
     expect(result).toEqual({
       order: {
@@ -188,7 +190,7 @@ describe('CheckoutService', () => {
     expect(mockPrismaService.orders.create).toHaveBeenCalled();
     expect(mockPrismaService.books.update).toHaveBeenCalledTimes(2);
     expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
-      where: { id: 1 },
+      where: { id: mockCartId },
     });
     expect(mockPaymentService.createStripeCheckoutSession).toHaveBeenCalled();
   });
@@ -240,10 +242,10 @@ describe('CheckoutService', () => {
     mockPaymentService.createStripeCheckoutSession.mockRejectedValueOnce(
       new Error('Stripe check session creation failed.'),
     );
-    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: 1 });
+    mockPrismaService.cart.delete.mockResolvedValueOnce({ id: mockCartId });
 
     try {
-      await service.checkout('user-1', { cartId: 1 });
+      await service.checkout('user-1', { cartId: mockCartId });
     } catch (error) {
       expect(error).toBeInstanceOf(CustomAPIError);
       expect(error.message).toBe(

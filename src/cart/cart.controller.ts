@@ -5,7 +5,6 @@ import {
   Body,
   Delete,
   Param,
-  ParseIntPipe,
   Req,
   UseGuards,
   BadRequestException,
@@ -157,14 +156,14 @@ export class CartController {
     summary:
       'View a specific cart by ID (Admin, Authenticated User and Guest only)',
   })
-  @ApiParam({ name: 'id', type: Number, description: 'Cart ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Cart ID' })
   @ApiOkResponse({ description: 'Cart fetched successfully', type: CartDTO })
   @ApiUnauthorizedResponse({
     description: 'User not authorized to view this cart',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async viewCart(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Req() request: Request,
   ): Promise<{ data: CartDTO | null }> {
     try {
@@ -196,11 +195,11 @@ export class CartController {
   @ApiOperation({
     summary: 'Claim an existing guest cart as a user (Authenticated User only)',
   })
-  @ApiParam({ name: 'id', type: Number, description: 'Cart ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Cart ID' })
   @ApiOkResponse({ description: 'Cart claimed successfully', type: CartDTO })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async claim(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Req() request: Request,
   ): Promise<CartDTO> {
     try {
@@ -223,7 +222,7 @@ export class CartController {
     summary:
       'Add or update an item in the cart (Authenticated User and Guest only)',
   })
-  @ApiParam({ name: 'id', type: Number, description: 'Cart ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Cart ID' })
   @ApiOkResponse({
     description: 'Item added or updated in cart',
     type: CartItemDTO,
@@ -233,7 +232,7 @@ export class CartController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async addOrUpdateItem(
     @Req() request: Request,
-    @Param('id', ParseIntPipe) cartId: number,
+    @Param('id', ParseUUIDPipe) cartId: string,
     @Body() data: AddToCartDTO,
   ): Promise<CartItemDTO> {
     try {
@@ -271,14 +270,14 @@ export class CartController {
   @ApiOperation({
     summary: 'Remove an item from the cart (Authenticated User and Guest only)',
   })
-  @ApiParam({ name: 'id', type: Number, description: 'Cart ID' })
+  @ApiParam({ name: 'id', type: String, description: 'Cart ID' })
   @ApiParam({ name: 'itemId', type: String, description: 'Book ID to remove' })
   @ApiOkResponse({ description: 'Item removed from cart', type: Object })
   @ApiBadRequestResponse({ description: 'Cart is empty or invalid' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async removeItem(
     @Req() request: Request,
-    @Param('id', ParseIntPipe) cartId: number,
+    @Param('id', ParseUUIDPipe) cartId: string,
     @Param('itemId', ParseUUIDPipe) itemId: string,
   ): Promise<{ message: string }> {
     try {

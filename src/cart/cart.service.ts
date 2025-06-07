@@ -50,7 +50,7 @@ export class CartService {
     }
   }
 
-  async findCartById(cartId: number): Promise<CartDTO | null> {
+  async findCartById(cartId: string): Promise<CartDTO | null> {
     return await this.findCartAndTransformData({ id: cartId });
   }
 
@@ -71,7 +71,7 @@ export class CartService {
   }
 
   async removeItem(
-    cartId: number,
+    cartId: string,
     data: DeleteCartItemDTO,
   ): Promise<{ message: string }> {
     try {
@@ -91,7 +91,7 @@ export class CartService {
     }
   }
 
-  async upsertItem(cartId: number, data: AddToCartDTO): Promise<CartItemDTO> {
+  async upsertItem(cartId: string, data: AddToCartDTO): Promise<CartItemDTO> {
     try {
       const book = await this.prisma.books.findUnique({
         where: { id: data.bookId },
@@ -135,7 +135,7 @@ export class CartService {
     }
   }
 
-  async claim(userId: string, cartId: number): Promise<CartDTO> {
+  async claim(userId: string, cartId: string): Promise<CartDTO> {
     try {
       const cart = await this.prisma.$transaction(async () => {
         const usersCart = await this.findCartBy({ userid: userId });
