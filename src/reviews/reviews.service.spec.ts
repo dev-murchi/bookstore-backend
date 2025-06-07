@@ -7,6 +7,9 @@ import { CustomAPIError } from '../common/errors/custom-api.error';
 import { ReviewDTO } from '../common/dto/review.dto';
 import * as classValidator from 'class-validator';
 
+const mockReviewId = '12345678-abcd-9012-efab-3456789abcde'; // just example
+const mockReviewId2 = '12345678-abcd-9013-efab-3456789abcde'; // just example
+const mockReviewId3 = '12345678-abcd-9014-efab-3456789abcde'; // just example
 const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 const userId2 = 'f339ecf9-35c3-4e34-8374-3d8cae0de6f1'; // just example
 const userId3 = '0b789cb1-9089-4b16-9c93-7b00bf118f3a'; // just example
@@ -61,7 +64,7 @@ describe('ReviewsService', () => {
         { bookid: bookId },
       ]);
       mockPrismaService.reviews.create.mockResolvedValueOnce({
-        id: 1,
+        id: mockReviewId,
       });
 
       const result = await service.createReview(userId, createReviewDTO);
@@ -75,7 +78,7 @@ describe('ReviewsService', () => {
         },
       });
       expect(result).toEqual({
-        id: 1,
+        id: mockReviewId,
         book: bookId2,
         data: 'This is a great book!',
         owner: userId,
@@ -179,14 +182,14 @@ describe('ReviewsService', () => {
     it('should successfully fetch paginated reviews with default parameters and calculate metadata', async () => {
       const mockReviews = [
         {
-          id: 1,
+          id: mockReviewId,
           rating: 5,
           bookid: bookId,
           data: 'Excellent book!',
           userid: userId,
         },
         {
-          id: 2,
+          id: mockReviewId2,
           rating: 4,
           bookid: bookId,
           data: 'Good read.',
@@ -227,14 +230,14 @@ describe('ReviewsService', () => {
         data: {
           reviews: [
             {
-              id: 1,
+              id: mockReviewId,
               data: 'Excellent book!',
               rating: 5,
               book: bookId,
               owner: userId,
             },
             {
-              id: 2,
+              id: mockReviewId2,
               data: 'Good read.',
               rating: 4,
               book: bookId,
@@ -258,21 +261,21 @@ describe('ReviewsService', () => {
       const limitNumber = 5;
       const mockReviews = [
         {
-          id: 1,
+          id: mockReviewId,
           userid: userId,
           bookid: bookId,
           rating: 3,
           data: 'Okay book.',
         },
         {
-          id: 2,
+          id: mockReviewId2,
           userid: userId2,
           bookid: bookId,
           rating: 4,
           data: 'Enjoyed it.',
         },
         {
-          id: 3,
+          id: mockReviewId3,
           userid: userId3,
           bookid: bookId,
           rating: 5,
@@ -318,20 +321,26 @@ describe('ReviewsService', () => {
         data: {
           reviews: [
             {
-              id: 1,
+              id: mockReviewId,
               data: 'Okay book.',
               rating: 3,
               book: bookId,
               owner: userId,
             },
             {
-              id: 2,
+              id: mockReviewId2,
               data: 'Enjoyed it.',
               rating: 4,
               book: bookId,
               owner: userId2,
             },
-            { id: 3, data: 'Great!', rating: 5, book: bookId, owner: userId3 },
+            {
+              id: mockReviewId3,
+              data: 'Great!',
+              rating: 5,
+              book: bookId,
+              owner: userId3,
+            },
           ],
           rating: 4,
         },
@@ -440,7 +449,7 @@ describe('ReviewsService', () => {
     it('should throw error if there is an error during average rating calculation', async () => {
       const reviews = [
         {
-          id: 1,
+          id: mockReviewId,
           userid: userId,
           rating: 5,
           data: 'Great book!',
@@ -477,10 +486,10 @@ describe('ReviewsService', () => {
     it('should delete review', async () => {
       mockPrismaService.reviews.delete.mockResolvedValueOnce({});
 
-      const result = await service.delete(1);
+      const result = await service.delete(mockReviewId);
 
       expect(mockPrismaService.reviews.delete).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { id: mockReviewId },
       });
 
       expect(result).toEqual({ message: 'Review is successfully deleted.' });
@@ -492,7 +501,7 @@ describe('ReviewsService', () => {
       );
 
       try {
-        await service.delete(1);
+        await service.delete(mockReviewId);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
         expect(error.message).toBe('Review could not be deleted.');
@@ -507,14 +516,14 @@ describe('ReviewsService', () => {
     it('should retrieve paginated reviews with default parameters and calculate metadata', async () => {
       const mockReviews = [
         {
-          id: 1,
+          id: mockReviewId,
           rating: 5,
           bookid: bookId,
           data: 'Excellent book!',
           userid: userId,
         },
         {
-          id: 2,
+          id: mockReviewId2,
           rating: 4,
           bookid: bookId2,
           data: 'Good read.',
@@ -555,14 +564,14 @@ describe('ReviewsService', () => {
         data: {
           reviews: [
             {
-              id: 1,
+              id: mockReviewId,
               data: 'Excellent book!',
               rating: 5,
               book: bookId,
               owner: userId,
             },
             {
-              id: 2,
+              id: mockReviewId2,
               data: 'Good read.',
               rating: 4,
               book: bookId2,
@@ -588,29 +597,29 @@ describe('ReviewsService', () => {
         new Error('DB Error'),
       );
 
-      await expect(service.findReview(1)).rejects.toThrow(
+      await expect(service.findReview(mockReviewId)).rejects.toThrow(
         'Review could not retrieved.',
       );
     });
 
     it('should return null if there is review with given id', async () => {
       mockPrismaService.reviews.findUnique.mockResolvedValueOnce(null);
-      const result = await service.findReview(1);
+      const result = await service.findReview(mockReviewId);
       expect(result).toBeNull();
     });
 
     it('should return the review if it is exist', async () => {
       const review = {
-        id: 1,
+        id: mockReviewId,
         userid: userId,
         rating: 5,
         data: 'Great book!',
         bookid: bookId,
       };
       mockPrismaService.reviews.findUnique.mockResolvedValueOnce(review);
-      const result = await service.findReview(1);
+      const result = await service.findReview(mockReviewId);
       expect(result).toEqual(
-        new ReviewDTO(1, 'Great book!', 5, bookId, userId),
+        new ReviewDTO(mockReviewId, 'Great book!', 5, bookId, userId),
       );
     });
   });
@@ -618,7 +627,7 @@ describe('ReviewsService', () => {
   describe('transformSelectedReview', () => {
     it('should successfully transform to the ReviewDTO', async () => {
       const review = {
-        id: 1,
+        id: mockReviewId,
         userid: userId,
         rating: 5,
         data: 'Great book!',
@@ -627,12 +636,12 @@ describe('ReviewsService', () => {
 
       const result = await service['transformSelectedReview'](review);
       expect(result).toEqual(
-        new ReviewDTO(1, 'Great book!', 5, bookId, userId),
+        new ReviewDTO(mockReviewId, 'Great book!', 5, bookId, userId),
       );
     });
     it('should throw an eror when validation fails', async () => {
       const review = {
-        id: 1,
+        id: mockReviewId,
         userid: userId,
         rating: 5,
         data: 'Great book!',

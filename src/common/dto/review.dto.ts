@@ -6,9 +6,8 @@ export class ReviewDTO {
     description: 'Unique identifier for the review',
     example: 101,
   })
-  @IsNumber()
-  @IsNotEmpty()
-  id: number;
+  @IsUUID()
+  id: string;
 
   @ApiProperty({
     description: 'Text content of the review',
@@ -45,7 +44,7 @@ export class ReviewDTO {
   owner: string;
 
   constructor(
-    id: number,
+    id: string,
     data: string,
     rating: number,
     bookId: string,

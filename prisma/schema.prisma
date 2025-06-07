@@ -169,7 +169,7 @@ model payment {
 }
 
 model reviews {
-  id  Int @id @default(autoincrement())
+  id  String @id @default(uuid())
   rating Float
   data String
   bookid  String

@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Query,
   Req,
   UseGuards,
@@ -127,7 +128,7 @@ export class ReviewsController {
     type: ReviewDTO,
   })
   async findReview(
-    @Param('id', ParseIntPipe) reviewId: number,
+    @Param('id', ParseUUIDPipe) reviewId: string,
   ): Promise<{ data: ReviewDTO }> {
     try {
       return {
@@ -159,7 +160,7 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.Admin])
   async deleteReview(
-    @Param('id', ParseIntPipe) reviewId: number,
+    @Param('id', ParseUUIDPipe) reviewId: string,
   ): Promise<{ message: string }> {
     try {
       return await this.reviewsService.delete(reviewId);

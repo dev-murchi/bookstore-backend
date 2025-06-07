@@ -205,7 +205,7 @@ export class ReviewsService {
     return reviewDTO;
   }
 
-  async findReview(id: number): Promise<ReviewDTO | null> {
+  async findReview(id: string): Promise<ReviewDTO | null> {
     try {
       const review = await this.prisma.reviews.findUnique({
         where: { id },
@@ -246,7 +246,7 @@ export class ReviewsService {
     return totalReviewCount;
   }
 
-  async delete(reviewId: number) {
+  async delete(reviewId: string) {
     try {
       await this.prisma.reviews.delete({ where: { id: reviewId } });
       return { message: 'Review is successfully deleted.' };

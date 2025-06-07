@@ -252,7 +252,7 @@ export class UserController {
           data: {
             reviews: [
               {
-                id: 1,
+                id: 'uuid',
                 data: 'Excellent read!',
                 rating: 5,
                 book: 'book-id-uuid',
