@@ -47,24 +47,21 @@ export class AuthService {
         password,
       );
 
+      const refreshToken = HelperService.generateToken('base64url');
+      const tokenHash = HelperService.hashToken(refreshToken, 'hex');
+
       // generate jwt token
-      const sessionId = HelperService.generateUUID();
+      const userSession = await this.userSessionService.createSession(
+        user.id,
+        tokenHash,
+      );
 
       const payload = {
         id: user.id,
         role: user.role as RoleEnum,
-        sessionId,
+        sessionId: userSession.id,
       };
       const accessToken = await this.accessToken(payload);
-
-      const refreshToken = HelperService.generateToken('base64url');
-      const tokenHash = HelperService.hashToken(refreshToken, 'hex');
-
-      await this.userSessionService.createSession(
-        user.id,
-        sessionId,
-        tokenHash,
-      );
 
       return { accessToken, refreshToken };
     } catch (error) {

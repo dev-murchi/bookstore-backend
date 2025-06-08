@@ -4,13 +4,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 @Injectable()
 export class UserSessionService {
   constructor(private readonly prisma: PrismaService) {}
-  async createSession(userId: string, sessionId: string, tokenHash: string) {
+  async createSession(userId: string, tokenHash: string) {
     try {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
       const session = await this.prisma.user_session.create({
         data: {
           user: { connect: { id: userId } },
-          sessionid: sessionId,
           refresh_token: tokenHash,
           refresh_required: false,
           expires_at: new Date(Date.now() + oneWeekMs),
@@ -29,7 +28,7 @@ export class UserSessionService {
       await this.prisma.user_session.delete({
         where: {
           userid: userId,
-          sessionid: sessionId,
+          id: sessionId,
         },
       });
     } catch (error) {
@@ -43,7 +42,7 @@ export class UserSessionService {
       await this.prisma.user_session.update({
         where: {
           userid: userId,
-          sessionid: sessionId,
+          id: sessionId,
         },
         data: {
           refresh_token: token,

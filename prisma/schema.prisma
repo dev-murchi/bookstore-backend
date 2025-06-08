@@ -197,9 +197,8 @@ model refunds {
 }
 
 model user_session {
-id                      Int     @default(autoincrement()) @id
+id                      String     @default(uuid()) @id
 userid                  String
-sessionid               String @unique
 refresh_token           String?
 refresh_required        Boolean @default(false)
 created_at              DateTime @default(now())

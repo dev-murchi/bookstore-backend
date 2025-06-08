@@ -38,14 +38,14 @@ describe('UserSessionService', () => {
       );
 
       await expect(
-        service.createSession(mockUserId, 'session-id', 'refreshTokenHash'),
+        service.createSession(mockUserId, 'refreshTokenHash'),
       ).rejects.toThrow('User session creation failed.');
     });
     it('should return user session', async () => {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
       mockPrismaService.user_session.create.mockResolvedValueOnce({
-        id: mockUserId,
-        sessionid: 'session-id',
+        id: 'session-id',
+        userid: mockUserId,
         refresh_token: 'refreshTokenHash',
         refresh_required: false,
         expires_at: new Date(Date.now() + oneWeekMs),
@@ -53,13 +53,12 @@ describe('UserSessionService', () => {
 
       const result = await service.createSession(
         mockUserId,
-        'session-id',
         'refreshTokenHash',
       );
 
       expect(result).toEqual({
-        id: mockUserId,
-        sessionid: 'session-id',
+        id: 'session-id',
+        userid: mockUserId,
         refresh_token: 'refreshTokenHash',
         refresh_required: false,
         expires_at: new Date(Date.now() + oneWeekMs),
@@ -67,7 +66,6 @@ describe('UserSessionService', () => {
       expect(mockPrismaService.user_session.create).toHaveBeenCalledWith({
         data: {
           user: { connect: { id: mockUserId } },
-          sessionid: 'session-id',
           refresh_token: 'refreshTokenHash',
           refresh_required: false,
           expires_at: new Date(Date.now() + oneWeekMs),
@@ -96,7 +94,7 @@ describe('UserSessionService', () => {
       expect(mockPrismaService.user_session.delete).toHaveBeenCalledWith({
         where: {
           userid: mockUserId,
-          sessionid: 'session-id',
+          id: 'session-id',
         },
       });
     });
@@ -123,7 +121,7 @@ describe('UserSessionService', () => {
       expect(mockPrismaService.user_session.update).toHaveBeenCalledWith({
         where: {
           userid: mockUserId,
-          sessionid: 'session-id',
+          id: 'session-id',
         },
         data: {
           refresh_token: 'newTokenHash',

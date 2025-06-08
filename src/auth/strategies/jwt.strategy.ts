@@ -43,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
       const userSession = await this.prisma.user_session.findUnique({
         where: {
           userid: payload.id,
-          sessionid: payload.sessionId,
+          id: payload.sessionId,
         },
         select: {
           refresh_token: true,
@@ -92,7 +92,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         await this.prisma.user_session.update({
           where: {
             userid: payload.id,
-            sessionid: payload.sessionId,
+            id: payload.sessionId,
           },
           data: {
             refresh_required: true,

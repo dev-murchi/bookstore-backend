@@ -125,7 +125,7 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('should throw UnauthorizedException error when user is not exist', async () => {
+    it('should throw UnauthorizedException error when user credentials are invalid', async () => {
       mockUserService.checkUserWithPassword.mockRejectedValueOnce(
         new CustomAPIError('Invalid credentials'),
       );
@@ -140,31 +140,6 @@ describe('AuthService', () => {
       }
     });
 
-    it('should throw UnauthorizedException error when password is incorrect', async () => {
-      const user = {
-        id: 'user-1',
-        name: 'test user',
-        email: 'testuser@email.com',
-        role: { value: 'user' },
-      };
-
-      mockUserService.checkUserWithPassword.mockResolvedValue(user);
-
-      const spy = jest.spyOn(HelperService, 'compareHash');
-      spy.mockResolvedValueOnce(false);
-
-      try {
-        await service.login({
-          email: 'testuser@email.com',
-          password: 'password123',
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(UnauthorizedException);
-        expect(error.message).toBe('Invalid user credentials');
-        spy.mockRestore();
-      }
-    });
-
     it('should return an access token if login is successful', async () => {
       const user = {
         id: 'user-1',
@@ -173,13 +148,18 @@ describe('AuthService', () => {
         role: { value: 'user' },
       };
 
-      mockUserService.checkUserWithPassword.mockResolvedValue(user);
+      mockUserService.checkUserWithPassword.mockResolvedValueOnce(user);
       const spy = jest.spyOn(HelperService, 'generateToken');
       const spy2 = jest.spyOn(HelperService, 'hashToken');
       spy.mockReturnValueOnce('refresh-token' as never);
       spy2.mockReturnValueOnce('refresh-token-hash' as never);
 
-      mockUserSessionService.createSession.mockResolvedValueOnce({});
+      mockUserSessionService.createSession.mockResolvedValueOnce({
+        id: 'session-id-1',
+        userid: 'user-1',
+        refresh_token: null,
+        refresh_required: false,
+      });
 
       mockJwtService.signAsync.mockResolvedValueOnce('accesstoken' as never);
 
