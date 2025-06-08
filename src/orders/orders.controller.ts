@@ -34,6 +34,7 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -146,89 +147,100 @@ export class OrdersController {
   })
   @ApiOkResponse({
     description: 'Order details retrieved successfully.',
-    type: OrderDTO,
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(OrderDTO),
+        },
+      },
+    },
     examples: {
       pendingOrder: {
         summary: 'Pending order',
         value: {
-          id: 'a1b2c3d4-e5f6-7890-abcd-123456789abc',
-          owner: 'abcdef01-2345-6789-abcd-ef0123456789',
-          items: [
-            {
-              quantity: 2,
-              item: {
-                id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
-                title: "Wanderlust: A Traveler's Guide to the World",
-                description:
-                  "Explore the world's most breathtaking destinations.",
-                isbn: '978-0451526342',
-                author: {
-                  name: 'Traveler Hobbits',
+          data: {
+            id: 'a1b2c3d4-e5f6-7890-abcd-123456789abc',
+            owner: 'abcdef01-2345-6789-abcd-ef0123456789',
+            items: [
+              {
+                quantity: 2,
+                item: {
+                  id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  title: "Wanderlust: A Traveler's Guide to the World",
+                  description:
+                    "Explore the world's most breathtaking destinations.",
+                  isbn: '978-0451526342',
+                  author: {
+                    name: 'Traveler Hobbits',
+                  },
+                  category: {
+                    id: 3,
+                    value: 'Travel',
+                  },
+                  price: 19.99,
+                  rating: 4.5,
+                  imageUrl:
+                    'https://example.com/images/wanderlust-book-cover.jpg',
                 },
-                category: {
-                  id: 3,
-                  value: 'Travel',
-                },
-                price: 19.99,
-                rating: 4.5,
-                imageUrl:
-                  'https://example.com/images/wanderlust-book-cover.jpg',
               },
-            },
-          ],
-          status: 'pending',
-          price: 39.98,
-          shipping: {},
-          payment: {},
+            ],
+            status: 'pending',
+            price: 39.98,
+            shipping: {},
+            payment: {},
+          },
         },
       },
       completedOrder: {
         summary: 'Completed order',
         value: {
-          id: 'a1b2c3d4-e5f6-7890-abcd-123456789abc',
-          owner: 'abcdef01-2345-6789-abcd-ef0123456789',
-          items: [
-            {
-              quantity: 2,
-              item: {
-                id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
-                title: "Wanderlust: A Traveler's Guide to the World",
-                description:
-                  "Explore the world's most breathtaking destinations.",
-                isbn: '978-0451526342',
-                author: {
-                  name: 'Traveler Hobbits',
+          data: {
+            id: 'a1b2c3d4-e5f6-7890-abcd-123456789abc',
+            owner: 'abcdef01-2345-6789-abcd-ef0123456789',
+            items: [
+              {
+                quantity: 2,
+                item: {
+                  id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  title: "Wanderlust: A Traveler's Guide to the World",
+                  description:
+                    "Explore the world's most breathtaking destinations.",
+                  isbn: '978-0451526342',
+                  author: {
+                    name: 'Traveler Hobbits',
+                  },
+                  category: {
+                    id: 3,
+                    value: 'Travel',
+                  },
+                  price: 19.99,
+                  rating: 4.5,
+                  imageUrl:
+                    'https://example.com/images/wanderlust-book-cover.jpg',
                 },
-                category: {
-                  id: 3,
-                  value: 'Travel',
-                },
-                price: 19.99,
-                rating: 4.5,
-                imageUrl:
-                  'https://example.com/images/wanderlust-book-cover.jpg',
+              },
+            ],
+            status: 'completed',
+            price: 39.98,
+            shipping: {
+              email: 'example@email.com',
+              phone: '123-456-7890',
+              address: {
+                country: 'The Shire',
+                state: 'Bree',
+                city: 'Hobbiton',
+                line1: 'Bag End, Hobbiton',
+                line2: 'Next to the Green Dragon Inn',
+                postalCode: '4567',
               },
             },
-          ],
-          status: 'completed',
-          price: 39.98,
-          shipping: {
-            email: 'example@email.com',
-            phone: '123-456-7890',
-            address: {
-              country: 'The Shire',
-              state: 'Bree',
-              city: 'Hobbiton',
-              line1: 'Bag End, Hobbiton',
-              line2: 'Next to the Green Dragon Inn',
-              postalCode: '4567',
+            payment: {
+              transactionId: 'tx123abc456',
+              status: 'completed',
+              method: 'credit card',
+              amount: 100.5,
             },
-          },
-          payment: {
-            transactionId: 'tx123abc456',
-            status: 'completed',
-            method: 'credit card',
-            amount: 100.5,
           },
         },
       },

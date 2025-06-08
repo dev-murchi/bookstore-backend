@@ -38,11 +38,12 @@ import {
   ApiInternalServerErrorResponse,
   ApiBadRequestResponse,
   ApiQuery,
-  ApiExtraModels,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OrderDTO } from '../common/dto/order.dto';
+import { ReviewDTO } from '../common/dto/review.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -80,7 +81,6 @@ export class UserController {
   @Roles([RoleEnum.Admin, RoleEnum.User])
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiBody({ type: UpdateProfileDTO })
-  @ApiExtraModels(UserDTO)
   @ApiOkResponse({
     description: 'Profile updated successfully',
     schema: {
@@ -247,26 +247,29 @@ export class UserController {
   @ApiOkResponse({
     description: 'Successfully retrieved user reviews',
     schema: {
-      example: {
+      properties: {
         data: {
-          data: {
-            reviews: [
-              {
-                id: 'uuid',
-                data: 'Excellent read!',
-                rating: 5,
-                book: 'book-id-uuid',
-                owner: 'abcdef01-2345-6789-abcd-ef0123456789',
+          properties: {
+            data: {
+              properties: {
+                reviews: {
+                  type: 'array',
+                  items: {
+                    $ref: getSchemaPath(ReviewDTO),
+                  },
+                },
+                rating: { type: 'number', example: 4.5 },
               },
-            ],
-            rating: 4.5,
-          },
-          meta: {
-            userId: 'user-id-uuid',
-            totalReviewCount: 12,
-            page: 1,
-            limit: 10,
-            totalPages: 2,
+            },
+            meta: {
+              properties: {
+                userId: { type: 'string', example: 'user-id-uuid' },
+                totalReviewCount: { type: 'number', example: 12 },
+                page: { type: 'number', example: 1 },
+                limit: { type: 'number', example: 10 },
+                totalPages: { type: 'number', example: 2 },
+              },
+            },
           },
         },
       },
@@ -276,7 +279,21 @@ export class UserController {
     @Param('id', ParseUUIDPipe) userId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
-  ) {
+  ): Promise<{
+    data: {
+      data: {
+        reviews: ReviewDTO[];
+        rating: number;
+      };
+      meta: {
+        userId: string;
+        totalReviewCount: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    };
+  }> {
     try {
       return {
         data: await this.reviewsService.getReviewsForUser(userId, page, limit),
@@ -292,8 +309,25 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
   @ApiOperation({ summary: 'Get all orders of a user by ID (Admin only)' })
+  @ApiOkResponse({
+    description: 'Successfully retrieved user orders',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: getSchemaPath(OrderDTO) },
+        },
+      },
+    },
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error occurred',
+  })
   @ApiParam({ name: 'id', description: 'User ID', type: String })
-  async getUserOrders(@Param('id', ParseUUIDPipe) userId: string) {
+  async getUserOrders(@Param('id', ParseUUIDPipe) userId: string): Promise<{
+    data: OrderDTO[];
+  }> {
     try {
       return {
         data: await this.ordersService.getUserOrders(userId),

@@ -23,6 +23,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -58,7 +59,7 @@ export class ReviewsController {
           data: {
             reviews: [
               {
-                id: 1,
+                id: 'review-uuid-1',
                 data: 'Excellent read!',
                 rating: 5,
                 book: 'book-id-uuid',
@@ -120,12 +121,20 @@ export class ReviewsController {
     name: 'id',
     type: Number,
     description: 'Review ID',
-    example: 101,
+    example: 'review-uuid-1',
   })
   @ApiResponse({
     status: 200,
     description: 'Successfully retrieved review',
-    type: ReviewDTO,
+
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(ReviewDTO),
+        },
+      },
+    },
   })
   async findReview(
     @Param('id', ParseUUIDPipe) reviewId: string,
@@ -148,7 +157,7 @@ export class ReviewsController {
     name: 'id',
     type: Number,
     description: 'Review ID to delete',
-    example: 101,
+    example: 'review-uuid-1',
   })
   @ApiResponse({
     status: 200,

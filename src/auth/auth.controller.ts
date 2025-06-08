@@ -48,14 +48,7 @@ export class AuthController {
   @ApiBody({ type: SignupDTO })
   @ApiCreatedResponse({
     description: 'User successfully registered',
-    schema: {
-      example: {
-        id: 'abcdef01-2345-6789-abcd-ef0123456789',
-        email: 'newuser@email.com',
-        name: 'John Doe',
-        role: { value: 'user' },
-      },
-    },
+    type: UserDTO,
   })
   @ApiBadRequestResponse({ description: 'Bad request or validation failed' })
   @ApiInternalServerErrorResponse({ description: 'User registration failed' })
@@ -82,9 +75,9 @@ export class AuthController {
     schema: {
       example: {
         id: 'abcdef01-2345-6789-abcd-ef0123456789',
-        email: 'newuser@email.com',
         name: 'John Doe',
-        role: { value: 'author' },
+        email: 'johndoe@email.com',
+        role: 'author',
       },
     },
   })
@@ -106,17 +99,21 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login a user and get access and refresh tokens' })
+  @ApiOperation({
+    summary:
+      'Login a user and get access token (jwt) and refresh token (non-jwt)',
+  })
   @ApiBody({ type: LoginDTO })
   @ApiOkResponse({
     description: 'Login successful',
     schema: {
       example: {
         accessToken: 'jwt-token-string',
-        refreshToken: 'jwt-token-string',
+        refreshToken: 'reFreshToken...',
       },
     },
   })
+  @ApiBadRequestResponse({ description: 'Bad request' })
   @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
   @ApiInternalServerErrorResponse({ description: 'Login failed' })
   async login(
@@ -227,14 +224,14 @@ export class AuthController {
     name: 'x-refresh-token',
     description: 'Refresh token (non-JWT)',
     required: true,
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    example: 'reFreshToken...',
   })
   @ApiOkResponse({
     description: 'New access and refresh tokens issued',
     schema: {
       example: {
         accessToken: 'new-access-token.jwt...',
-        refreshToken: 'new-refresh-token',
+        refreshToken: 'newRefreshTokeN...',
       },
     },
   })

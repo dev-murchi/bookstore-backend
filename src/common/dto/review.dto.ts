@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class ReviewDTO {
   @ApiProperty({
     description: 'Unique identifier for the review',
-    example: 101,
+    example: 'review-uuid-1',
   })
   @IsUUID()
   id: string;

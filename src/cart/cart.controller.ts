@@ -35,6 +35,7 @@ import {
   ApiParam,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { CartGuard } from './guards/cart.guard';
@@ -64,7 +65,7 @@ export class CartController {
       emptyCart: {
         summary: 'Empty cart for a new user or guest',
         value: {
-          id: 102,
+          id: 'cart-uuid-1',
           owner: 'abcdef01-2345-6789-abcd-ef0123456789',
           items: [],
           totalPrice: 0,
@@ -73,7 +74,7 @@ export class CartController {
       withItems: {
         summary: 'User already has an existing active cart',
         value: {
-          id: 101,
+          id: 'cart-uuid-2',
           owner: 'abcdef01-2345-6789-abcd-ef0123456789',
           items: [
             {
@@ -157,7 +158,17 @@ export class CartController {
       'View a specific cart by ID (Admin, Authenticated User and Guest only)',
   })
   @ApiParam({ name: 'id', type: String, description: 'Cart ID' })
-  @ApiOkResponse({ description: 'Cart fetched successfully', type: CartDTO })
+  @ApiOkResponse({
+    description: 'Cart fetched successfully',
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(CartDTO),
+        },
+      },
+    },
+  })
   @ApiUnauthorizedResponse({
     description: 'User not authorized to view this cart',
   })

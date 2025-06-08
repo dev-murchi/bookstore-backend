@@ -9,7 +9,7 @@ import { OrderDTO } from '../../common/dto/order.dto';
 import { OrderItemDTO } from '../../common/dto/order-item.dto';
 import { BookDTO } from '../../common/dto/book.dto';
 import { CategoryDTO } from '../../common/dto/category.dto';
-import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderStatus } from '../../common/enum/order-status.enum';
 
 @Injectable()
 export class CheckoutService {

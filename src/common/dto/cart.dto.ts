@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { CartItemDTO } from './cart-item.dto';
@@ -12,11 +13,10 @@ import { Type } from 'class-transformer';
 export class CartDTO {
   @ApiProperty({
     description: 'Unique identifier for the cart',
-    example: 101,
+    example: 'uuid',
   })
-  @IsNotEmpty()
-  @IsNumber()
-  readonly id: number;
+  @IsUUID()
+  readonly id: string;
 
   @ApiProperty({
     description: 'User ID of the cart owner',
@@ -43,7 +43,7 @@ export class CartDTO {
   readonly totalPrice: number;
 
   constructor(
-    id: number,
+    id: string,
     owner: string,
     totalPrice: number,
     items: CartItemDTO[],

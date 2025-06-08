@@ -9,7 +9,7 @@ import {
   ShippingCustomerDetails,
   ShippingService,
 } from '../orders/shipping/shipping.service';
-import { PaymentData } from 'src/common/types/payment-data.interface';
+import { PaymentData } from '../common/types/payment-data.interface';
 import { PaymentStatus } from '../common/enum/payment-status.enum';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import Stripe from 'stripe';

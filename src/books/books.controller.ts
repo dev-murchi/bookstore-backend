@@ -42,6 +42,7 @@ import {
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -63,7 +64,17 @@ export class BooksController {
   @ApiOperation({ summary: 'Create a new book (Author and Admin only)' })
   @ApiBody({ type: CreateBookDTO })
   @ApiBearerAuth()
-  @ApiOkResponse({ description: 'Book successfully created', type: BookDTO })
+  @ApiOkResponse({
+    description: 'Book successfully created',
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(BookDTO),
+        },
+      },
+    },
+  })
   @ApiBadRequestResponse({ description: 'Validation or business logic error' })
   @ApiInternalServerErrorResponse({ description: 'Unexpected server error' })
   async create(
@@ -101,7 +112,19 @@ export class BooksController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Retrieve all books' })
-  @ApiOkResponse({ description: 'List of all books', type: [BookDTO] })
+  @ApiOkResponse({
+    description: 'List of all books',
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(BookDTO),
+          },
+        },
+      },
+    },
+  })
   @ApiInternalServerErrorResponse({ description: 'Failed to retrieve books' })
   async findAll(): Promise<{ data: BookDTO[] }> {
     try {
@@ -121,7 +144,16 @@ export class BooksController {
   @ApiQuery({ name: 'search', required: true, type: String })
   @ApiOkResponse({
     description: 'Books matching the search query',
-    type: [BookDTO],
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(BookDTO),
+          },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({ description: 'Search query too short' })
   async search(@Query('search') query: string): Promise<{ data: BookDTO[] }> {
@@ -151,6 +183,19 @@ export class BooksController {
   @Get('filter')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Filter books by price, rating, stock, and sort' })
+  @ApiOkResponse({
+    description: 'Books matching the filter query',
+    schema: {
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: getSchemaPath(BookDTO),
+          },
+        },
+      },
+    },
+  })
   @ApiBadRequestResponse({
     description: 'Validation error or custom filtering logic failure.',
   })
@@ -190,7 +235,17 @@ export class BooksController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get book by ID' })
   @ApiParam({ name: 'id', type: String })
-  @ApiOkResponse({ description: 'Book found', type: BookDTO })
+  @ApiOkResponse({
+    description: 'Book found',
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(BookDTO),
+        },
+      },
+    },
+  })
   @ApiInternalServerErrorResponse({ description: 'Book retrieval failed' })
   async findOne(@Param('id') id: string): Promise<{ data: BookDTO }> {
     try {
@@ -214,7 +269,17 @@ export class BooksController {
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: UpdateBookDTO })
   @ApiBearerAuth()
-  @ApiOkResponse({ description: 'Book updated', type: BookDTO })
+  @ApiOkResponse({
+    description: 'Book updated',
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(BookDTO),
+        },
+      },
+    },
+  })
   @ApiBadRequestResponse({ description: 'Bad request' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized to update' })
   @ApiInternalServerErrorResponse({ description: 'Failed to update book' })
@@ -268,7 +333,17 @@ export class BooksController {
   @ApiParam({ name: 'id', type: String })
   @ApiBody({ type: BookReviewDTO })
   @ApiBearerAuth()
-  @ApiOkResponse({ description: 'Review submitted', type: ReviewDTO })
+  @ApiOkResponse({
+    description: 'Review submitted',
+    schema: {
+      properties: {
+        data: {
+          type: 'object',
+          $ref: getSchemaPath(ReviewDTO),
+        },
+      },
+    },
+  })
   @ApiBadRequestResponse({ description: 'Invalid review data' })
   @ApiInternalServerErrorResponse({ description: 'Failed to submit review' })
   async createBookReview(
@@ -302,26 +377,32 @@ export class BooksController {
   @ApiOkResponse({
     description: 'Paginated reviews with rating metadata',
     schema: {
-      example: {
+      properties: {
         data: {
-          data: {
-            reviews: [
-              {
-                id: 1,
-                data: 'Excellent insights on travel!',
-                rating: 5,
-                book: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
-                owner: 'abcdef01-2345-6789-abcd-ef0123456789',
+          properties: {
+            data: {
+              properties: {
+                reviews: {
+                  type: 'array',
+                  items: {
+                    $ref: getSchemaPath(ReviewDTO),
+                  },
+                },
+                rating: { type: 'number', example: 4.5 },
               },
-            ],
-            rating: 4.8,
-          },
-          meta: {
-            bookId: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
-            totalReviewCount: 1,
-            page: 1,
-            limit: 10,
-            totalPages: 1,
+            },
+            meta: {
+              properties: {
+                bookId: {
+                  type: 'string',
+                  example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                },
+                totalReviewCount: { type: 'number', example: 11 },
+                page: { type: 'number', example: 1 },
+                limit: { type: 'number', example: 10 },
+                totalPages: { type: 'number', example: 1 },
+              },
+            },
           },
         },
       },

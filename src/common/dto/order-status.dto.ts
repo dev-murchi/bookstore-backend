@@ -8,7 +8,7 @@ export class OrderStatusDTO {
     description: 'Status of the order',
     enum: OrderStatus,
     enumName: 'OrderStatus',
-    example: OrderStatus.Pending,
+    example: OrderStatus.Shipped,
   })
   @IsString()
   @IsNotEmpty()
