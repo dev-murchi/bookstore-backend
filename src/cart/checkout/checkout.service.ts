@@ -52,6 +52,12 @@ export class CheckoutService {
           throw new CustomAPIError('Please check if the cart ID is correct.');
         }
 
+        if (cart.cart_items.length < 1) {
+          throw new CustomAPIError(
+            'Please add items to your cart to perform checkout.',
+          );
+        }
+
         let totalPrice = 0;
         const orderItems: OrderItemDTO[] = [];
         const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];

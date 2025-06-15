@@ -1,171 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CartItemDTO } from '../common/dto/cart-item.dto';
-import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
 import { CustomAPIError } from '../common/errors/custom-api.error';
-import { Prisma } from '@prisma/client';
-import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
 import { CartDTO } from '../common/dto/cart.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
+import { HelperService } from '../common/helper.service';
+import { CartItemService } from './cart-item.service';
+import { validate } from 'class-validator';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  // selection objects
-  private readonly bookSelect = {
-    id: true,
-    title: true,
-    description: true,
-    isbn: true,
-    price: true,
-    rating: true,
-    image_url: true,
-    author: { select: { name: true } },
-    category: { select: { id: true, category_name: true } },
-  };
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cartItemService: CartItemService,
+  ) {}
 
   private readonly cartSelect = {
     id: true,
     userid: true,
-    cart_items: {
-      orderBy: { bookid: Prisma.SortOrder.asc },
-      select: {
-        quantity: true,
-        book: { select: this.bookSelect },
-      },
-    },
+    guest_cart_token: true,
   };
 
-  async createCart(userId: string | null): Promise<CartDTO> {
+  async createCart(userId: string | null) {
     try {
-      const cart = userId
-        ? await this.cartUpsert(userId)
-        : await this.cartCreate(userId);
-      return this.transformCartData(cart);
+      let guestCartToken = null;
+      let guestCartTokenHash = null;
+
+      if (!userId) {
+        userId = null;
+        guestCartToken = HelperService.generateToken();
+        guestCartTokenHash = HelperService.hashToken(
+          guestCartToken,
+          'base64url',
+        );
+      }
+
+      const cart = await this.prisma.cart.create({
+        data: { userid: userId, guest_cart_token: guestCartTokenHash },
+        select: this.cartSelect,
+      });
+
+      return { cart: await this.transformCartData(cart), guestCartToken };
     } catch (error) {
       console.error('Error creating cart. Error:', error);
       throw new Error('Cart creation failed.');
-    }
-  }
-
-  async findCartById(cartId: string): Promise<CartDTO | null> {
-    return await this.findCartAndTransformData({ id: cartId });
-  }
-
-  async findCartByUser(userId: string): Promise<CartDTO | null> {
-    return await this.findCartAndTransformData({ userid: userId });
-  }
-
-  private async findCartAndTransformData(
-    condition: Prisma.cartWhereUniqueInput,
-  ) {
-    try {
-      const cart = await this.findCartBy(condition);
-      return cart ? this.transformCartData(cart) : null;
-    } catch (error) {
-      console.error('Failed to fetch the cart. Error:', error);
-      throw new Error('Failed to fetch the cart.');
-    }
-  }
-
-  async removeItem(
-    cartId: string,
-    data: DeleteCartItemDTO,
-  ): Promise<{ message: string }> {
-    try {
-      await this.prisma.cart_items.delete({
-        where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: data.bookId,
-          },
-        },
-      });
-
-      return { message: 'Item successfully deleted.' };
-    } catch (error) {
-      console.error('Error deleting item. Error:', error);
-      throw new Error('Failed to delete item. Check cart and book IDs.');
-    }
-  }
-
-  async upsertItem(cartId: string, data: AddToCartDTO): Promise<CartItemDTO> {
-    try {
-      const book = await this.prisma.books.findUnique({
-        where: { id: data.bookId },
-        select: { stock_quantity: true },
-      });
-
-      if (!book) {
-        throw new CustomAPIError(`Book ID #${data.bookId} does not exist.`);
-      }
-
-      if (book.stock_quantity < data.quantity) {
-        throw new CustomAPIError(
-          `Insufficient stock for book ID: ${data.bookId}`,
-        );
-      }
-
-      const cartItem = await this.prisma.cart_items.upsert({
-        where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: data.bookId,
-          },
-        },
-        update: { quantity: data.quantity },
-        create: {
-          cart: { connect: { id: cartId } },
-          book: { connect: { id: data.bookId } },
-          quantity: data.quantity,
-        },
-        select: {
-          quantity: true,
-          book: { select: this.bookSelect },
-        },
-      });
-
-      return this.transformCartItemData(cartItem);
-    } catch (error) {
-      console.error('Error updating item. Error:', error);
-      if (error instanceof CustomAPIError) throw error;
-      throw new Error('Failed to update item. Check input data.');
-    }
-  }
-
-  async claim(userId: string, cartId: string): Promise<CartDTO> {
-    try {
-      const cart = await this.prisma.$transaction(async () => {
-        const usersCart = await this.findCartBy({ userid: userId });
-
-        if (usersCart && usersCart.cart_items.length) {
-          throw new CustomAPIError('User already has a cart.');
-        }
-
-        const guestCart = await this.findCartBy({ id: cartId });
-        if (!guestCart) throw new CustomAPIError('Cart does not exist.');
-        if (guestCart.userid)
-          throw new CustomAPIError('Cart is not a guest cart.');
-
-        if (usersCart) {
-          await this.prisma.cart.delete({ where: { userid: userId } });
-        }
-
-        const updatedCart = await this.cartUpdate(
-          { id: cartId },
-          { user: { connect: { id: userId } } },
-        );
-
-        return this.transformCartData(updatedCart);
-      });
-
-      return cart;
-    } catch (error) {
-      console.error('Failed to claim cart. Error:', error);
-      if (error instanceof CustomAPIError) throw error;
-      throw new Error('Only guest carts can be claimed.');
     }
   }
 
@@ -187,70 +64,187 @@ export class CartService {
     }
   }
 
-  private async cartCreate(userId: string | null) {
-    return this.prisma.cart.create({
-      data: { userid: userId },
-      select: this.cartSelect,
-    });
-  }
-
-  private async cartUpsert(userId: string) {
-    return this.prisma.cart.upsert({
-      where: { userid: userId },
-      update: {},
-      create: { user: { connect: { id: userId } } },
-      select: this.cartSelect,
-    });
-  }
-
-  private async cartUpdate(
-    condition: Prisma.cartWhereUniqueInput,
-    data: Prisma.cartUpdateInput,
-  ) {
-    return this.prisma.cart.update({
-      where: condition,
-      data,
-      select: this.cartSelect,
-    });
-  }
-
-  private async findCartBy(condition: Prisma.cartWhereUniqueInput) {
-    const data = await this.prisma.cart.findUnique({
-      where: condition,
-      select: this.cartSelect,
-    });
-
-    return data;
-  }
-
-  private transformCartItemData(data: any): CartItemDTO {
-    const cartItem = new CartItemDTO();
-    cartItem.quantity = data.quantity;
-    cartItem.item = new BookDTO(
-      data.book.id,
-      data.book.title,
-      data.book.description,
-      data.book.isbn,
-      { name: data.book.author.name },
-      new CategoryDTO(data.book.category.id, data.book.category.category_name),
-      Number(data.book.price.toFixed(2)),
-      Number(data.book.rating.toFixed(2)),
-      data.book.image_url,
-    );
-
-    return cartItem;
-  }
-
-  private transformCartData(cartData: any): CartDTO {
-    const cartItems = cartData.cart_items.map((cartItem) => {
-      return this.transformCartItemData(cartItem);
-    });
+  private async transformCartData(cartData: any): Promise<CartDTO> {
+    const cartItems = await this.cartItemService.getItems(cartData.id);
     const totalPrice = Number(
       cartItems
         .reduce((sum, item) => sum + item.item.price * item.quantity, 0)
         .toFixed(2),
     );
 
-    return new CartDTO(cartData.id, cartData.userid, totalPrice, cartItems);
+    const cart = new CartDTO(
+      cartData.id,
+      cartData.userid,
+      totalPrice,
+      cartItems,
+    );
+
+    const errors = await validate(cart);
+
+    if (errors.length > 0) {
+      console.error('Validation failed. Error:', errors);
+      throw new Error('Validation failed.');
+    }
+
+    return cart;
+  }
+
+  async findCart(
+    cartId: string,
+    options?: {
+      userId?: string | null;
+      guestToken?: string | null;
+    },
+  ) {
+    try {
+      const { trimmedUserId, trimmedGuestToken, hasUserId, hasGuestToken } =
+        this.validateUserAndGuestToken(options?.userId, options?.guestToken);
+
+      const cart = await this.prisma.cart.findUnique({
+        where: {
+          id: cartId,
+          userid: hasUserId ? trimmedUserId : null,
+        },
+        select: this.cartSelect,
+      });
+
+      if (!cart) return null;
+
+      if (hasUserId) {
+        if (cart.guest_cart_token) return null;
+      } else if (hasGuestToken) {
+        if (!cart.guest_cart_token) return null;
+
+        const isValid = HelperService.verifyTokenHash(
+          trimmedGuestToken,
+          cart.guest_cart_token,
+          'base64url',
+        );
+
+        if (!isValid) {
+          return null;
+        }
+      }
+
+      return await this.transformCartData(cart);
+    } catch (error) {
+      console.error('Failed to retrieve the cart. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
+      throw new Error('Failed to retrieve the cart.');
+    }
+  }
+
+  async deleteCart(cartId: string) {
+    try {
+      await this.prisma.cart.delete({ where: { id: cartId } });
+    } catch (error) {
+      console.error('Failed to delete the cart. Error:', error);
+      throw new Error(`Failed to delete the Cart ${cartId}`);
+    }
+  }
+
+  async mergeCarts(sourceCart: string, destCart: string) {
+    try {
+      await this.prisma.$transaction(async () => {
+        const sourceCartItems = await this.cartItemService.getItems(sourceCart);
+        const destCartItems = await this.cartItemService.getItems(destCart);
+
+        const destCartItemsMap = new Map(
+          destCartItems.map((item) => [item.item.id, item]),
+        );
+
+        const operations = [];
+
+        for (const sourceItem of sourceCartItems) {
+          const destItem = destCartItemsMap.get(sourceItem.item.id);
+          let quantity = sourceItem.quantity;
+
+          if (destItem) {
+            quantity += destItem.quantity;
+          }
+
+          operations.push(
+            this.cartItemService.createOrUpdateItem(destCart, {
+              quantity: quantity,
+              bookId: sourceItem.item.id,
+            }),
+          );
+        }
+
+        operations.push(this.cartItemService.deleteItems(sourceCart));
+        operations.push(this.deleteCart(sourceCart));
+
+        await Promise.all(operations);
+      });
+      return await this.findCart(destCart);
+    } catch (error) {
+      console.error('Error while merging carts:', error);
+      throw new Error('Failed to merge carts.');
+    }
+  }
+
+  async updateCart(
+    cartId: string,
+    userId: string | null,
+    guestToken: string | null,
+  ): Promise<CartDTO> {
+    const { trimmedUserId, trimmedGuestToken, hasUserId, hasGuestToken } =
+      this.validateUserAndGuestToken(userId, guestToken);
+
+    if (!hasUserId && !hasGuestToken) {
+      throw new CustomAPIError('Either userID or guestToken must be provided.');
+    }
+    const updateData: Prisma.cartUpdateInput = {};
+
+    if (hasUserId) {
+      updateData.user = { connect: { id: trimmedUserId! } };
+      updateData.guest_cart_token = null;
+    } else if (hasGuestToken) {
+      updateData.guest_cart_token = HelperService.hashToken(
+        trimmedGuestToken!,
+        'base64url',
+      );
+      updateData.user = { disconnect: true };
+    }
+
+    try {
+      const updatedCart = await this.prisma.cart.update({
+        where: { id: cartId },
+        data: updateData,
+        select: this.cartSelect,
+      });
+
+      return await this.transformCartData(updatedCart);
+    } catch (error) {
+      console.error('Failed to update the cart. Error:', error);
+      if (error instanceof CustomAPIError) throw error;
+      throw new Error('Failed to update the cart.');
+    }
+  }
+
+  private validateUserAndGuestToken(
+    userId: string | null,
+    guestToken: string | null,
+  ) {
+    const trimmedUserId = userId?.trim() || null;
+    const trimmedGuestToken = guestToken?.trim() || null;
+
+    const hasUserId = !!trimmedUserId;
+    const hasGuestToken = !!trimmedGuestToken;
+
+    if (hasUserId && hasGuestToken) {
+      throw new CustomAPIError(
+        'User id and guest cart token cannot be provided at the same time',
+      );
+    }
+
+    if (hasUserId && trimmedUserId !== userId) {
+      throw new CustomAPIError('Please provide valid user id');
+    }
+    if (hasGuestToken && trimmedGuestToken !== guestToken) {
+      throw new CustomAPIError('Please provide valid guest cart token');
+    }
+
+    return { trimmedUserId, trimmedGuestToken, hasUserId, hasGuestToken };
   }
 }

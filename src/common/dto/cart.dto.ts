@@ -2,6 +2,7 @@ import {
   IsArray,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsUUID,
   ValidateNested,
@@ -22,9 +23,10 @@ export class CartDTO {
     description: 'User ID of the cart owner',
     example: 'abcdef01-2345-6789-abcd-ef0123456789',
   })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  readonly owner: string;
+  readonly owner?: string;
 
   @ApiProperty({
     description: 'List of items in the cart',
@@ -44,7 +46,7 @@ export class CartDTO {
 
   constructor(
     id: string,
-    owner: string,
+    owner: string | null,
     totalPrice: number,
     items: CartItemDTO[],
   ) {

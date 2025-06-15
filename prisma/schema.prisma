@@ -81,6 +81,7 @@ model books {
 model cart {
   id          String          @id @default(uuid())
   userid      String? @unique
+  guest_cart_token   String? @unique
   cart_items  cart_items[]
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -104,7 +105,7 @@ model cart_items {
 model orders {
   id  String @id @default(uuid())
   userid String?
-  totalPrice  Decimal @db.Decimal(10, 2)
+  totalPrice  Decimal @db.Decimal(10, 2) @default(0)
   shipping_details  shipping?
   status  String  @default("pending")
   user  User? @relation(fields: [userid], references: [id])

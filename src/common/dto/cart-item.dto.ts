@@ -11,7 +11,7 @@ export class CartItemDTO {
   @IsNotEmpty()
   @IsNumber()
   @IsInt()
-  quantity: number;
+  readonly quantity: number;
 
   @ApiProperty({
     description: 'Details of the book being added to the cart',
@@ -19,5 +19,10 @@ export class CartItemDTO {
   })
   @ValidateNested()
   @Type(() => BookDTO)
-  item: BookDTO;
+  readonly item: BookDTO;
+
+  constructor(quantity: number, item: BookDTO) {
+    this.item = item;
+    this.quantity = quantity;
+  }
 }

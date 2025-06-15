@@ -1,77 +1,64 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartService } from './cart.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CartItemService } from './cart-item.service';
+import { HelperService } from '../common/helper.service';
+import { CategoryDTO } from '../common/dto/category.dto';
+import { BookDTO } from '../common/dto/book.dto';
+import { CartItemDTO } from '../common/dto/cart-item.dto';
+import * as classValidator from 'class-validator';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 
 const mockCartId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
-const mockCartId2 = 'bcdef01a-2345-6789-abcd-ef0123456789'; // just example
+const emptySpacedMockCartId = '  abcdef01-2345-6789-abcd-ef0123456789'; // just example
 
 const mockBookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
-const mockBookId2 = 'ba22e8c2-1234-4ae2-835d-12f488667aed'; // just example
-const mockBookId3 = 'ba22e8c2-1234-1234-835d-12f488667aed'; // just example
 
 const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
-const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example
+// const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example
 
 const mockPrismaService = {
-  books: {
-    findUnique: jest.fn(),
-  },
   cart: {
     create: jest.fn(),
-    upsert: jest.fn(),
-    update: jest.fn(),
     findUnique: jest.fn(),
     delete: jest.fn(),
     deleteMany: jest.fn(),
-  },
-  cart_items: {
-    create: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
-    upsert: jest.fn(),
   },
   $transaction: jest
     .fn()
     .mockImplementation((callback) => callback(mockPrismaService)),
 };
 
+const mockCartItemService = {
+  getItems: jest.fn(),
+  deleteItems: jest.fn(),
+  createOrUpdateItem: jest.fn(),
+};
+
 const cartSelect = {
   id: true,
   userid: true,
-  cart_items: {
-    orderBy: { bookid: 'asc' },
-    select: {
-      quantity: true,
-      book: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          isbn: true,
-          price: true,
-          rating: true,
-          image_url: true,
-          author: { select: { name: true } },
-          category: { select: { id: true, category_name: true } },
-        },
-      },
-    },
-  },
+  guest_cart_token: true,
 };
 
 describe('CartService', () => {
   let service: CartService;
+  let validateSpy;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CartService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: CartItemService, useValue: mockCartItemService },
       ],
     }).compile();
 
     service = module.get<CartService>(CartService);
+
+    validateSpy = jest.spyOn(classValidator, 'validate');
+    validateSpy.mockResolvedValue([]);
 
     // Mock the current date to a fixed value for consistency in the tests
     const fixedDate = new Date('2025-04-24T00:00:00Z'); // Use any fixed date
@@ -89,104 +76,58 @@ describe('CartService', () => {
   });
 
   describe('createCart', () => {
-    it('should create a new cart for guest user when userId is null', async () => {
+    it('should create a gues cart when userId is null', async () => {
+      jest
+        .spyOn(HelperService, 'generateToken')
+        .mockReturnValueOnce('cartToken');
+
+      jest
+        .spyOn(HelperService, 'hashToken')
+        .mockReturnValueOnce('cartTokenHash');
+
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
       mockPrismaService.cart.create.mockReturnValueOnce({
         id: mockCartId,
         userid: null,
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
+        guest_cart_token: 'cartTokenHash',
       });
 
       const result = await service.createCart(null);
       expect(result).toEqual({
-        id: mockCartId,
-        owner: null,
-        items: [
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-        ],
-        totalPrice: 10.99,
+        cart: {
+          id: mockCartId,
+          owner: null,
+          items: [],
+          totalPrice: 0,
+        },
+        guestCartToken: 'cartToken',
       });
       expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
-        data: { userid: null },
+        data: { userid: null, guest_cart_token: 'cartTokenHash' },
         select: cartSelect,
       });
     });
 
     it('should find or create a cart for a user with userId is provided', async () => {
-      mockPrismaService.cart.upsert.mockReturnValueOnce({
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+      mockPrismaService.cart.create.mockReturnValueOnce({
         id: mockCartId,
         userid: mockUserId,
-        cart_items: [
-          {
-            quantity: 2,
-            book: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
+        guest_cart_token: null,
       });
 
       const result = await service.createCart(mockUserId);
       expect(result).toEqual({
-        id: mockCartId,
-        owner: mockUserId,
-        items: [
-          {
-            quantity: 2,
-            item: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-        ],
-        totalPrice: 21.98,
+        cart: {
+          id: mockCartId,
+          owner: mockUserId,
+          items: [],
+          totalPrice: 0,
+        },
+        guestCartToken: null,
       });
-      expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
-        where: { userid: mockUserId },
-        update: {},
-        create: { user: { connect: { id: mockUserId } } },
+      expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
+        data: { userid: mockUserId, guest_cart_token: null },
         select: cartSelect,
       });
     });
@@ -196,633 +137,11 @@ describe('CartService', () => {
         new Error('Database error during create'),
       );
 
-      await expect(service.createCart(null)).rejects.toThrow(
-        'Cart creation failed.',
-      );
-    });
-
-    it('should throw an error if cart upsert fails', async () => {
-      mockPrismaService.cart.upsert.mockRejectedValueOnce(
-        new Error('Database error during upsert'),
-      );
-
       await expect(service.createCart(mockUserId)).rejects.toThrow(
         'Cart creation failed.',
       );
     });
   });
-
-  describe('findCartById', () => {
-    it('should return null if cart is not found by ID', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-      const result = await service.findCartById('nonexist-cart-id');
-      expect(result).toBeNull();
-      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-        where: { id: 'nonexist-cart-id' },
-        select: cartSelect,
-      });
-    });
-
-    it('should return cart data if found by ID', async () => {
-      const mockCart = {
-        id: mockCartId,
-        userid: null,
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
-      };
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
-      const result = await service.findCartById(mockCartId);
-      expect(result).toEqual({
-        id: mockCartId,
-        owner: null,
-        items: [
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-        ],
-        totalPrice: 10.99,
-      });
-    });
-
-    it('should throw an error if findCartBy fails when finding by ID', async () => {
-      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
-        new Error('Database error'),
-      );
-      await expect(service.findCartById(mockCartId)).rejects.toThrow(
-        'Failed to fetch the cart.',
-      );
-    });
-  });
-
-  describe('findCartByUser', () => {
-    it('should return null if cart is not found by userId', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-      const result = await service.findCartByUser('non-existent-user');
-      expect(result).toBeNull();
-      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-        where: { userid: 'non-existent-user' },
-        select: cartSelect,
-      });
-    });
-
-    it('should return cart data if found by userId', async () => {
-      const mockCart = {
-        id: mockCartId,
-        userid: mockUserId,
-        cart_items: [],
-      };
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockCart);
-      const result = await service.findCartByUser(mockUserId);
-      expect(result).toEqual({
-        id: mockCartId,
-        owner: mockUserId,
-        items: [],
-        totalPrice: 0,
-      });
-    });
-
-    it('should throw an error if findCartBy fails when finding by user ID', async () => {
-      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
-        new Error('Database error'),
-      );
-      await expect(service.findCartByUser(mockUserId)).rejects.toThrow(
-        'Failed to fetch the cart.',
-      );
-    });
-  });
-
-  describe('findCartAndTransformData', () => {
-    it('should throw an error if the cart is not exist', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-      const cartId = mockCartId;
-      const result = await (service as any).findCartAndTransformData(cartId);
-      expect(result).toBeNull();
-    });
-    it('should handle empty cart items', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: mockCartId,
-        userid: 'user-1',
-        cart_items: [],
-      });
-
-      const result = await (service as any).findCartAndTransformData(1);
-      expect(result).toEqual({
-        id: mockCartId,
-        owner: 'user-1',
-        items: [],
-        totalPrice: 0,
-      });
-    });
-
-    it('should return cart data with items', async () => {
-      const cartItems = [
-        {
-          quantity: 1,
-          book: {
-            id: mockBookId,
-            title: 'Test Book',
-            description: 'test book description',
-            isbn: 'bookisbn',
-            price: 10.99,
-            rating: 4.5,
-            image_url: 'book-image-url',
-            author: { name: 'test author' },
-            category: { id: 1, category_name: 'test category' },
-          },
-        },
-        {
-          quantity: 1,
-          book: {
-            id: mockBookId2,
-            title: 'Test Book Two',
-            description: 'test book 2description',
-            isbn: 'bookisbn-2',
-            price: 5.99,
-            rating: 5,
-            image_url: 'book2-image-url',
-            author: { name: 'test author two' },
-            category: { id: 1, category_name: 'test category 2' },
-          },
-        },
-      ];
-
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: mockCartId,
-        userid: 'user-1',
-        cart_items: cartItems,
-      });
-
-      const result = await (service as any).findCartAndTransformData(1);
-      expect(result).toEqual({
-        id: mockCartId,
-        owner: 'user-1',
-        items: [
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId2,
-              title: 'Test Book Two',
-              description: 'test book 2description',
-              isbn: 'bookisbn-2',
-              price: 5.99,
-              rating: 5,
-              imageUrl: 'book2-image-url',
-              author: { name: 'test author two' },
-              category: { id: 1, value: 'test category 2' },
-            },
-          },
-        ],
-        totalPrice: 16.98,
-      });
-    });
-  });
-
-  describe('removeItem', () => {
-    it('should throw an error if a database error occurs when the user tries to remove a product from the cart', async () => {
-      const cartId = mockCartId;
-      const data = {
-        bookId: mockBookId,
-      };
-      mockPrismaService.cart_items.delete.mockRejectedValueOnce('DB error.');
-
-      try {
-        await service.removeItem(cartId, data);
-      } catch (error) {
-        expect(error.message).toBe(
-          'Failed to delete item. Check cart and book IDs.',
-        );
-      }
-    });
-
-    it('should remove an item from the cart', async () => {
-      const cartId = mockCartId;
-      const data = { bookId: mockBookId };
-
-      mockPrismaService.cart_items.delete.mockResolvedValueOnce({});
-
-      const result = await service.removeItem(cartId, data);
-
-      expect(result).toEqual({
-        message: 'Item successfully deleted.',
-      });
-    });
-  });
-
-  describe('upsertItem', () => {
-    it('it should throw an error if the book with the specified id does not exist', async () => {
-      mockPrismaService.books.findUnique.mockReturnValueOnce(null);
-      const cartId = mockCartId;
-      const data = {
-        bookId: mockBookId,
-        quantity: 1,
-      };
-
-      try {
-        await service.upsertItem(cartId, data);
-      } catch (error) {
-        expect(error.message).toBe(`Book ID #${mockBookId} does not exist.`);
-      }
-    });
-
-    it('it should throw an error if the stock of the book with the specified id is not sufficient', async () => {
-      const cartId = mockCartId;
-      const data = {
-        bookId: mockBookId,
-        quantity: 10,
-      };
-      mockPrismaService.books.findUnique.mockReturnValueOnce({
-        id: 1,
-        stock_quantity: 1,
-      });
-
-      try {
-        await service.upsertItem(cartId, data);
-      } catch (error) {
-        expect(error.message).toBe(
-          `Insufficient stock for book ID: ${mockBookId}`,
-        );
-      }
-    });
-
-    it('should throw an error if the user tries to upser an item to a cart that belongs to someone else', async () => {
-      mockPrismaService.books.findUnique.mockReturnValueOnce({
-        id: 1,
-        stock_quantity: 10,
-      });
-      mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
-        'This is not your cart.',
-      );
-      const cartId = mockCartId;
-      const data = {
-        bookId: mockBookId,
-        quantity: 1,
-      };
-
-      try {
-        await service.upsertItem(cartId, data);
-      } catch (error) {
-        expect(error.message).toBe('Failed to update item. Check input data.');
-      }
-    });
-    it('should upsert an item in the cart (create or update)', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({
-        id: 1,
-        stock_quantity: 10,
-      });
-
-      mockPrismaService.cart_items.upsert.mockResolvedValueOnce({
-        quantity: 5,
-        book: {
-          id: mockBookId,
-          title: 'Test Book',
-          description: 'test book description',
-          isbn: 'book-isbn',
-          price: 10.99,
-          rating: 3.5,
-          image_url: 'book-image-url',
-          author: { name: 'test author' },
-          category: { id: 1, category_name: 'test category' },
-        },
-      });
-
-      const cartId = mockCartId;
-      const result = await service.upsertItem(cartId, {
-        bookId: mockBookId,
-        quantity: 5,
-      });
-
-      expect(result).toEqual({
-        quantity: 5,
-        item: {
-          id: mockBookId,
-          title: 'Test Book',
-          description: 'test book description',
-          isbn: 'book-isbn',
-          price: 10.99,
-          rating: 3.5,
-          imageUrl: 'book-image-url',
-          author: { name: 'test author' },
-          category: { id: 1, value: 'test category' },
-        },
-      });
-    });
-
-    it('should throw a generic error if an unexpected error occurs during upsert', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({
-        id: 1,
-        stock_quantity: 10,
-      });
-      mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
-        new Error('Unexpected database error'),
-      );
-      const cartId = mockCartId;
-      const data = {
-        bookId: mockBookId,
-        quantity: 1,
-      };
-
-      await expect(service.upsertItem(cartId, data)).rejects.toThrow(
-        'Failed to update item. Check input data.',
-      );
-    });
-  });
-
-  describe('claim', () => {
-    it('should throw an error if the user already has items in the cart', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-        id: mockCartId2,
-        userid: mockUserId,
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId,
-              title: 'Test Book',
-              description: 'test book description',
-              isbn: 'bookisbn',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
-      });
-
-      try {
-        await service.claim(mockUserId, mockCartId2);
-      } catch (error) {
-        expect(error).toBeInstanceOf(CustomAPIError);
-        expect(error.message).toBe('User already has a cart.');
-      }
-    });
-
-    it('should throw an error if the user tries to claim a cart that is not created by guest user', async () => {
-      mockPrismaService.cart.findUnique
-        .mockResolvedValueOnce({
-          id: mockCartId,
-          userid: mockUserId,
-          cart_items: [],
-        })
-        .mockResolvedValueOnce({
-          id: mockCartId2,
-          userid: mockUserId2,
-          cart_items: [
-            {
-              quantity: 1,
-              book: {
-                id: mockBookId2,
-                title: 'Test Book 2',
-                description: 'test book 2 description',
-                isbn: 'bookisbn-2',
-                price: 10.99,
-                rating: 4.5,
-                image_url: 'book2-image-url',
-                author: { name: 'test author' },
-                category: { id: 1, category_name: 'test category' },
-              },
-            },
-          ],
-        });
-
-      try {
-        await service.claim(mockUserId, mockCartId2);
-      } catch (error) {
-        expect(error).toBeInstanceOf(CustomAPIError);
-        expect(error.message).toBe('Cart is not a guest cart.');
-      }
-    });
-
-    it('should attach the user to the cart', async () => {
-      mockPrismaService.cart.findUnique
-        .mockResolvedValueOnce({
-          id: mockCartId,
-          userid: mockUserId,
-          cart_items: [],
-        })
-        .mockResolvedValueOnce({
-          id: mockCartId2,
-          userid: null,
-          cart_items: [
-            {
-              quantity: 1,
-              book: {
-                id: mockBookId2,
-                title: 'Test Book 2',
-                description: 'test book 2 description',
-                isbn: 'bookisbn-2',
-                price: 10.99,
-                rating: 4.5,
-                image_url: 'book2-image-url',
-                author: { name: 'test author' },
-                category: { id: 1, category_name: 'test category' },
-              },
-            },
-          ],
-        });
-
-      mockPrismaService.cart.update.mockResolvedValueOnce({
-        id: mockCartId2,
-        userid: mockUserId,
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId2,
-              title: 'Test Book 2',
-              description: 'test book 2 description',
-              isbn: 'bookisbn-2',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book2-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
-      });
-
-      const spy = jest.spyOn(service as any, 'cartUpdate');
-
-      const result = await service.claim(mockUserId, mockCartId2);
-
-      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
-        where: { userid: mockUserId },
-      });
-
-      expect(spy).toHaveBeenCalledWith(
-        { id: mockCartId2 },
-        { user: { connect: { id: mockUserId } } },
-      );
-
-      expect(result).toEqual({
-        id: mockCartId2,
-        owner: mockUserId,
-        totalPrice: 10.99,
-        items: [
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId2,
-              title: 'Test Book 2',
-              description: 'test book 2 description',
-              isbn: 'bookisbn-2',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book2-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-        ],
-      });
-    });
-
-    it('should throw an error if the cart to be claimed does not exist', async () => {
-      // User has an empty cart
-      mockPrismaService.cart.findUnique
-        .mockResolvedValueOnce({
-          id: mockCartId,
-          userid: mockUserId,
-          cart_items: [],
-        }) // existing user cart
-        .mockResolvedValueOnce(null); // guest cart not found
-
-      try {
-        await service.claim(mockUserId, mockCartId);
-      } catch (error) {
-        expect(error).toBeInstanceOf(CustomAPIError);
-        expect(error.message).toBe('Cart does not exist.');
-      }
-    });
-
-    it('should claim a guest cart when user has no existing cart', async () => {
-      mockPrismaService.cart.findUnique
-        .mockResolvedValueOnce(null) // user has no cart
-        .mockResolvedValueOnce({
-          id: mockCartId2,
-          userid: null,
-          cart_items: [
-            {
-              quantity: 1,
-              book: {
-                id: mockBookId2,
-                title: 'Test Book 2',
-                description: 'test book 2 description',
-                isbn: 'bookisbn-2',
-                price: 10.99,
-                rating: 4.5,
-                image_url: 'book2-image-url',
-                author: { name: 'test author' },
-                category: { id: 1, category_name: 'test category' },
-              },
-            },
-          ],
-        }); // guest cart exists and is a guest cart
-
-      mockPrismaService.cart.update.mockResolvedValueOnce({
-        id: mockCartId2,
-        userid: mockUserId,
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId2,
-              title: 'Test Book 2',
-              description: 'test book 2 description',
-              isbn: 'bookisbn-2',
-              price: 10.99,
-              rating: 4.5,
-              image_url: 'book2-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, category_name: 'test category' },
-            },
-          },
-        ],
-      });
-
-      const spy = jest.spyOn(service as any, 'cartUpdate');
-      const result = await service.claim(mockUserId, mockCartId2);
-
-      expect(mockPrismaService.cart.delete).not.toHaveBeenCalled(); // No user cart to delete
-      expect(spy).toHaveBeenCalledWith(
-        { id: mockCartId2 },
-        { user: { connect: { id: mockUserId } } },
-      );
-      expect(result).toEqual({
-        id: mockCartId2,
-        owner: mockUserId,
-        totalPrice: 10.99,
-        items: [
-          {
-            quantity: 1,
-            item: {
-              id: mockBookId2,
-              title: 'Test Book 2',
-              description: 'test book 2 description',
-              isbn: 'bookisbn-2',
-              price: 10.99,
-              rating: 4.5,
-              imageUrl: 'book2-image-url',
-              author: { name: 'test author' },
-              category: { id: 1, value: 'test category' },
-            },
-          },
-        ],
-      });
-    });
-
-    it('should throw a generic error if an unexpected error occurs during claim', async () => {
-      mockPrismaService.$transaction.mockImplementationOnce(() => {
-        throw new Error('Unexpected transaction error');
-      });
-
-      await expect(service.claim(mockUserId, mockCartId)).rejects.toThrow(
-        'Only guest carts can be claimed.',
-      );
-    });
-  });
-
   describe('removeInactiveGuestCarts', () => {
     it('should remove inactive guest carts older than 1 day', async () => {
       const currentDateTime = new Date().getTime();
@@ -869,89 +188,36 @@ describe('CartService', () => {
     });
   });
 
-  describe('transformCartItemData', () => {
-    it('should correctly transform cart item data', () => {
-      const mockPrismaCartItem = {
-        quantity: 2,
-        book: {
-          id: mockBookId3,
-          title: 'Test Book Title',
-          description: 'Test Description',
-          isbn: '1234567890',
-          price: 25.5,
-          rating: 4.0,
-          image_url: 'http://example.com/image.jpg',
-          author: { name: 'Test Author' },
-          category: { id: 5, category_name: 'Fiction' },
-        },
-      };
-
-      const transformedData = (service as any).transformCartItemData(
-        mockPrismaCartItem,
+  describe('transformCartData', () => {
+    it('should correctly transform cart data with multiple items', async () => {
+      const book = new BookDTO(
+        mockBookId,
+        'Book One',
+        'Desc 1',
+        'isbn1',
+        { name: 'Author A' },
+        new CategoryDTO(1, 'Cat A'),
+        20,
+        3.5,
+        'img1',
       );
 
-      expect(transformedData).toEqual({
-        quantity: 2,
-        item: {
-          id: mockBookId3,
-          title: 'Test Book Title',
-          description: 'Test Description',
-          isbn: '1234567890',
-          price: 25.5,
-          rating: 4.0,
-          imageUrl: 'http://example.com/image.jpg',
-          author: { name: 'Test Author' },
-          category: { id: 5, value: 'Fiction' },
-        },
-      });
-    });
-  });
+      const cartItem = new CartItemDTO(1, book);
 
-  describe('transformCartData', () => {
-    it('should correctly transform cart data with multiple items', () => {
+      mockCartItemService.getItems.mockResolvedValueOnce([cartItem]);
       const mockPrismaCart = {
         id: mockCartId,
-        userid: 'user-id-test',
-        cart_items: [
-          {
-            quantity: 1,
-            book: {
-              id: mockBookId,
-              title: 'Book One',
-              description: 'Desc 1',
-              isbn: 'isbn1',
-              price: 10.0,
-              rating: 3.0,
-              image_url: 'img1',
-              author: { name: 'Author A' },
-              category: { id: 1, category_name: 'Cat A' },
-            },
-          },
-          {
-            quantity: 2,
-            book: {
-              id: mockBookId2,
-              title: 'Book Two',
-              description: 'Desc 2',
-              isbn: 'isbn2',
-              price: 5.0,
-              rating: 4.0,
-              image_url: 'img2',
-              author: { name: 'Author B' },
-              category: { id: 2, category_name: 'Cat B' },
-            },
-          },
-        ],
+        userid: mockUserId,
+        guest_cart_token: null,
       };
 
-      const transformedData = (service as any).transformCartData(
-        mockPrismaCart,
-      );
+      const transformedData =
+        await service['transformCartData'](mockPrismaCart);
 
       expect(transformedData).toEqual({
         id: mockCartId,
-        owner: 'user-id-test',
-        totalPrice: 20.0, // (1 * 10.00) + (2 * 5.00) = 10 + 10 = 20
+        owner: mockUserId,
+        totalPrice: 20.0,
         items: [
           {
             quantity: 1,
@@ -960,138 +226,596 @@ describe('CartService', () => {
               title: 'Book One',
               description: 'Desc 1',
               isbn: 'isbn1',
-              price: 10.0,
-              rating: 3.0,
+              price: 20.0,
+              rating: 3.5,
               imageUrl: 'img1',
               author: { name: 'Author A' },
               category: { id: 1, value: 'Cat A' },
-            },
-          },
-          {
-            quantity: 2,
-            item: {
-              id: mockBookId2,
-              title: 'Book Two',
-              description: 'Desc 2',
-              isbn: 'isbn2',
-              price: 5.0,
-              rating: 4.0,
-              imageUrl: 'img2',
-              author: { name: 'Author B' },
-              category: { id: 2, value: 'Cat B' },
             },
           },
         ],
       });
     });
 
-    it('should correctly transform cart data with empty items', () => {
+    it('should correctly transform cart data with empty items', async () => {
       const mockPrismaCart = {
         id: mockCartId,
-        userid: 'user-id-empty',
-        cart_items: [],
+        userid: mockUserId,
+        guest_cart_token: null,
       };
 
-      const transformedData = (service as any).transformCartData(
-        mockPrismaCart,
-      );
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+      const transformedData =
+        await service['transformCartData'](mockPrismaCart);
 
       expect(transformedData).toEqual({
         id: mockCartId,
-        owner: 'user-id-empty',
+        owner: mockUserId,
         totalPrice: 0,
         items: [],
       });
     });
+
+    it('should trow validation error when mismatched value is return from db', async () => {
+      const mockPrismaCart = {
+        id: 1,
+        userid: mockUserId,
+        guest_cart_token: null,
+      };
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+      jest.spyOn(classValidator, 'validate').mockResolvedValueOnce([
+        {
+          property: 'id',
+          constraints: { isUuid: 'id must be a UUID' },
+        },
+      ] as any);
+
+      await expect(
+        service['transformCartData'](mockPrismaCart),
+      ).rejects.toThrow('Validation failed.');
+
+      validateSpy.mockRestore();
+    });
   });
 
-  describe('cartCreate', () => {
-    it('should call prisma.cart.create with correct parameters', async () => {
-      const mockCreatedCart = {
+  describe('findCart', () => {
+    it('should throw error if both userId and guestToken are provided', async () => {
+      const guestToken = 'invalidToken';
+
+      await expect(
+        service.findCart(mockCartId, { userId: mockUserId, guestToken }),
+      ).rejects.toThrow(
+        new CustomAPIError(
+          'User id and guest cart token cannot be provided at the same time',
+        ),
+      );
+    });
+
+    it('should throw error if provided userId has not same length after trim()', async () => {
+      await expect(
+        service.findCart(mockCartId, { userId: emptySpacedMockCartId }),
+      ).rejects.toThrow(new CustomAPIError('Please provide valid user id'));
+    });
+
+    it('should throw error if provided guest cart token has not same length after trim()', async () => {
+      await expect(
+        service.findCart(mockCartId, { guestToken: ' emptySpace' }),
+      ).rejects.toThrow(
+        new CustomAPIError('Please provide valid guest cart token'),
+      );
+    });
+
+    it('should throw error when unexpected db error occurs', async () => {
+      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+      await expect(
+        service.findCart(mockCartId, { userId: mockUserId }),
+      ).rejects.toThrow(new Error('Failed to retrieve the cart.'));
+    });
+
+    it('should return null if no cart is found for the given cartId', async () => {
+      mockPrismaService.cart.findUnique.mockReturnValueOnce(null);
+
+      const result = await service.findCart(mockCartId);
+      expect(result).toBeNull();
+    });
+
+    it('should return null if guestToken does not match cart token', async () => {
+      const guestToken = 'invalidGuestToken';
+
+      mockPrismaService.cart.findUnique.mockReturnValueOnce({
         id: mockCartId,
         userid: null,
-        cart_items: [],
-      };
-      mockPrismaService.cart.create.mockResolvedValueOnce(mockCreatedCart);
-
-      const result = await (service as any).cartCreate(null);
-      expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
-        data: { userid: null },
-        select: cartSelect,
+        guest_cart_token: 'validTokenHash',
       });
-      expect(result).toEqual(mockCreatedCart);
-    });
-  });
 
-  describe('cartUpsert', () => {
-    it('should call prisma.cart.upsert with correct parameters', async () => {
-      const mockUpsertedCart = {
-        id: mockCartId,
-        userid: mockUserId2,
-        cart_items: [],
-      };
-      mockPrismaService.cart.upsert.mockResolvedValueOnce(mockUpsertedCart);
+      jest.spyOn(HelperService, 'verifyTokenHash').mockReturnValueOnce(false);
 
-      const result = await (service as any).cartUpsert(mockUserId2);
-      expect(mockPrismaService.cart.upsert).toHaveBeenCalledWith({
-        where: { userid: mockUserId2 },
-        update: {},
-        create: { user: { connect: { id: mockUserId2 } } },
-        select: cartSelect,
-      });
-      expect(result).toEqual(mockUpsertedCart);
-    });
-  });
+      const result = await service.findCart(mockCartId, { guestToken });
 
-  describe('cartUpdate', () => {
-    it('should call prisma.cart.update with correct parameters', async () => {
-      const mockUpdatedCart = {
-        id: mockCartId,
-        userid: mockUserId2,
-        cart_items: [],
-      };
-      mockPrismaService.cart.update.mockResolvedValueOnce(mockUpdatedCart);
-
-      const condition = { id: mockCartId };
-      const data = { user: { connect: { id: 'test-user-new' } } }; // Updated data as per service method
-      const result = await (service as any).cartUpdate(condition, data);
-      expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
-        where: condition,
-        data: data,
-        select: cartSelect,
-      });
-      expect(result).toEqual(mockUpdatedCart);
-    });
-  });
-
-  describe('findCartBy', () => {
-    it('should call prisma.cart.findUnique with correct parameters and return data', async () => {
-      const mockFoundCart = {
-        id: mockCartId,
-        userid: mockUserId2,
-        cart_items: [],
-      };
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(mockFoundCart);
-
-      const condition = { id: mockCartId };
-      const result = await (service as any).findCartBy(condition);
-      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-        where: condition,
-        select: cartSelect,
-      });
-      expect(result).toEqual(mockFoundCart);
-    });
-
-    it('should call prisma.cart.findUnique with correct parameters and return null if not found', async () => {
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce(null);
-
-      const condition = { id: mockCartId };
-      const result = await service['findCartBy'](condition);
-      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
-        where: condition,
-        select: cartSelect,
-      });
       expect(result).toBeNull();
+    });
+
+    it('should return cart data when valid userId is provided', async () => {
+      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+        id: mockCartId,
+        userid: mockUserId,
+        guest_cart_token: null,
+      });
+
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+
+      const result = await service.findCart(mockCartId, { userId: mockUserId });
+
+      expect(result).toEqual({
+        id: mockCartId,
+        owner: mockUserId,
+        totalPrice: 0,
+        items: [],
+      });
+      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+        where: { id: mockCartId, userid: mockUserId },
+        select: cartSelect,
+      });
+    });
+
+    it('should return cart data when valid guestToken is provided', async () => {
+      const guestToken = 'validGuestToken';
+
+      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+        id: mockCartId,
+        userid: null,
+        guest_cart_token: 'hashedToken',
+      });
+
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+
+      jest.spyOn(HelperService, 'verifyTokenHash').mockReturnValueOnce(true);
+
+      const result = await service.findCart(mockCartId, { guestToken });
+
+      expect(result).toEqual({
+        id: mockCartId,
+        owner: null,
+        totalPrice: 0,
+        items: [],
+      });
+    });
+
+    it('should return null if userId is provided but cart has a guest_cart_token', async () => {
+      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+        id: mockCartId,
+        userid: mockUserId,
+        guest_cart_token: 'non-null-token',
+      });
+
+      const result = await service.findCart(mockCartId, { userId: mockUserId });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if both userid and guest_cart_token are null', async () => {
+      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+        id: mockCartId,
+        userid: null,
+        guest_cart_token: null,
+      });
+
+      const result = await service.findCart(mockCartId, {
+        guestToken: 'guest-token',
+      });
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('deleteCart', () => {
+    it('should delete a cart successfully', async () => {
+      mockPrismaService.cart.delete.mockResolvedValueOnce({});
+
+      await service.deleteCart(mockCartId);
+
+      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+        where: { id: mockCartId },
+      });
+    });
+
+    it('should throw an error if deleting cart fails', async () => {
+      mockPrismaService.cart.delete.mockRejectedValueOnce(
+        new Error('Failed to delete'),
+      );
+
+      await expect(service.deleteCart(mockCartId)).rejects.toThrow(
+        'Failed to delete the Cart abcdef01-2345-6789-abcd-ef0123456789',
+      );
+    });
+  });
+
+  describe('validateUserAndGuestToken', () => {
+    it('should return trimmed values when already valid', () => {
+      const result = service['validateUserAndGuestToken']('user123', null);
+      expect(result).toEqual({
+        trimmedUserId: 'user123',
+        trimmedGuestToken: null,
+        hasUserId: true,
+        hasGuestToken: false,
+      });
+    });
+
+    it('should throw if both userId and guestToken are provided', () => {
+      expect(() =>
+        service['validateUserAndGuestToken']('user', 'guest'),
+      ).toThrow(
+        new CustomAPIError(
+          'User id and guest cart token cannot be provided at the same time',
+        ),
+      );
+    });
+
+    it('should throw if userId trimming changes the value', () => {
+      expect(() =>
+        service['validateUserAndGuestToken'](' user ', null),
+      ).toThrow(new CustomAPIError('Please provide valid user id'));
+    });
+
+    it('should throw if guestToken trimming changes the value', () => {
+      expect(() =>
+        service['validateUserAndGuestToken'](null, ' guest '),
+      ).toThrow(new CustomAPIError('Please provide valid guest cart token'));
+    });
+  });
+
+  describe('updateCart', () => {
+    const baseCart = {
+      id: mockCartId,
+      userid: mockUserId,
+      guest_cart_token: null,
+    };
+
+    it('should throw an error if neither userId nor guestToken is provided', async () => {
+      await expect(service.updateCart(mockCartId, null, null)).rejects.toThrow(
+        new CustomAPIError('Either userID or guestToken must be provided.'),
+      );
+    });
+
+    it('should update cart with userId and clear guest token', async () => {
+      const updatedCart = {
+        ...baseCart,
+        userid: mockUserId,
+        guest_cart_token: null,
+      };
+
+      mockPrismaService.cart.update.mockResolvedValueOnce(updatedCart);
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+
+      const result = await service.updateCart(mockCartId, mockUserId, null);
+
+      expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
+        where: { id: mockCartId },
+        data: {
+          user: { connect: { id: mockUserId } },
+          guest_cart_token: null,
+        },
+        select: cartSelect,
+      });
+
+      expect(result).toEqual({
+        id: mockCartId,
+        owner: mockUserId,
+        items: [],
+        totalPrice: 0,
+      });
+    });
+
+    it('should update cart with guestToken and disconnect user', async () => {
+      const guestToken = 'abc123guest';
+      const hashedToken = 'hashedGuestToken';
+
+      jest.spyOn(HelperService, 'hashToken').mockReturnValueOnce(hashedToken);
+
+      const updatedCart = {
+        id: mockCartId,
+        userid: null,
+        guest_cart_token: hashedToken,
+      };
+
+      mockPrismaService.cart.update.mockResolvedValueOnce(updatedCart);
+      mockCartItemService.getItems.mockResolvedValueOnce([]);
+
+      const result = await service.updateCart(mockCartId, null, guestToken);
+
+      expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
+        where: { id: mockCartId },
+        data: {
+          guest_cart_token: hashedToken,
+          user: { disconnect: true },
+        },
+        select: cartSelect,
+      });
+
+      expect(result).toEqual({
+        id: mockCartId,
+        owner: null,
+        items: [],
+        totalPrice: 0,
+      });
+    });
+
+    it('should throw error if update operation fails with unknown error', async () => {
+      mockPrismaService.cart.update.mockRejectedValueOnce(
+        new Error('Unexpected DB Error'),
+      );
+
+      await expect(
+        service.updateCart(mockCartId, mockUserId, null),
+      ).rejects.toThrow('Failed to update the cart.');
+    });
+
+    it('should rethrow a known CustomAPIError', async () => {
+      const customError = new CustomAPIError('Specific validation failed.');
+      mockPrismaService.cart.update.mockRejectedValueOnce(customError);
+
+      await expect(
+        service.updateCart(mockCartId, mockUserId, null),
+      ).rejects.toThrow(customError);
+    });
+  });
+
+  describe('mergeCarts', () => {
+    const sourceCartId = 'source-cart-id';
+    const destCartId = 'dest-cart-id';
+    const category = new CategoryDTO(1, 'Cat A');
+    const author = { name: 'Author A' };
+    const description = 'descr';
+    const price = 20;
+    const rating = 3.5;
+
+    const book1 = new BookDTO(
+      'book1',
+      'Book One',
+      description,
+      'isbn1',
+      author,
+      category,
+      price,
+      rating,
+      'img1',
+    );
+
+    const book2 = new BookDTO(
+      'book2',
+      'Book Two',
+      description,
+      'isbn2',
+      author,
+      category,
+      price,
+      rating,
+      'img2',
+    );
+    const book3 = new BookDTO(
+      'book3',
+      'Book Three',
+      description,
+      'isbn2',
+      author,
+      category,
+      price,
+      rating,
+      'img3',
+    );
+
+    it('should merge items from source cart into destination cart', async () => {
+      const sourceCartItems = [
+        new CartItemDTO(2, book1),
+        new CartItemDTO(1, book2),
+      ];
+
+      const destCartItems = [
+        new CartItemDTO(3, book2),
+        new CartItemDTO(1, book3),
+      ];
+
+      mockCartItemService.getItems
+        .mockResolvedValueOnce(sourceCartItems)
+        .mockResolvedValueOnce(destCartItems)
+        .mockResolvedValueOnce([
+          new CartItemDTO(4, book2),
+          new CartItemDTO(1, book3),
+          new CartItemDTO(2, book1),
+        ]);
+
+      mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
+      mockCartItemService.deleteItems.mockResolvedValueOnce({});
+      mockPrismaService.cart.delete.mockResolvedValueOnce({});
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+        id: 'cart-id',
+        userid: 'user-1',
+        guest_cart_token: null,
+      });
+
+      const result = await service.mergeCarts(sourceCartId, destCartId);
+
+      expect(result).toEqual({
+        id: 'cart-id',
+        owner: 'user-1',
+        totalPrice: 140,
+        items: [
+          new CartItemDTO(4, book2),
+          new CartItemDTO(1, book3),
+          new CartItemDTO(2, book1),
+        ],
+      });
+
+      expect(mockCartItemService.createOrUpdateItem).toHaveBeenCalledTimes(2);
+      expect(mockCartItemService.createOrUpdateItem).toHaveBeenCalledWith(
+        destCartId,
+        expect.objectContaining({
+          quantity: 4,
+          bookId: 'book2',
+        }),
+      );
+      expect(mockCartItemService.createOrUpdateItem).toHaveBeenCalledWith(
+        destCartId,
+        expect.objectContaining({
+          quantity: 2,
+          bookId: 'book1',
+        }),
+      );
+
+      expect(mockCartItemService.deleteItems).toHaveBeenCalledWith(
+        sourceCartId,
+      );
+      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+        where: { id: sourceCartId },
+      });
+    });
+
+    it('should not modify the destination cart if the source cart is empty', async () => {
+      const sourceCartItems = [];
+      const destCartItems = [
+        new CartItemDTO(2, book1),
+        new CartItemDTO(3, book2),
+      ];
+
+      mockCartItemService.getItems
+        .mockResolvedValueOnce(sourceCartItems)
+        .mockResolvedValueOnce(destCartItems)
+        .mockResolvedValueOnce(destCartItems);
+
+      mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
+      mockCartItemService.deleteItems.mockResolvedValueOnce({});
+      mockPrismaService.cart.delete.mockResolvedValueOnce({});
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+        id: 'cart-id-2',
+        userid: 'user-2',
+        guest_cart_token: null,
+      });
+
+      const result = await service.mergeCarts(sourceCartId, destCartId);
+
+      expect(result).toEqual({
+        id: 'cart-id-2',
+        owner: 'user-2',
+        totalPrice: 100,
+        items: [new CartItemDTO(2, book1), new CartItemDTO(3, book2)],
+      });
+
+      expect(mockCartItemService.createOrUpdateItem).not.toHaveBeenCalled();
+
+      expect(mockCartItemService.deleteItems).toHaveBeenCalledWith(
+        sourceCartId,
+      );
+      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+        where: { id: sourceCartId },
+      });
+    });
+
+    it('should handle merging when source and destination carts contain the same items', async () => {
+      const sourceCartItems = [
+        new CartItemDTO(2, book1),
+        new CartItemDTO(1, book2),
+      ];
+
+      const destCartItems = [
+        new CartItemDTO(1, book1),
+        new CartItemDTO(2, book2),
+      ];
+
+      mockCartItemService.getItems
+        .mockResolvedValueOnce(sourceCartItems)
+        .mockResolvedValueOnce(destCartItems)
+        .mockResolvedValueOnce([
+          new CartItemDTO(3, book1),
+          new CartItemDTO(3, book2),
+        ]);
+
+      mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
+      mockCartItemService.deleteItems.mockResolvedValueOnce({});
+      mockPrismaService.cart.delete.mockResolvedValueOnce({});
+
+      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+        id: 'cart-id',
+        userid: 'user-3',
+        guest_cart_token: null,
+      });
+
+      const result = await service.mergeCarts(sourceCartId, destCartId);
+
+      expect(result).toEqual({
+        id: 'cart-id',
+        owner: 'user-3',
+        totalPrice: 120,
+        items: [new CartItemDTO(3, book1), new CartItemDTO(3, book2)],
+      });
+
+      expect(mockCartItemService.createOrUpdateItem).toHaveBeenCalledWith(
+        destCartId,
+        expect.objectContaining({
+          quantity: 3,
+          bookId: 'book1',
+        }),
+      );
+      expect(mockCartItemService.createOrUpdateItem).toHaveBeenCalledWith(
+        destCartId,
+        expect.objectContaining({
+          quantity: 3,
+          bookId: 'book2',
+        }),
+      );
+
+      expect(mockCartItemService.deleteItems).toHaveBeenCalledWith(
+        sourceCartId,
+      );
+      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+        where: { id: sourceCartId },
+      });
+    });
+
+    it('should throw an error if merging carts fails', async () => {
+      const errorMessage = 'Database error during cart merge';
+      const sourceCartItems = [
+        new CartItemDTO(2, book1),
+        new CartItemDTO(3, book3),
+      ];
+
+      const destCartItems = [new CartItemDTO(1, book2)];
+      mockCartItemService.getItems.mockResolvedValueOnce(sourceCartItems);
+      mockCartItemService.getItems.mockResolvedValueOnce(destCartItems);
+      mockCartItemService.createOrUpdateItem.mockRejectedValueOnce(
+        new Error(errorMessage),
+      );
+
+      await expect(
+        service.mergeCarts(sourceCartId, destCartId),
+      ).rejects.toThrow(new Error('Failed to merge carts.'));
+    });
+
+    it('should throw an error if deleting source cart fails after merging', async () => {
+      const sourceCartItems = [new CartItemDTO(2, book1)];
+      const destCartItems = [new CartItemDTO(1, book2)];
+
+      mockCartItemService.getItems
+        .mockResolvedValueOnce(sourceCartItems)
+        .mockResolvedValueOnce(destCartItems);
+
+      mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
+      mockCartItemService.deleteItems.mockResolvedValueOnce({});
+      mockPrismaService.cart.delete.mockRejectedValueOnce(
+        new Error('Failed to delete source cart'),
+      );
+
+      await expect(
+        service.mergeCarts(sourceCartId, destCartId),
+      ).rejects.toThrow('Failed to merge carts.');
+
+      expect(mockCartItemService.deleteItems).toHaveBeenCalledWith(
+        sourceCartId,
+      );
+      expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
+        where: { id: sourceCartId },
+      });
     });
   });
 });
