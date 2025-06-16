@@ -1,8 +1,4 @@
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RoleEnum } from '../../common/enum/role.enum';
 import { Request } from 'express';
@@ -26,10 +22,10 @@ export class CartGuard extends AuthGuard('my-jwt') {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const guestCartToken = request.headers['x-guest-cart-token'] as string;
+    let guestCartToken = request.headers['x-guest-cart-token'] as string;
 
     if (!guestCartToken || !guestCartToken.trim()) {
-      throw new UnauthorizedException('Missing guest cart token');
+      guestCartToken = null;
     }
 
     return {

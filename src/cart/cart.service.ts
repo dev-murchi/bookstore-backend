@@ -100,7 +100,7 @@ export class CartService {
       const { trimmedUserId, trimmedGuestToken, hasUserId, hasGuestToken } =
         this.validateUserAndGuestToken(options?.userId, options?.guestToken);
 
-      const cart = await this.prisma.cart.findUnique({
+      const cart = await this.prisma.cart.findFirst({
         where: {
           id: cartId,
           userid: hasUserId ? trimmedUserId : null,

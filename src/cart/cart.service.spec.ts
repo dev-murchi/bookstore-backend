@@ -20,7 +20,7 @@ const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 const mockPrismaService = {
   cart: {
     create: jest.fn(),
-    findUnique: jest.fn(),
+    findFirst: jest.fn(),
     delete: jest.fn(),
     deleteMany: jest.fn(),
     update: jest.fn(),
@@ -306,7 +306,7 @@ describe('CartService', () => {
     });
 
     it('should throw error when unexpected db error occurs', async () => {
-      mockPrismaService.cart.findUnique.mockRejectedValueOnce(
+      mockPrismaService.cart.findFirst.mockRejectedValueOnce(
         new Error('DB Error'),
       );
       await expect(
@@ -315,7 +315,7 @@ describe('CartService', () => {
     });
 
     it('should return null if no cart is found for the given cartId', async () => {
-      mockPrismaService.cart.findUnique.mockReturnValueOnce(null);
+      mockPrismaService.cart.findFirst.mockReturnValueOnce(null);
 
       const result = await service.findCart(mockCartId);
       expect(result).toBeNull();
@@ -324,7 +324,7 @@ describe('CartService', () => {
     it('should return null if guestToken does not match cart token', async () => {
       const guestToken = 'invalidGuestToken';
 
-      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+      mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
         userid: null,
         guest_cart_token: 'validTokenHash',
@@ -338,7 +338,7 @@ describe('CartService', () => {
     });
 
     it('should return cart data when valid userId is provided', async () => {
-      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+      mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
         userid: mockUserId,
         guest_cart_token: null,
@@ -354,7 +354,7 @@ describe('CartService', () => {
         totalPrice: 0,
         items: [],
       });
-      expect(mockPrismaService.cart.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.cart.findFirst).toHaveBeenCalledWith({
         where: { id: mockCartId, userid: mockUserId },
         select: cartSelect,
       });
@@ -363,7 +363,7 @@ describe('CartService', () => {
     it('should return cart data when valid guestToken is provided', async () => {
       const guestToken = 'validGuestToken';
 
-      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+      mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
         userid: null,
         guest_cart_token: 'hashedToken',
@@ -384,7 +384,7 @@ describe('CartService', () => {
     });
 
     it('should return null if userId is provided but cart has a guest_cart_token', async () => {
-      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+      mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
         userid: mockUserId,
         guest_cart_token: 'non-null-token',
@@ -396,7 +396,7 @@ describe('CartService', () => {
     });
 
     it('should return null if both userid and guest_cart_token are null', async () => {
-      mockPrismaService.cart.findUnique.mockReturnValueOnce({
+      mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
         userid: null,
         guest_cart_token: null,
@@ -629,7 +629,7 @@ describe('CartService', () => {
       mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
       mockCartItemService.deleteItems.mockResolvedValueOnce({});
       mockPrismaService.cart.delete.mockResolvedValueOnce({});
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+      mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id',
         userid: 'user-1',
         guest_cart_token: null,
@@ -687,7 +687,7 @@ describe('CartService', () => {
       mockCartItemService.createOrUpdateItem.mockResolvedValueOnce({});
       mockCartItemService.deleteItems.mockResolvedValueOnce({});
       mockPrismaService.cart.delete.mockResolvedValueOnce({});
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+      mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id-2',
         userid: 'user-2',
         guest_cart_token: null,
@@ -735,7 +735,7 @@ describe('CartService', () => {
       mockCartItemService.deleteItems.mockResolvedValueOnce({});
       mockPrismaService.cart.delete.mockResolvedValueOnce({});
 
-      mockPrismaService.cart.findUnique.mockResolvedValueOnce({
+      mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id',
         userid: 'user-3',
         guest_cart_token: null,
