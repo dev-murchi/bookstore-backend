@@ -4,7 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const PORT = process.env.PORT ?? 3000;
+  const PORT = process.env.PORT ?? 3001;
+  const HOST_PORT = process.env.HOST_PORT ?? 3001;
+
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
     bodyParser: true,
@@ -22,7 +24,7 @@ async function bootstrap() {
     .setDescription('Book Store API description')
     .setVersion('v1.0.0')
     .addBearerAuth()
-    .addServer(`http://localhost:${PORT}/api/v1`, 'API v1')
+    .addServer(`http://localhost:${HOST_PORT}/api/v1`, 'API v1')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
