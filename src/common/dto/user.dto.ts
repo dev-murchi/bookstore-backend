@@ -11,14 +11,14 @@ export class UserDTO {
 
   @ApiProperty({
     description: 'Full name of the user',
-    example: 'John Doe',
+    example: 'Gandalf the White',
   })
   @IsString()
   name: string;
 
   @ApiProperty({
     description: 'Email address of the user',
-    example: 'johndoe@email.com',
+    example: 'gandalf@middleearth.com',
   })
   @IsEmail()
   email: string;

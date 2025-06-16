@@ -7,7 +7,7 @@ export class ShippingDTO {
   @ApiProperty({
     description: 'Email address of the recipient',
     type: String,
-    example: 'example@email.com',
+    example: 'nazgul@bookstore.com',
   })
   @IsEmail()
   email: string;
@@ -15,7 +15,7 @@ export class ShippingDTO {
   @ApiProperty({
     description: 'Phone number of the recipient',
     type: String,
-    example: '123-456-7890',
+    example: '999-009-0009',
   })
   @IsString()
   phone: string;

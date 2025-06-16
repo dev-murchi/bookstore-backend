@@ -61,12 +61,11 @@ export class OrdersController {
   })
   @ApiOkResponse({
     description:
-      'Order status successfully updated and email notification sent to customer.',
+      'Order status updated successfully and email notification sent to customer.',
     type: OrderDTO,
   })
   @ApiBadRequestResponse({
-    description:
-      'Invalid status value provided or error occurred while updating the order.',
+    description: 'Invalid status value or failed to update the order',
   })
   async updateOrderStatus(
     @Param('id', ParseUUIDPipe) orderId: string,
@@ -110,11 +109,11 @@ export class OrdersController {
       'Admins can view all orders in the system. Regular users can only view their own order history.',
   })
   @ApiOkResponse({
-    description: 'List of orders successfully retrieved.',
+    description: 'Orders retrieved',
     type: [OrderDTO],
   })
   @ApiInternalServerErrorResponse({
-    description: 'An unexpected error occurred while fetching orders.',
+    description: 'Failed to retrieve orders',
   })
   async viewAllOrders(@Req() request: Request): Promise<OrderDTO[]> {
     try {
@@ -146,7 +145,7 @@ export class OrdersController {
     type: String,
   })
   @ApiOkResponse({
-    description: 'Order details retrieved successfully.',
+    description: 'Order details retrieved.',
     schema: {
       properties: {
         data: {
@@ -166,13 +165,13 @@ export class OrdersController {
               {
                 quantity: 2,
                 item: {
-                  id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  id: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
                   title: "Wanderlust: A Traveler's Guide to the World",
                   description:
                     "Explore the world's most breathtaking destinations.",
                   isbn: '978-0451526342',
                   author: {
-                    name: 'Traveler Hobbits',
+                    name: 'Bilbo Baggins',
                   },
                   category: {
                     id: 3,
@@ -202,13 +201,13 @@ export class OrdersController {
               {
                 quantity: 2,
                 item: {
-                  id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  id: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
                   title: "Wanderlust: A Traveler's Guide to the World",
                   description:
                     "Explore the world's most breathtaking destinations.",
                   isbn: '978-0451526342',
                   author: {
-                    name: 'Traveler Hobbits',
+                    name: 'Bilbo Baggins',
                   },
                   category: {
                     id: 3,
@@ -224,15 +223,15 @@ export class OrdersController {
             status: 'completed',
             price: 39.98,
             shipping: {
-              email: 'example@email.com',
-              phone: '123-456-7890',
+              email: 'nazgul@bookstore.com',
+              phone: '999-009-0009',
               address: {
-                country: 'The Shire',
-                state: 'Bree',
-                city: 'Hobbiton',
-                line1: 'Bag End, Hobbiton',
-                line2: 'Next to the Green Dragon Inn',
-                postalCode: '4567',
+                country: 'Mordor',
+                state: 'Barad-dur',
+                city: 'Udun',
+                line1: 'The Dark Tower of Barad-dur',
+                line2: 'Overlooking the Plains of Gorgoroth',
+                postalCode: '000009',
               },
             },
             payment: {
@@ -307,7 +306,7 @@ export class OrdersController {
   })
   @ApiInternalServerErrorResponse({
     description:
-      'Refund could not be processed due to a Stripe error or server issue.',
+      'Failed to process refund due to a Stripe error or server issue.',
   })
   async orderRefund(@Param('id', ParseUUIDPipe) orderId: string) {
     try {

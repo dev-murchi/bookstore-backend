@@ -21,14 +21,14 @@ export class UpdateProfileDTO {
   @ApiProperty({
     description: 'Updated email',
     required: false,
-    example: 'jane@email.com',
+    example: 'frodo@bookstore.com',
   })
   @IsEmail()
   @IsNotEmpty()
   @IsOptional()
   email?: string;
 
-  @ApiProperty({ description: 'User password', example: 'Str0ng-P@ssword1' })
+  @ApiProperty({ description: 'User password', example: 'BagEnd@Shire1420!' })
   @IsStrongPassword({
     minLength: 8,
     minLowercase: 1,
@@ -42,7 +42,7 @@ export class UpdateProfileDTO {
   @ApiProperty({
     description: 'New password to change to',
     required: false,
-    example: 'NewP@ssword.123',
+    example: 'RingBearer#9Fingers!',
   })
   @IsStrongPassword()
   @IsOptional()

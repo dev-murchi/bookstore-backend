@@ -135,6 +135,7 @@ export class CartController {
   })
   @ApiOkResponse({
     description: 'Cart successfully retrieved',
+    type: CartDTO,
     examples: {
       emptyUserCart: {
         summary: 'Empty cart',
@@ -157,13 +158,13 @@ export class CartController {
               {
                 quantity: 2,
                 item: {
-                  id: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  id: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
                   title: "Wanderlust: A Traveler's Guide to the World",
                   description:
                     "Explore the world's most breathtaking destinations.",
                   isbn: '978-0451526342',
                   author: {
-                    name: 'Traveler Hobbits',
+                    name: 'Bilbo Baggins',
                   },
                   category: {
                     id: 3,

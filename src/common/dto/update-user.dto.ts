@@ -11,7 +11,7 @@ import {
 export class UpdateUserDTO {
   @ApiProperty({
     description: 'User email address',
-    example: 'user@email.com',
+    example: 'frodo@bookstore.com',
     format: 'email',
   })
   @IsOptional()
@@ -21,7 +21,7 @@ export class UpdateUserDTO {
 
   @ApiProperty({
     description: 'Secure password with upper, lower, number, symbol',
-    example: 'P@ssw0rd123',
+    example: 'RingBearer#9Fingers!',
   })
   @IsOptional()
   @IsNotEmpty()
@@ -36,7 +36,7 @@ export class UpdateUserDTO {
 
   @ApiProperty({
     description: 'Full name of the user',
-    example: 'John Doe',
+    example: 'Frodo Baggins',
   })
   @IsOptional()
   @IsString()

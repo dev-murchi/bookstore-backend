@@ -8,8 +8,8 @@ import {
 
 export class PasswordResetDTO {
   @ApiProperty({
-    description: 'Email for the password reset',
-    example: 'user@email.com',
+    description: 'Email address to send the password reset link',
+    example: 'frodo@bookstore.com',
   })
   @IsEmail()
   email: string;
@@ -24,7 +24,7 @@ export class PasswordResetDTO {
 
   @ApiProperty({
     description: 'New password to set',
-    example: 'NewP@ssword.123',
+    example: 'RingBearer#9Fingers!',
   })
   @IsStrongPassword({
     minLength: 8,

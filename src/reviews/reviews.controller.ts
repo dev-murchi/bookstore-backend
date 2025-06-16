@@ -52,7 +52,8 @@ export class ReviewsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Successfully retrieved reviews',
+    description: 'Reviews retrieved',
+    type: ReviewDTO,
     schema: {
       example: {
         data: {
@@ -125,7 +126,7 @@ export class ReviewsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Successfully retrieved review',
+    description: 'Review retrieved',
 
     schema: {
       properties: {
@@ -161,7 +162,7 @@ export class ReviewsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Successfully deleted review',
+    description: 'Review successfully deleted',
     schema: {
       example: { message: 'Review deleted successfully.' },
     },

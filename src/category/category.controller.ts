@@ -44,7 +44,7 @@ export class CategoryController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all book categories' })
   @ApiOkResponse({
-    description: 'List of all available categories',
+    description: 'Categories retrieved',
     type: [CategoryDTO],
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })

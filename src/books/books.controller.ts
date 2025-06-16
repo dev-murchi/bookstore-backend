@@ -113,7 +113,7 @@ export class BooksController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Retrieve all books' })
   @ApiOkResponse({
-    description: 'List of all books',
+    description: 'Books retrieved',
     schema: {
       properties: {
         data: {
@@ -395,7 +395,7 @@ export class BooksController {
               properties: {
                 bookId: {
                   type: 'string',
-                  example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+                  example: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
                 },
                 totalReviewCount: { type: 'number', example: 11 },
                 page: { type: 'number', example: 1 },

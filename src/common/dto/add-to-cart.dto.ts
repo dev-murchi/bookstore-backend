@@ -4,7 +4,7 @@ import { IsInt, IsNotEmpty, IsPositive, IsString } from 'class-validator';
 export class AddToCartDTO {
   @ApiProperty({
     description: 'Book ID',
-    example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+    example: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
   })
   @IsNotEmpty()
   @IsString()

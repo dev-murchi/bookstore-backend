@@ -75,8 +75,8 @@ export class AuthController {
     schema: {
       example: {
         id: 'abcdef01-2345-6789-abcd-ef0123456789',
-        name: 'John Doe',
-        email: 'johndoe@email.com',
+        name: 'Lindir of Rivendell',
+        email: 'lindir@bookstore.com',
         role: 'author',
       },
     },
@@ -114,7 +114,7 @@ export class AuthController {
     },
   })
   @ApiBadRequestResponse({ description: 'Bad request' })
-  @ApiUnauthorizedResponse({ description: 'Invalid credentials' })
+  @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   @ApiInternalServerErrorResponse({ description: 'Login failed' })
   async login(
     @Body() loginDto: LoginDTO,
@@ -142,7 +142,7 @@ export class AuthController {
     description: 'Password reset email sent',
     schema: { example: { message: 'Password reset link sent to your email.' } },
   })
-  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiBadRequestResponse({ description: 'Invalid email address' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async forgotPassword(
     @Body() passwordResetRequestDto: PasswordResetRequestDTO,

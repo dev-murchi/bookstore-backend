@@ -5,7 +5,7 @@ export class AddressDTO {
   @ApiProperty({
     description: 'Country of the address',
     type: String,
-    example: 'The Shire',
+    example: 'Mordor',
   })
   @IsString()
   country: string;
@@ -14,7 +14,7 @@ export class AddressDTO {
     description: 'State of the address (optional)',
     type: String,
     required: false,
-    example: 'Bree',
+    example: 'Barad-dur',
   })
   @IsString()
   @IsOptional()
@@ -23,7 +23,7 @@ export class AddressDTO {
   @ApiProperty({
     description: 'City of the address',
     type: String,
-    example: 'Hobbiton',
+    example: 'Udun',
   })
   @IsString()
   city: string;
@@ -31,7 +31,7 @@ export class AddressDTO {
   @ApiProperty({
     description: 'Line 1 of the address',
     type: String,
-    example: 'Bag End, Hobbiton',
+    example: 'The Dark Tower of Barad-dur',
   })
   @IsString()
   line1: string;
@@ -40,7 +40,7 @@ export class AddressDTO {
     description: 'Line 2 of the address (optional)',
     type: String,
     required: false,
-    example: 'Next to the Green Dragon Inn',
+    example: 'Overlooking the Plains of Gorgoroth',
   })
   @IsString()
   @IsOptional()
@@ -49,7 +49,7 @@ export class AddressDTO {
   @ApiProperty({
     description: 'Postal code of the address',
     type: String,
-    example: '4567',
+    example: '000009',
   })
   @IsString()
   postalCode: string;

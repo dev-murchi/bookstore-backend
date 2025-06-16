@@ -3,6 +3,7 @@ import {
   IsNotEmptyObject,
   IsNumber,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
@@ -12,10 +13,10 @@ import { Type } from 'class-transformer';
 export class BookDTO {
   @ApiProperty({
     description: 'Unique identifier for the book',
-    example: 'a1b2c3d4-e5f6-7890-ab12-cd34ef56gh78',
+    example: 'a1b2c3d4-e5f6-4890-ab12-cd34ef56ab78',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsUUID()
   readonly id: string;
 
   @ApiProperty({
@@ -44,7 +45,7 @@ export class BookDTO {
 
   @ApiProperty({
     description: 'Author information',
-    example: { name: 'Traveler Hobbits' },
+    example: { name: 'Bilbo Baggins' },
   })
   @IsNotEmptyObject()
   readonly author: { name: string };

@@ -16,7 +16,10 @@ import * as sanitizeHtml from 'sanitize-html';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateBookDTO {
-  @ApiProperty({ description: 'Book title', example: 'The Art of Programming' })
+  @ApiProperty({
+    description: 'Book title',
+    example: "There and Snack Again: A Hungry Hobbit's Guide to Middle-earth",
+  })
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) =>
@@ -33,7 +36,7 @@ export class CreateBookDTO {
 
   @ApiProperty({
     description: 'ISBN of the book',
-    example: '978-3-16-148410-0',
+    example: '978-1-60123-456-2',
     format: 'isbn',
   })
   @IsISBN()
@@ -44,7 +47,7 @@ export class CreateBookDTO {
   price: number;
 
   @ApiProperty({
-    description: 'Optional book description',
+    description: 'Brief description of the book',
     required: false,
     example: 'This book covers...',
   })
@@ -78,7 +81,7 @@ export class CreateBookDTO {
 
   @ApiProperty({
     description: "Author's email",
-    example: 'author@email.com',
+    example: 'bilbo@bookstore.com',
     format: 'email',
   })
   @IsEmail()

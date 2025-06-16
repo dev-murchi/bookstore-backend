@@ -28,7 +28,7 @@ export class PaymentController {
   @ApiOperation({
     summary: 'Handle Stripe webhook events',
     description:
-      'Endpoint for receiving and processing Stripe webhook events. It validates the event signature and triggers bussiness logic accordingly.',
+      'Endpoint for receiving and processing Stripe webhook events. It validates the event signature and triggers business logic accordingly.',
   })
   @ApiHeader({
     name: 'stripe-signature',

@@ -5,7 +5,7 @@ import { IsEmail } from 'class-validator';
 export class UpdateBookDTO extends PartialType(CreateBookDTO) {
   @ApiProperty({
     description: 'Email of the author',
-    example: 'author@email.com',
+    example: 'bilbo@bookstore.com',
     format: 'email',
   })
   @IsEmail()

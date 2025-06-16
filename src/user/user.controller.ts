@@ -100,7 +100,7 @@ export class UserController {
     },
   })
   @ApiBadRequestResponse({
-    description: 'Invalid request or no changes provided',
+    description: 'Invalid request or no updates provided',
   })
   @ApiInternalServerErrorResponse({ description: 'Failed to update profile' })
   async updateProfile(
@@ -161,7 +161,7 @@ export class UserController {
     type: [UserDTO],
   })
   @ApiInternalServerErrorResponse({
-    description: 'Failed to retrieve the users',
+    description: 'Failed to retrieve users',
   })
   async viewAllRegisteredUsers(): Promise<UserDTO[]> {
     try {
@@ -223,7 +223,6 @@ export class UserController {
   @Get(':id/reviews')
   @HttpCode(HttpStatus.OK)
   @Roles([RoleEnum.Admin])
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all reviews of a user by ID (Admin only)' })
   @ApiParam({
     name: 'id',
@@ -245,7 +244,7 @@ export class UserController {
     description: 'Number of reviews per page',
   })
   @ApiOkResponse({
-    description: 'Successfully retrieved user reviews',
+    description: 'User reviews retrieved',
     schema: {
       properties: {
         data: {
@@ -310,7 +309,7 @@ export class UserController {
   @Roles([RoleEnum.Admin])
   @ApiOperation({ summary: 'Get all orders of a user by ID (Admin only)' })
   @ApiOkResponse({
-    description: 'Successfully retrieved user orders',
+    description: 'User orders retrieved',
     schema: {
       type: 'object',
       properties: {
@@ -322,7 +321,7 @@ export class UserController {
     },
   })
   @ApiInternalServerErrorResponse({
-    description: 'Internal server error occurred',
+    description: 'Internal server error',
   })
   @ApiParam({ name: 'id', description: 'User ID', type: String })
   async getUserOrders(@Param('id', ParseUUIDPipe) userId: string): Promise<{

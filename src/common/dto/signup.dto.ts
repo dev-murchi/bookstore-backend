@@ -9,7 +9,7 @@ import {
 export class SignupDTO {
   @ApiProperty({
     description: 'Email of the new user',
-    example: 'newuser@email.com',
+    example: 'saruman@isengard.net',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -17,7 +17,7 @@ export class SignupDTO {
 
   @ApiProperty({
     description: 'Password for the new user',
-    example: 'S@feP@ssword.123',
+    example: 'VoiceOfPower@1',
   })
   @IsNotEmpty()
   @IsStrongPassword({
@@ -31,7 +31,7 @@ export class SignupDTO {
 
   @ApiProperty({
     description: 'Full name of the new user',
-    example: 'John Doe',
+    example: 'Saruman the White',
   })
   @IsString()
   @IsNotEmpty()

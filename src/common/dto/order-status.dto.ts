@@ -1,5 +1,4 @@
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum } from 'class-validator';
 import { OrderStatus } from '../../common/enum/order-status.enum';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -10,12 +9,6 @@ export class OrderStatusDTO {
     enumName: 'OrderStatus',
     example: OrderStatus.Shipped,
   })
-  @IsString()
-  @IsNotEmpty()
-  @Transform(({ value }) => {
-    if (!Object.values(OrderStatus).includes(value))
-      throw new Error('Invalid order status.');
-    return value;
-  })
+  @IsEnum(OrderStatus)
   status: string;
 }
