@@ -88,8 +88,8 @@ export class ReviewsService {
 
   private async fetchAndFormatReviews(
     condition: Prisma.reviewsWhereInput,
-    page: number = 1,
-    limit: number = 10,
+    page: number,
+    limit: number,
   ): Promise<{
     data: { reviews: ReviewDTO[]; rating: number };
     meta: {

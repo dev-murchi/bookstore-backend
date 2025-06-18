@@ -14,7 +14,6 @@ export class RefreshGuard extends AuthGuard('refresh-token') {
     context: ExecutionContext,
     status?: any,
   ) {
-    console.log({ user, err, info });
     if (err) throw err;
     if (!user) {
       throw new UnauthorizedException(

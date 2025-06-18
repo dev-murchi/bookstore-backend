@@ -256,7 +256,7 @@ export class BooksController {
         throw new BadRequestException(error.message);
 
       throw new InternalServerErrorException(
-        'Failed to update the book due to an unexpected error',
+        'Failed to retrieve the book due to an unexpected error',
       );
     }
   }

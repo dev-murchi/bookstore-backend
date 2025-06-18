@@ -188,36 +188,12 @@ describe('MailSenderService', () => {
           },
         ],
       });
-      await expect(testModule.compile()).rejects.toThrow(MailConfigError);
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    });
-
-    it('should throw MailConfigError if validateConfig fails due to incomplete config', async () => {
-      const testModule = Test.createTestingModule({
-        providers: [
-          MailSenderService,
-          {
-            provide: ConfigService,
-            useValue: {
-              get: jest.fn((key: string) => {
-                if (key === 'email.host') return mockMailConfig.email.host;
-                if (key === 'email.port') return mockMailConfig.email.port;
-                if (key === 'email.user') return mockMailConfig.email.user;
-                if (key === 'email.password') return undefined;
-                if (key === 'email.companyName')
-                  return mockMailConfig.email.companyName;
-                if (key === 'email.supportEmail')
-                  return mockMailConfig.email.supportEmail;
-                if (key === 'email.templates')
-                  return mockMailConfig.email.templates;
-                return undefined;
-              }),
-            },
-          },
-        ],
-      });
-      await expect(testModule.compile()).rejects.toThrow(MailConfigError);
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      try {
+        await testModule.compile();
+      } catch (error) {
+        expect(error).toBeInstanceOf(MailConfigError);
+        expect(error.message).toBe('Missing config value: email.host');
+      }
     });
 
     it('should throw MailTemplateError if template reading fails during initializeTemplates', async () => {

@@ -39,8 +39,6 @@ export class MailSenderService {
     this.supportEmail = this.getConfig<string>('email.supportEmail');
     this.emailTemplates = this.getConfig<EmailTemplates>('email.templates');
 
-    this.validateConfig();
-
     this.transporter = this.createMailTransporter();
     this.initializeTemplates();
   }
@@ -49,22 +47,6 @@ export class MailSenderService {
     const value = this.configService.get<T>(key);
     if (!value) throw new MailConfigError(`Missing config value: ${key}`);
     return value;
-  }
-
-  private validateConfig() {
-    const required = [
-      this.mailHost,
-      this.mailPort,
-      this.mailAddress,
-      this.mailPass,
-      this.companyName,
-      this.supportEmail,
-      this.emailTemplates,
-    ];
-
-    if (required.some((val) => !val)) {
-      throw new MailConfigError('Mail configuration incomplete.');
-    }
   }
 
   private createMailTransporter(): Transporter {
