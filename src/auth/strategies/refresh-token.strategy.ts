@@ -30,22 +30,22 @@ export class RefreshTokenStrategy extends PassportStrategy(
         throw new UnauthorizedException('Refresh token not found in headers');
       }
 
-      const session = await this.prisma.user_session.findUnique({
+      const session = await this.prisma.userSession.findUnique({
         where: {
-          userid: payload.id,
+          userId: payload.id,
           id: payload.sessionId,
         },
         select: {
-          refresh_token: true,
-          expires_at: true,
+          refreshToken: true,
+          expiresAt: true,
           user: {
             select: {
               id: true,
               name: true,
               email: true,
-              role: { select: { role_name: true } },
+              role: { select: { name: true } },
               cart: true,
-              last_password_reset_at: true,
+              lastPasswordResetAt: true,
             },
           },
         },
@@ -57,7 +57,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
 
       const validRefresToken = HelperService.verifyTokenHash(
         refreshToken,
-        session.refresh_token,
+        session.refreshToken,
         'hex',
       );
 
@@ -65,13 +65,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
         throw new UnauthorizedException('Refresh token is invalid.');
       }
 
-      if (session.user.last_password_reset_at > new Date(payload.iat * 1000)) {
+      if (session.user.lastPasswordResetAt > new Date(payload.iat * 1000)) {
         throw new UnauthorizedException(
           'Session expired due to password change. Please log in again.',
         );
       }
 
-      if (session.expires_at < new Date()) {
+      if (session.expiresAt < new Date()) {
         throw new UnauthorizedException(
           'Expired refresh token. Please login again.',
         );
@@ -81,7 +81,7 @@ export class RefreshTokenStrategy extends PassportStrategy(
         id: session.user.id,
         name: session.user.name,
         email: session.user.email,
-        role: session.user.role.role_name,
+        role: session.user.role.name,
         cartId: session.user.cart?.id ?? null,
         sessionId: payload.sessionId,
       };

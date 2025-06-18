@@ -40,24 +40,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         }
       }
 
-      const userSession = await this.prisma.user_session.findUnique({
+      const userSession = await this.prisma.userSession.findUnique({
         where: {
-          userid: payload.id,
+          userId: payload.id,
           id: payload.sessionId,
         },
         select: {
-          refresh_token: true,
-          refresh_required: true,
-          expires_at: true,
+          refreshToken: true,
+          refreshRequired: true,
+          expiresAt: true,
           user: {
             select: {
               id: true,
               name: true,
               email: true,
-              role: { select: { role_name: true } },
+              role: { select: { name: true } },
               cart: { select: { id: true } },
               password: true,
-              last_password_reset_at: true,
+              lastPasswordResetAt: true,
             },
           },
         },
@@ -69,9 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         );
       }
 
-      if (
-        userSession.user.last_password_reset_at > new Date(payload.iat * 1000)
-      ) {
+      if (userSession.user.lastPasswordResetAt > new Date(payload.iat * 1000)) {
         throw new UnauthorizedException(
           'Session expired due to password change. Please log in again.',
         );
@@ -79,23 +77,23 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
 
       let tokenRefreshRequired = false;
       if (isAccessTokenExpired) {
-        if (userSession.expires_at < new Date()) {
+        if (userSession.expiresAt < new Date()) {
           throw new UnauthorizedException('Expired token. Please login.');
         }
 
-        if (userSession.refresh_required) {
+        if (userSession.refreshRequired) {
           throw new UnauthorizedException(
             'Expired token. Please refresh your token.',
           );
         }
 
-        await this.prisma.user_session.update({
+        await this.prisma.userSession.update({
           where: {
-            userid: payload.id,
+            userId: payload.id,
             id: payload.sessionId,
           },
           data: {
-            refresh_required: true,
+            refreshRequired: true,
           },
         });
         tokenRefreshRequired = true;
@@ -105,7 +103,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         id: userSession.user.id,
         name: userSession.user.name,
         email: userSession.user.email,
-        role: userSession.user.role.role_name,
+        role: userSession.user.role.name,
         cartId: userSession.user.cart ? userSession.user.cart.id : null,
         sessionId: payload.sessionId,
         password: userSession.user.password,

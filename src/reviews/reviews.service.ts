@@ -17,10 +17,10 @@ export class ReviewsService {
       const { bookId, data, rating } = createReviewDTO;
 
       // book has to be purchased by the user
-      const purchasedBooks = await this.prisma.order_items.findMany({
+      const purchasedBooks = await this.prisma.orderItem.findMany({
         where: {
-          bookid: bookId,
-          order: { userid: userId, status: 'delivered' },
+          bookId: bookId,
+          order: { userId: userId, status: 'delivered' },
         },
       });
 
@@ -28,7 +28,7 @@ export class ReviewsService {
         throw new CustomAPIError('Please purchase the book to leave a review.');
       }
 
-      const savedReview = await this.prisma.reviews.create({
+      const savedReview = await this.prisma.review.create({
         data: {
           user: { connect: { id: userId } },
           book: { connect: { id: bookId } },
@@ -57,7 +57,7 @@ export class ReviewsService {
   }
 
   private async getReviews(
-    condition: Prisma.reviewsWhereInput,
+    condition: Prisma.ReviewWhereInput,
     page: number,
     limit: number,
   ) {
@@ -66,14 +66,14 @@ export class ReviewsService {
       const offset = (page - 1) * limit;
 
       // fetch all reviews for the book
-      const reviews = await this.prisma.reviews.findMany({
+      const reviews = await this.prisma.review.findMany({
         where: condition,
         select: {
           id: true,
           rating: true,
           data: true,
-          userid: true,
-          bookid: true,
+          userId: true,
+          bookId: true,
         },
         take: limit,
         skip: offset,
@@ -87,7 +87,7 @@ export class ReviewsService {
   }
 
   private async fetchAndFormatReviews(
-    condition: Prisma.reviewsWhereInput,
+    condition: Prisma.ReviewWhereInput,
     page: number,
     limit: number,
   ): Promise<{
@@ -145,7 +145,7 @@ export class ReviewsService {
     };
   }> {
     const result = await this.fetchAndFormatReviews(
-      { bookid: bookId },
+      { bookId: bookId },
       page,
       limit,
     );
@@ -173,7 +173,7 @@ export class ReviewsService {
     };
   }> {
     const result = await this.fetchAndFormatReviews(
-      { userid: userId },
+      { userId: userId },
       page,
       limit,
     );
@@ -191,8 +191,8 @@ export class ReviewsService {
       review.id,
       review.data,
       review.rating,
-      review.bookid,
-      review.userid,
+      review.bookId,
+      review.userId,
     );
 
     const errors = await validate(reviewDTO);
@@ -207,14 +207,14 @@ export class ReviewsService {
 
   async findReview(id: string): Promise<ReviewDTO | null> {
     try {
-      const review = await this.prisma.reviews.findUnique({
+      const review = await this.prisma.review.findUnique({
         where: { id },
         select: {
           id: true,
           rating: true,
           data: true,
-          userid: true,
-          bookid: true,
+          userId: true,
+          bookId: true,
         },
       });
 
@@ -227,8 +227,8 @@ export class ReviewsService {
     }
   }
 
-  private async averageRating(condition: Prisma.reviewsWhereInput) {
-    const data = await this.prisma.reviews.aggregate({
+  private async averageRating(condition: Prisma.ReviewWhereInput) {
+    const data = await this.prisma.review.aggregate({
       where: condition,
       _avg: {
         rating: true,
@@ -238,8 +238,8 @@ export class ReviewsService {
     return data._avg.rating;
   }
 
-  private async reviewCount(condition: Prisma.reviewsWhereInput) {
-    const totalReviewCount = await this.prisma.reviews.count({
+  private async reviewCount(condition: Prisma.ReviewWhereInput) {
+    const totalReviewCount = await this.prisma.review.count({
       where: condition,
     });
 
@@ -248,7 +248,7 @@ export class ReviewsService {
 
   async delete(reviewId: string) {
     try {
-      await this.prisma.reviews.delete({ where: { id: reviewId } });
+      await this.prisma.review.delete({ where: { id: reviewId } });
       return { message: 'Review is successfully deleted.' };
     } catch (error) {
       console.error('Review could not be deleted. Error:', error);

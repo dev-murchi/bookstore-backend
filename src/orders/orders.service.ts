@@ -20,9 +20,9 @@ export class OrdersService {
     isbn: true,
     price: true,
     rating: true,
-    image_url: true,
+    imageUrl: true,
     author: { select: { name: true } },
-    category: { select: { id: true, category_name: true } },
+    category: { select: { id: true, name: true } },
   };
 
   private readonly addressSelect = {
@@ -37,7 +37,7 @@ export class OrdersService {
   private readonly paymentSelect = {
     select: {
       id: true,
-      transaction_id: true,
+      transactionId: true,
       status: true,
       method: true,
       amount: true,
@@ -66,10 +66,10 @@ export class OrdersService {
   private readonly orderSelect = {
     id: true,
     status: true,
-    userid: true,
+    user: { select: { id: true, name: true, email: true } },
     totalPrice: true,
-    order_items: this.orderItemSelect,
-    shipping_details: this.shippingSelect,
+    orderItems: this.orderItemSelect,
+    shippingDetails: this.shippingSelect,
     payment: this.paymentSelect,
   };
 
@@ -83,12 +83,12 @@ export class OrdersService {
     if (!userId || typeof userId !== 'string') {
       throw new Error('Invalid user ID');
     }
-    return await this.getOrders({ userid: userId });
+    return await this.getOrders({ userId: userId });
   }
 
-  private async getOrders(condition: Prisma.ordersWhereInput) {
+  private async getOrders(condition: Prisma.OrderWhereInput) {
     try {
-      const orders = await this.prisma.orders.findMany({
+      const orders = await this.prisma.order.findMany({
         where: condition,
         select: this.orderSelect,
       });
@@ -104,7 +104,7 @@ export class OrdersService {
     if (!orderId || typeof orderId !== 'string') {
       throw new Error('Invalid order ID');
     }
-    const order = await this.prisma.orders.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: {
         id: orderId,
       },
@@ -119,7 +119,7 @@ export class OrdersService {
       throw new Error('Invalid order ID');
     }
     try {
-      const order = await this.prisma.orders.update({
+      const order = await this.prisma.order.update({
         where: { id: orderId },
         data: { status },
         select: this.orderSelect,
@@ -136,16 +136,16 @@ export class OrdersService {
       throw new Error('Invalid order ID');
     }
     try {
-      const orderItems = await this.prisma.order_items.findMany({
-        where: { orderid: orderId },
+      const orderItems = await this.prisma.orderItem.findMany({
+        where: { orderId: orderId },
       });
 
       await this.prisma.$transaction(async (prisma) => {
         await Promise.all(
           orderItems.map((item) =>
-            prisma.books.update({
-              where: { id: item.bookid },
-              data: { stock_quantity: { increment: item.quantity } },
+            prisma.book.update({
+              where: { id: item.bookId },
+              data: { stockQuantity: { increment: item.quantity } },
             }),
           ),
         );
@@ -168,13 +168,10 @@ export class OrdersService {
         data.book.description,
         data.book.isbn,
         { name: data.book.author.name },
-        new CategoryDTO(
-          data.book.category.id,
-          data.book.category.category_name,
-        ),
+        new CategoryDTO(data.book.category.id, data.book.category.name),
         Number(data.book.price.toFixed(2)),
         Number(data.book.rating.toFixed(2)),
-        data.book.image_url,
+        data.book.imageUrl,
       );
 
       const orderItem = new OrderItemDTO(item, data.quantity);
@@ -194,36 +191,39 @@ export class OrdersService {
     try {
       const {
         id,
-        userid,
+        user,
         status,
         totalPrice,
-        order_items,
-        shipping_details,
+        orderItems,
+        shippingDetails,
         payment,
       } = order;
 
       const items = await Promise.all(
-        order_items.map((item) => this.transformToOrderItem(item)),
+        orderItems.map((item) => this.transformToOrderItem(item)),
       );
 
       const orderData = new OrderDTO();
       orderData.id = id;
-      orderData.owner = userid;
-      orderData.status = status;
       orderData.items = items;
+      orderData.status = status;
       orderData.price = Number(totalPrice.toFixed(2));
-      if (shipping_details) {
+      if (user) {
+        orderData.owner = user.id;
+      }
+
+      if (shippingDetails) {
         const shippingData = new ShippingDTO();
         const addressData = new AddressDTO();
-        addressData.country = shipping_details.address.country;
-        addressData.state = shipping_details.address.state;
-        addressData.city = shipping_details.address.city;
-        addressData.line1 = shipping_details.address.line1;
-        addressData.line2 = shipping_details.address.line2;
-        addressData.postalCode = shipping_details.address.postalCode;
+        addressData.country = shippingDetails.address.country;
+        addressData.state = shippingDetails.address.state;
+        addressData.city = shippingDetails.address.city;
+        addressData.line1 = shippingDetails.address.line1;
+        addressData.line2 = shippingDetails.address.line2;
+        addressData.postalCode = shippingDetails.address.postalCode;
 
-        shippingData.email = shipping_details.email;
-        shippingData.phone = shipping_details.phone;
+        shippingData.email = shippingDetails.email;
+        shippingData.phone = shippingDetails.phone;
         shippingData.address = addressData;
 
         orderData.shipping = shippingData;
@@ -232,7 +232,7 @@ export class OrdersService {
       if (payment) {
         const paymentData = new PaymentDTO();
         paymentData.id = payment.id;
-        paymentData.transactionId = payment.transaction_id;
+        paymentData.transactionId = payment.transactionId;
         paymentData.status = payment.status;
         paymentData.method = payment.method;
         paymentData.amount = Number(payment.amount.toFixed(2));

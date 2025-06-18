@@ -13,10 +13,10 @@ const mockPrismaService = {
   $transaction: jest
     .fn()
     .mockImplementation((callback) => callback(mockPrismaService)),
-  orders: {
+  order: {
     create: jest.fn(),
   },
-  books: {
+  book: {
     update: jest.fn(),
   },
   cart: {
@@ -60,7 +60,7 @@ describe('CheckoutService', () => {
   });
 
   it('should throw an error if the cart is empty', async () => {
-    mockPrismaService.cart.findUnique.mockResolvedValueOnce({ cart_items: [] });
+    mockPrismaService.cart.findUnique.mockResolvedValueOnce({ cartItems: [] });
     await expect(
       service.checkout(null, { cartId: mockGuestCartId }),
     ).rejects.toThrow('Please add items to your cart to perform checkout.');
@@ -75,20 +75,20 @@ describe('CheckoutService', () => {
   });
   it('should throw an error if there is not enough stock for a book', async () => {
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-      cart_items: [
+      cartItems: [
         {
           quantity: 5,
           book: {
             id: 'book-1',
-            stock_quantity: 2,
+            stockQuantity: 2,
             price: new Prisma.Decimal(10.0),
             title: 'Book One',
             description: 'Book Desc',
             isbn: 'ISBN-1',
             rating: new Prisma.Decimal(4.2),
-            image_url: '',
+            imageUrl: '',
             author: { name: 'Author A' },
-            category: { id: 1, category_name: 'Fiction' },
+            category: { id: 1, name: 'Fiction' },
           },
         },
       ],
@@ -110,14 +110,14 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-1',
           price: new Prisma.Decimal(15.0),
-          stock_quantity: 10,
+          stockQuantity: 10,
           title: 'Book A',
           description: 'Book A Description',
           isbn: 'ISBN-A',
           rating: new Prisma.Decimal(4.0),
-          image_url: 'img-a.jpg',
+          imageUrl: 'img-a.jpg',
           author: { name: 'Author A' },
-          category: { id: 1, category_name: 'Fiction' },
+          category: { id: 1, name: 'Fiction' },
         },
       },
       {
@@ -125,23 +125,23 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-2',
           price: new Prisma.Decimal(20.0),
-          stock_quantity: 5,
+          stockQuantity: 5,
           title: 'Book B',
           description: 'Book B Description',
           isbn: 'ISBN-B',
           rating: new Prisma.Decimal(4.5),
-          image_url: 'img-b.jpg',
+          imageUrl: 'img-b.jpg',
           author: { name: 'Author B' },
-          category: { id: 2, category_name: 'Non-fiction' },
+          category: { id: 2, name: 'Non-fiction' },
         },
       },
     ];
 
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-      cart_items: cartItems,
+      cartItems: cartItems,
     });
 
-    mockPrismaService.orders.create.mockResolvedValueOnce({
+    mockPrismaService.order.create.mockResolvedValueOnce({
       id: 'order-uuid-123',
       totalPrice: new Prisma.Decimal(50.0),
       status: 'pending',
@@ -198,8 +198,8 @@ describe('CheckoutService', () => {
       url: session.url,
     });
 
-    expect(mockPrismaService.orders.create).toHaveBeenCalled();
-    expect(mockPrismaService.books.update).toHaveBeenCalledTimes(2);
+    expect(mockPrismaService.order.create).toHaveBeenCalled();
+    expect(mockPrismaService.book.update).toHaveBeenCalledTimes(2);
     expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
       where: { id: mockGuestCartId },
     });
@@ -213,14 +213,14 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-1',
           price: new Prisma.Decimal(15.0),
-          stock_quantity: 10,
+          stockQuantity: 10,
           title: 'Book A',
           description: 'Book A Description',
           isbn: 'ISBN-A',
           rating: new Prisma.Decimal(4.0),
-          image_url: 'img-a.jpg',
+          imageUrl: 'img-a.jpg',
           author: { name: 'Author A' },
-          category: { id: 1, category_name: 'Fiction' },
+          category: { id: 1, name: 'Fiction' },
         },
       },
       {
@@ -228,23 +228,23 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-2',
           price: new Prisma.Decimal(20.0),
-          stock_quantity: 5,
+          stockQuantity: 5,
           title: 'Book B',
           description: 'Book B Description',
           isbn: 'ISBN-B',
           rating: new Prisma.Decimal(4.5),
-          image_url: 'img-b.jpg',
+          imageUrl: 'img-b.jpg',
           author: { name: 'Author B' },
-          category: { id: 2, category_name: 'Non-fiction' },
+          category: { id: 2, name: 'Non-fiction' },
         },
       },
     ];
 
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-      cart_items: cartItems,
+      cartItems: cartItems,
     });
 
-    mockPrismaService.orders.create.mockResolvedValueOnce({
+    mockPrismaService.order.create.mockResolvedValueOnce({
       id: 'order-uuid-123',
       totalPrice: new Prisma.Decimal(50.0),
       status: 'pending',
@@ -278,14 +278,14 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-1',
           price: new Prisma.Decimal(15.0),
-          stock_quantity: 10,
+          stockQuantity: 10,
           title: 'Book A',
           description: 'Book A Description',
           isbn: 'ISBN-A',
           rating: new Prisma.Decimal(4.0),
-          image_url: 'img-a.jpg',
+          imageUrl: 'img-a.jpg',
           author: { name: 'Author A' },
-          category: { id: 1, category_name: 'Fiction' },
+          category: { id: 1, name: 'Fiction' },
         },
       },
       {
@@ -293,23 +293,23 @@ describe('CheckoutService', () => {
         book: {
           id: 'book-2',
           price: new Prisma.Decimal(20.0),
-          stock_quantity: 5,
+          stockQuantity: 5,
           title: 'Book B',
           description: 'Book B Description',
           isbn: 'ISBN-B',
           rating: new Prisma.Decimal(4.5),
-          image_url: 'img-b.jpg',
+          imageUrl: 'img-b.jpg',
           author: { name: 'Author B' },
-          category: { id: 2, category_name: 'Non-fiction' },
+          category: { id: 2, name: 'Non-fiction' },
         },
       },
     ];
 
     mockPrismaService.cart.findUnique.mockResolvedValueOnce({
-      cart_items: cartItems,
+      cartItems: cartItems,
     });
 
-    mockPrismaService.orders.create.mockResolvedValueOnce({
+    mockPrismaService.order.create.mockResolvedValueOnce({
       id: 'order-uuid-123',
       status: 'pending',
       user: {
@@ -371,8 +371,8 @@ describe('CheckoutService', () => {
       url: session.url,
     });
 
-    expect(mockPrismaService.orders.create).toHaveBeenCalled();
-    expect(mockPrismaService.books.update).toHaveBeenCalledTimes(2);
+    expect(mockPrismaService.order.create).toHaveBeenCalled();
+    expect(mockPrismaService.book.update).toHaveBeenCalledTimes(2);
     expect(mockPrismaService.cart.delete).toHaveBeenCalledWith({
       where: { id: mockUserCartId },
     });

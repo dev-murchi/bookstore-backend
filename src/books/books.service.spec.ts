@@ -16,7 +16,7 @@ const mockBookId5 = 'ba22e8c2-1234-1234-1234-12f488667aed'; // just example
 const mockBookId6 = 'ba22e8c2-1234-1234-835d-123488667aed'; // just example
 const mockBookId7 = '1234e8c2-1234-1234-835d-123488667aed'; // just example
 const mockPrismaService = {
-  books: {
+  book: {
     create: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
@@ -55,7 +55,7 @@ describe('BooksService', () => {
   describe('create', () => {
     it('should throw an error if book ISBN is already in use', async () => {
       const isbn = '9780743273565';
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({
+      mockPrismaService.book.findUnique.mockResolvedValueOnce({
         id: 1,
       });
 
@@ -76,7 +76,7 @@ describe('BooksService', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('The book with same ISBN is already exist');
-        expect(prisma.books.create).toHaveBeenCalledTimes(0);
+        expect(prisma.book.create).toHaveBeenCalledTimes(0);
       }
     });
 
@@ -93,23 +93,23 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.books.create.mockResolvedValueOnce({
+      mockPrismaService.book.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.book.create.mockResolvedValueOnce({
         id: mockBookId,
         title: 'The Test Book',
         author: {
           id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'category 1' },
+        category: { id: 1, name: 'category 1' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       });
 
       const bookDTO = new BookDTO(
@@ -130,7 +130,7 @@ describe('BooksService', () => {
     });
 
     it('should throw CustomAPIError when an error occurs', async () => {
-      mockPrismaService.books.findUnique.mockRejectedValueOnce(
+      mockPrismaService.book.findUnique.mockRejectedValueOnce(
         new Error('Error'),
       );
 
@@ -157,7 +157,7 @@ describe('BooksService', () => {
 
   describe('finAll', () => {
     it('should return empty array if there is no book', async () => {
-      mockPrismaService.books.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([]);
       expect(await service.findAll()).toEqual([]);
     });
 
@@ -169,17 +169,17 @@ describe('BooksService', () => {
           id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category' },
+        category: { id: 1, name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       };
-      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([book]);
       expect(await service.findAll()).toEqual([
         new BookDTO(
           mockBookId,
@@ -196,9 +196,7 @@ describe('BooksService', () => {
     });
 
     it('should throw CustomAPIError when an error occurs', async () => {
-      mockPrismaService.books.findMany.mockRejectedValueOnce(
-        new Error('Error'),
-      );
+      mockPrismaService.book.findMany.mockRejectedValueOnce(new Error('Error'));
 
       try {
         await service.findAll();
@@ -211,7 +209,7 @@ describe('BooksService', () => {
 
   describe('findOne', () => {
     it('should return null if there is no book', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.book.findUnique.mockResolvedValueOnce(null);
       expect(await service.findOne(mockBookId)).toBeNull();
     });
     it('should return a book by id', async () => {
@@ -222,17 +220,17 @@ describe('BooksService', () => {
           id: mockUserId2,
           name: 'test author 2',
           email: 'testauthor2@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category-2' },
+        category: { id: 1, name: 'test-category-2' },
         isbn: '9780743273565',
         price: 2,
         description: 'Test book description.',
-        stock_quantity: 2,
+        stockQuantity: 2,
         rating: 4.5,
-        image_url: 'testbook-image-url-2',
+        imageUrl: 'testbook-image-url-2',
       };
-      mockPrismaService.books.findUnique.mockResolvedValueOnce(book);
+      mockPrismaService.book.findUnique.mockResolvedValueOnce(book);
       expect(await service.findOne(mockBookId2)).toEqual(
         new BookDTO(
           mockBookId2,
@@ -248,7 +246,7 @@ describe('BooksService', () => {
       );
     });
     it('should throw CustomAPIError when an error occurs', async () => {
-      mockPrismaService.books.findUnique.mockRejectedValueOnce(
+      mockPrismaService.book.findUnique.mockRejectedValueOnce(
         new Error('Error'),
       );
       try {
@@ -270,7 +268,7 @@ describe('BooksService', () => {
         await service.update(mockBookId, updateBookDto, mockUserId);
       } catch (error) {
         expect(error).toEqual(new CustomAPIError('No changes provided.'));
-        expect(prisma.books.update).toHaveBeenCalledTimes(0);
+        expect(prisma.book.update).toHaveBeenCalledTimes(0);
       }
     });
 
@@ -287,22 +285,22 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      mockPrismaService.books.update.mockResolvedValueOnce({
+      mockPrismaService.book.update.mockResolvedValueOnce({
         id: mockBookId,
         title: 'Updated Book Title',
         author: {
           id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category' },
+        category: { id: 1, name: 'test-category' },
         isbn: '1234567890123',
         price: 20,
         description: 'Updated description.',
-        stock_quantity: 10,
+        stockQuantity: 10,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       });
       const result = await service.update(
         mockBookId,
@@ -323,9 +321,9 @@ describe('BooksService', () => {
           'testbook-image-url',
         ),
       );
-      expect(prisma.books.update).toHaveBeenCalledWith({
+      expect(prisma.book.update).toHaveBeenCalledWith({
         where: {
-          authorid: mockUserId,
+          authorId: mockUserId,
           id: mockBookId,
         },
         data: {
@@ -336,8 +334,8 @@ describe('BooksService', () => {
             connect: { id: updateBookDto.categoryId },
           },
           description: updateBookDto.description,
-          stock_quantity: updateBookDto.stockQuantity,
-          image_url: updateBookDto.imageUrl,
+          stockQuantity: updateBookDto.stockQuantity,
+          imageUrl: updateBookDto.imageUrl,
         },
         select: {
           id: true,
@@ -347,16 +345,16 @@ describe('BooksService', () => {
               id: true,
               name: true,
               email: true,
-              role: { select: { role_name: true } },
+              role: { select: { name: true } },
             },
           },
-          category: { select: { category_name: true } },
+          category: { select: { name: true } },
           isbn: true,
           price: true,
           description: true,
-          stock_quantity: true,
+          stockQuantity: true,
           rating: true,
-          image_url: true,
+          imageUrl: true,
         },
       });
     });
@@ -374,22 +372,22 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      mockPrismaService.books.update.mockResolvedValueOnce({
+      mockPrismaService.book.update.mockResolvedValueOnce({
         id: mockBookId,
         title: 'Updated Book Title',
         author: {
           id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { category_name: 'test-category' },
+        category: { name: 'test-category' },
         isbn: '1234567890123',
         price: 10,
         description: 'Updated description.',
-        stock_quantity: 50,
+        stockQuantity: 50,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       });
 
       const result = await service.update(
@@ -411,14 +409,14 @@ describe('BooksService', () => {
         rating: 5,
         imageUrl: 'testbook-image-url',
       });
-      expect(prisma.books.update).toHaveBeenCalledWith({
+      expect(prisma.book.update).toHaveBeenCalledWith({
         where: {
           id: mockBookId,
-          authorid: mockUserId,
+          authorId: mockUserId,
         },
         data: {
           price: updateBookDto.price,
-          stock_quantity: updateBookDto.stockQuantity,
+          stockQuantity: updateBookDto.stockQuantity,
         },
         select: expect.any(Object),
       });
@@ -437,7 +435,7 @@ describe('BooksService', () => {
         author: 'testauthor@email.com',
       };
 
-      mockPrismaService.books.update.mockRejectedValueOnce('Update failed.');
+      mockPrismaService.book.update.mockRejectedValueOnce('Update failed.');
       try {
         await service.update(mockBookId, updateBookDto, mockUserId);
       } catch (error) {
@@ -449,7 +447,7 @@ describe('BooksService', () => {
 
   describe('remove', () => {
     it('should throw an error if book does not exist', async () => {
-      mockPrismaService.books.delete.mockRejectedValueOnce('Delete failed');
+      mockPrismaService.book.delete.mockRejectedValueOnce('Delete failed');
 
       try {
         await service.remove(mockBookId);
@@ -460,7 +458,7 @@ describe('BooksService', () => {
     });
 
     it('should successfully delete a book', async () => {
-      mockPrismaService.books.delete.mockResolvedValueOnce({});
+      mockPrismaService.book.delete.mockResolvedValueOnce({});
       const result = await service.remove(mockBookId);
       expect(result).toEqual({ message: 'Book deleted successfully' });
     });
@@ -475,18 +473,18 @@ describe('BooksService', () => {
           id: mockUserId,
           name: 'test author',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { category_name: 'test-category' },
+        category: { name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       };
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('title');
 
@@ -507,7 +505,7 @@ describe('BooksService', () => {
           imageUrl: 'testbook-image-url',
         },
       ]);
-      expect(prisma.books.findMany).toHaveBeenCalledWith({
+      expect(prisma.book.findMany).toHaveBeenCalledWith({
         where: {
           OR: [
             { title: { contains: 'title', mode: 'insensitive' } },
@@ -515,7 +513,7 @@ describe('BooksService', () => {
             { isbn: { contains: 'title', mode: 'insensitive' } },
             {
               category: {
-                category_name: { contains: 'title', mode: 'insensitive' },
+                name: { contains: 'title', mode: 'insensitive' },
               },
             },
           ],
@@ -524,7 +522,7 @@ describe('BooksService', () => {
         orderBy: {},
       });
 
-      expect(mockPrismaService.books.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.book.findMany).toHaveBeenCalledTimes(1);
     });
 
     it('should return books matching the search query in author', async () => {
@@ -535,18 +533,18 @@ describe('BooksService', () => {
           id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category' },
+        category: { id: 1, name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       };
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('author');
 
@@ -573,18 +571,18 @@ describe('BooksService', () => {
           id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category' },
+        category: { id: 1, name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       };
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('9780743273565');
 
@@ -611,18 +609,18 @@ describe('BooksService', () => {
           id: mockUserId,
           name: 'test author user',
           email: 'testauthor@email.com',
-          role: { role_name: 'author' },
+          role: { name: 'author' },
         },
-        category: { id: 1, category_name: 'test-category' },
+        category: { id: 1, name: 'test-category' },
         isbn: '9780743273565',
         price: 1,
         description: 'Test book description.',
-        stock_quantity: 1,
+        stockQuantity: 1,
         rating: 5,
-        image_url: 'testbook-image-url',
+        imageUrl: 'testbook-image-url',
       };
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce([book]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([book]);
 
       const result = await service.search('test-category');
 
@@ -642,16 +640,14 @@ describe('BooksService', () => {
     });
 
     it('should return an empty array when no books match the search query', async () => {
-      mockPrismaService.books.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.book.findMany.mockResolvedValueOnce([]);
       const result = await service.search('nonexistent book');
 
       expect(result).toEqual([]);
     });
 
     it('should throw CustomAPIError when an error occurs', async () => {
-      mockPrismaService.books.findMany.mockRejectedValueOnce(
-        new Error('Error'),
-      );
+      mockPrismaService.book.findMany.mockRejectedValueOnce(new Error('Error'));
       try {
         await service.search('search something');
       } catch (error) {
@@ -679,15 +675,15 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 1, category_name: 'category one' },
+          category: { id: 1, name: 'category one' },
           isbn: '0123456789',
           price: 11,
           description: 'Description of book one',
-          stock_quantity: 10,
+          stockQuantity: 10,
           rating: 4.1,
-          image_url: 'book-one.image.url',
+          imageUrl: 'book-one.image.url',
         },
         {
           id: mockBookId2,
@@ -696,15 +692,15 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 2, category_name: 'category two' },
+          category: { id: 2, name: 'category two' },
           isbn: '0987654321',
           price: 11,
           description: 'Description of book two',
-          stock_quantity: 20,
+          stockQuantity: 20,
           rating: 5,
-          image_url: 'book-two.image.url',
+          imageUrl: 'book-two.image.url',
         },
         {
           id: mockBookId3,
@@ -713,19 +709,19 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 3, category_name: 'category three' },
+          category: { id: 3, name: 'category three' },
           isbn: '0123456789',
           price: 99,
           description: 'Description of book three',
-          stock_quantity: 30,
+          stockQuantity: 30,
           rating: 4.5,
-          image_url: 'book-three.image.url',
+          imageUrl: 'book-three.image.url',
         },
       ];
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+      mockPrismaService.book.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
       expect(result).toEqual([
@@ -763,11 +759,11 @@ describe('BooksService', () => {
           'book-three.image.url',
         ),
       ]);
-      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.findMany).toHaveBeenCalledWith({
         where: {
           price: { gte: 10, lte: 100 },
           rating: { gte: 4 },
-          stock_quantity: { gt: 0 },
+          stockQuantity: { gt: 0 },
         },
         select: {
           id: true,
@@ -777,16 +773,16 @@ describe('BooksService', () => {
               id: true,
               name: true,
               email: true,
-              role: { select: { role_name: true } },
+              role: { select: { name: true } },
             },
           },
-          category: { select: { category_name: true } },
+          category: { select: { name: true } },
           isbn: true,
           price: true,
           description: true,
-          stock_quantity: true,
+          stockQuantity: true,
           rating: true,
-          image_url: true,
+          imageUrl: true,
         },
         orderBy: [{ price: 'asc' }, { rating: 'asc' }],
       });
@@ -805,19 +801,19 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 1, category_name: 'category one' },
+          category: { id: 1, name: 'category one' },
           isbn: '0123456789',
           price: 11,
           description: 'Description of book one',
-          stock_quantity: 4,
+          stockQuantity: 4,
           rating: 4.1,
-          image_url: 'book-one.image.url',
+          imageUrl: 'book-one.image.url',
         },
       ];
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+      mockPrismaService.book.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
       expect(result).toEqual([
@@ -833,11 +829,11 @@ describe('BooksService', () => {
           'book-one.image.url',
         ),
       ]);
-      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.findMany).toHaveBeenCalledWith({
         where: {
           price: {},
           rating: {},
-          stock_quantity: { gt: 0 },
+          stockQuantity: { gt: 0 },
         },
         select: expect.any(Object),
         orderBy: [{ price: 'asc' }, { rating: 'asc' }],
@@ -857,15 +853,15 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 5, category_name: 'category five' },
+          category: { id: 5, name: 'category five' },
           isbn: '0123456789',
           price: 99,
           description: 'Description of book five',
-          stock_quantity: 0,
+          stockQuantity: 0,
           rating: 4.5,
-          image_url: 'book-five.image.url',
+          imageUrl: 'book-five.image.url',
         },
         {
           id: mockBookId7,
@@ -874,15 +870,15 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 7, category_name: 'category seven' },
+          category: { id: 7, name: 'category seven' },
           isbn: '0987654321',
           price: 11,
           description: 'Description of book seven',
-          stock_quantity: 0,
+          stockQuantity: 0,
           rating: 5,
-          image_url: 'book-seven.image.url',
+          imageUrl: 'book-seven.image.url',
         },
         {
           id: mockBookId6,
@@ -891,19 +887,19 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 6, category_name: 'category six' },
+          category: { id: 6, name: 'category six' },
           isbn: '0123456789',
           price: 11,
           description: 'Description of book six',
-          stock_quantity: 0,
+          stockQuantity: 0,
           rating: 4.1,
-          image_url: 'book-six.image.url',
+          imageUrl: 'book-six.image.url',
         },
       ];
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+      mockPrismaService.book.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
       expect(result).toEqual([
@@ -941,11 +937,11 @@ describe('BooksService', () => {
           'book-six.image.url',
         ),
       ]);
-      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.findMany).toHaveBeenCalledWith({
         where: {
           price: {},
           rating: {},
-          stock_quantity: { equals: 0 },
+          stockQuantity: { equals: 0 },
         },
         select: expect.any(Object),
         orderBy: [{ price: 'desc' }, { rating: 'desc' }],
@@ -966,15 +962,15 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author one',
             email: 'author1@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 1, category_name: 'category one' },
+          category: { id: 1, name: 'category one' },
           isbn: '0123456789',
           price: 35,
           description: 'Description of book one',
-          stock_quantity: 10,
+          stockQuantity: 10,
           rating: 4.1,
-          image_url: 'book-one.image.url',
+          imageUrl: 'book-one.image.url',
         },
 
         {
@@ -984,19 +980,19 @@ describe('BooksService', () => {
             id: mockUserId,
             name: 'author two',
             email: 'author2@email.com',
-            role: { role_name: 'author' },
+            role: { name: 'author' },
           },
-          category: { id: 2, category_name: 'category two' },
+          category: { id: 2, name: 'category two' },
           isbn: '0123456789',
           price: 35,
           description: 'Description of book two',
-          stock_quantity: 0,
+          stockQuantity: 0,
           rating: 4.1,
-          image_url: 'book-two.image.url',
+          imageUrl: 'book-two.image.url',
         },
       ];
 
-      mockPrismaService.books.findMany.mockResolvedValueOnce(books);
+      mockPrismaService.book.findMany.mockResolvedValueOnce(books);
 
       const result = await service.filter(filterParams);
       expect(result).toEqual([
@@ -1024,11 +1020,11 @@ describe('BooksService', () => {
           'book-two.image.url',
         ),
       ]);
-      expect(mockPrismaService.books.findMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.findMany).toHaveBeenCalledWith({
         where: {
           price: { gte: 20, lte: 50 },
           rating: {},
-          stock_quantity: {},
+          stockQuantity: {},
         },
         select: expect.any(Object),
         orderBy: [{ price: 'asc' }, { rating: 'asc' }],
@@ -1040,7 +1036,7 @@ describe('BooksService', () => {
         maxPrice: 1000,
         orderBy: 'asc' as SortType,
       };
-      mockPrismaService.books.findMany.mockResolvedValue([]);
+      mockPrismaService.book.findMany.mockResolvedValue([]);
 
       const result = await service.filter(filterParams);
 
@@ -1053,9 +1049,7 @@ describe('BooksService', () => {
         orderBy: 'asc' as SortType,
       };
 
-      mockPrismaService.books.findMany.mockRejectedValueOnce(
-        new Error('Error'),
-      );
+      mockPrismaService.book.findMany.mockRejectedValueOnce(new Error('Error'));
       try {
         await service.filter(filterParams);
       } catch (error) {

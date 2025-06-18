@@ -9,7 +9,7 @@ import { CategoryDTO } from '../common/dto/category.dto';
 
 export type SortType = 'asc' | 'desc';
 
-const selectedBookInformations: Prisma.booksSelect = {
+const selectedBookInformations: Prisma.BookSelect = {
   id: true,
   title: true,
   author: {
@@ -17,19 +17,19 @@ const selectedBookInformations: Prisma.booksSelect = {
       id: true,
       name: true,
       email: true,
-      role: { select: { role_name: true } },
+      role: { select: { name: true } },
     },
   },
-  category: { select: { category_name: true } },
+  category: { select: { name: true } },
   isbn: true,
   price: true,
   description: true,
-  stock_quantity: true,
+  stockQuantity: true,
   rating: true,
-  image_url: true,
+  imageUrl: true,
 };
 
-type SelectedBook = Prisma.booksGetPayload<{
+type SelectedBook = Prisma.BookGetPayload<{
   select: typeof selectedBookInformations;
 }>;
 
@@ -48,7 +48,7 @@ export class BooksService {
         throw new CustomAPIError('The book with same ISBN is already exist');
 
       // save the book
-      const savedBook = await this.prisma.books.create({
+      const savedBook = await this.prisma.book.create({
         data: {
           title: createBookDto.title,
           author: {
@@ -64,9 +64,9 @@ export class BooksService {
           isbn: createBookDto.isbn,
           price: createBookDto.price,
           description: createBookDto.description,
-          stock_quantity: createBookDto.stockQuantity,
-          image_url: createBookDto.imageUrl,
-          is_active: createBookDto.isActive,
+          stockQuantity: createBookDto.stockQuantity,
+          imageUrl: createBookDto.imageUrl,
+          isActive: createBookDto.isActive,
         },
         select: selectedBookInformations,
       });
@@ -129,7 +129,7 @@ export class BooksService {
         throw new CustomAPIError('No changes provided.');
       }
 
-      const data: Prisma.booksUpdateInput = {};
+      const data: Prisma.BookUpdateInput = {};
 
       if (title) data.title = title;
       if (isbn) data.isbn = isbn;
@@ -141,14 +141,14 @@ export class BooksService {
           },
         };
       if (description) data.description = description;
-      if (stockQuantity) data.stock_quantity = stockQuantity;
+      if (stockQuantity) data.stockQuantity = stockQuantity;
 
-      if (imageUrl) data.image_url = imageUrl;
+      if (imageUrl) data.imageUrl = imageUrl;
 
-      const book = await this.prisma.books.update({
+      const book = await this.prisma.book.update({
         where: {
           id,
-          authorid: authorId,
+          authorId: authorId,
         },
         data: data,
         select: selectedBookInformations,
@@ -164,7 +164,7 @@ export class BooksService {
 
   async remove(id: string): Promise<{ message: string }> {
     try {
-      await this.prisma.books.delete({
+      await this.prisma.book.delete({
         where: { id },
       });
       return { message: 'Book deleted successfully' };
@@ -176,7 +176,7 @@ export class BooksService {
 
   async search(searchQuery: string): Promise<BookDTO[]> {
     try {
-      const condditions: Prisma.booksWhereInput = {
+      const condditions: Prisma.BookWhereInput = {
         OR: [
           { title: { contains: searchQuery, mode: 'insensitive' } },
           {
@@ -185,7 +185,7 @@ export class BooksService {
           { isbn: { contains: searchQuery, mode: 'insensitive' } },
           {
             category: {
-              category_name: { contains: searchQuery, mode: 'insensitive' },
+              name: { contains: searchQuery, mode: 'insensitive' },
             },
           },
         ],
@@ -209,7 +209,7 @@ export class BooksService {
     try {
       let price = {};
       let rating = {};
-      let stock_quantity = {};
+      let stockQuantity = {};
 
       // minimum price
       if (filterParams.minPrice >= 0) {
@@ -229,15 +229,15 @@ export class BooksService {
       const orderBy = filterParams.orderBy;
 
       if (undefined !== filterParams.stock) {
-        stock_quantity = filterParams.stock
-          ? { ...stock_quantity, gt: 0 }
-          : { ...stock_quantity, equals: 0 };
+        stockQuantity = filterParams.stock
+          ? { ...stockQuantity, gt: 0 }
+          : { ...stockQuantity, equals: 0 };
       }
 
-      const conditions: Prisma.booksWhereInput = {
+      const conditions: Prisma.BookWhereInput = {
         price,
         rating,
-        stock_quantity,
+        stockQuantity,
       };
 
       const books = await this.findBooks(conditions, [
@@ -252,18 +252,18 @@ export class BooksService {
     }
   }
 
-  private async findBook(conditions: Prisma.booksWhereUniqueInput) {
-    return await this.prisma.books.findUnique({
+  private async findBook(conditions: Prisma.BookWhereUniqueInput) {
+    return await this.prisma.book.findUnique({
       where: conditions,
       select: selectedBookInformations,
     });
   }
 
   private async findBooks(
-    conditions: Prisma.booksWhereInput,
-    orderBy?: Prisma.booksOrderByWithRelationInput[],
+    conditions: Prisma.BookWhereInput,
+    orderBy?: Prisma.BookOrderByWithRelationInput[],
   ) {
-    return await this.prisma.books.findMany({
+    return await this.prisma.book.findMany({
       where: conditions,
       select: selectedBookInformations,
       orderBy: orderBy ? orderBy : {},
@@ -277,10 +277,10 @@ export class BooksService {
       book.description,
       book.isbn,
       { name: book.author.name },
-      new CategoryDTO(book.category.id, book.category.category_name),
+      new CategoryDTO(book.category.id, book.category.name),
       Number(book.price.toFixed(2)),
       book.rating,
-      book.image_url,
+      book.imageUrl,
     );
   }
 }

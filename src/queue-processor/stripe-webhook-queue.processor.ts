@@ -266,18 +266,18 @@ export class StripeWebhookProcessor extends WorkerHost {
         ? payment_intent
         : (payment_intent?.id ?? null);
 
-    await this.prisma.refunds.create({
+    await this.prisma.refund.create({
       data: {
-        refundid: id,
-        orderid: orderId,
-        transaction_id: transactionId,
+        refundId: id,
+        orderId: orderId,
+        transactionId: transactionId,
         amount,
         status,
       },
     });
 
     const shipping = await this.prisma.shipping.findUnique({
-      where: { orderid: orderId },
+      where: { orderId: orderId },
       select: { email: true, name: true },
     });
 
@@ -301,23 +301,23 @@ export class StripeWebhookProcessor extends WorkerHost {
   private async refundUpdated(eventData: Stripe.Refund) {
     const { id, status } = eventData;
 
-    const refund = await this.prisma.refunds.update({
-      where: { refundid: id },
+    const refund = await this.prisma.refund.update({
+      where: { refundId: id },
       data: { status },
-      select: { orderid: true },
+      select: { orderId: true },
     });
 
     if (status === 'succeeded') {
       try {
         const shipping = await this.prisma.shipping.findUnique({
-          where: { orderid: refund.orderid },
+          where: { orderId: refund.orderId },
           select: { email: true, name: true },
         });
 
         await this.emailService.sendOrderStatusChangeMail(
           OrderStatus.RefundComplete,
           {
-            orderId: refund.orderid,
+            orderId: refund.orderId,
             username: shipping.name,
             email: shipping.email,
           },
@@ -334,25 +334,25 @@ export class StripeWebhookProcessor extends WorkerHost {
   private async refundFailed(eventData: Stripe.Refund) {
     const { id, status, failure_reason } = eventData;
 
-    const refund = await this.prisma.refunds.update({
-      where: { refundid: id },
-      data: { status, failure_reason },
+    const refund = await this.prisma.refund.update({
+      where: { refundId: id },
+      data: { status, failureReason: failure_reason },
       select: {
-        orderid: true,
+        orderId: true,
       },
     });
 
     const shipping = await this.prisma.shipping.findUnique({
-      where: { orderid: refund.orderid },
+      where: { orderId: refund.orderId },
       select: { email: true, name: true },
     });
 
-    if (refund.orderid) {
+    if (refund.orderId) {
       try {
         await this.emailService.sendOrderStatusChangeMail(
           OrderStatus.RefundFailed,
           {
-            orderId: refund.orderid,
+            orderId: refund.orderId,
             username: shipping.name,
             email: shipping.email,
           },

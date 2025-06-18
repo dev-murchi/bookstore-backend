@@ -15,7 +15,7 @@ export class UserService {
     name: true,
     email: true,
     password: true,
-    role: { select: { id: true, role_name: true } },
+    role: { select: { id: true, name: true } },
   };
 
   constructor(private readonly prisma: PrismaService) {}
@@ -48,15 +48,15 @@ export class UserService {
           role: {
             connectOrCreate: {
               where: {
-                role_name: userData.role,
+                name: userData.role,
               },
               create: {
-                role_name: userData.role,
+                name: userData.role,
               },
             },
           },
-          is_active: true,
-          last_password_reset_at: new Date(),
+          isActive: true,
+          lastPasswordResetAt: new Date(),
         },
         select: this.userSelect,
       });
@@ -65,7 +65,7 @@ export class UserService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role.role_name,
+        role: user.role.name,
       };
     } catch (error) {
       console.error('User creation failed. Error:', error);
@@ -126,10 +126,10 @@ export class UserService {
         role: {
           select: {
             id: true,
-            role_name: true,
+            name: true,
           },
         },
-        is_active: true,
+        isActive: true,
       },
     });
   }
@@ -152,12 +152,12 @@ export class UserService {
       }
 
       if (role) {
-        userUpdateObject.role = { connect: { role_name: role } };
+        userUpdateObject.role = { connect: { name: role } };
       }
 
       if (password) {
         userUpdateObject.password = await HelperService.generateHash(password);
-        userUpdateObject.last_password_reset_at = new Date();
+        userUpdateObject.lastPasswordResetAt = new Date();
       }
 
       const user = await this.prisma.user.update({
@@ -170,7 +170,7 @@ export class UserService {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role.role_name,
+        role: user.role.name,
       };
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
@@ -204,10 +204,10 @@ export class UserService {
       await this.prisma.user.update({
         where: { id: userId },
         data: {
-          password_reset_tokens: {
+          passwordResetTokens: {
             create: {
               token: disposableToken,
-              expires_at: expiresAt,
+              expiresAt: expiresAt,
             },
           },
         },
@@ -227,7 +227,7 @@ export class UserService {
     try {
       // get password_reset_tokens
       const passwordResetToken =
-        await this.prisma.password_reset_tokens.findUnique({
+        await this.prisma.passwordResetToken.findUnique({
           where: { token },
         });
 
@@ -235,10 +235,10 @@ export class UserService {
       if (!passwordResetToken) throw new CustomAPIError('Invalid token');
 
       // delete disposable password reset token
-      await this.prisma.password_reset_tokens.delete({ where: { token } });
+      await this.prisma.passwordResetToken.delete({ where: { token } });
 
       // check token expiration
-      if (passwordResetToken.expires_at < new Date(Date.now())) {
+      if (passwordResetToken.expiresAt < new Date(Date.now())) {
         throw new CustomAPIError('Expired token');
       }
 
@@ -246,7 +246,7 @@ export class UserService {
       const user = await this.findUser({ email });
 
       // check user correctness
-      if (!user || user.id !== passwordResetToken.userid)
+      if (!user || user.id !== passwordResetToken.userId)
         throw new CustomAPIError('Invalid email');
 
       // compare new password with old password
@@ -302,7 +302,7 @@ export class UserService {
       selectedUser.id,
       selectedUser.name,
       selectedUser.email,
-      selectedUser.role.role_name,
+      selectedUser.role.name,
     );
 
     const errors = await validate(user);

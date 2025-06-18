@@ -10,11 +10,11 @@ export class CategoryService {
   async getAll(): Promise<CategoryDTO[]> {
     try {
       const categories = await this.prisma.category.findMany({
-        select: { id: true, category_name: true },
+        select: { id: true, name: true },
       });
 
       return categories.map(
-        (category) => new CategoryDTO(category.id, category.category_name),
+        (category) => new CategoryDTO(category.id, category.name),
       );
     } catch (error) {
       console.error('Categories could not be fetched. Error:', error);
@@ -25,11 +25,11 @@ export class CategoryService {
   async create(createCategoryDTO: CreateCategoryDTO): Promise<CategoryDTO> {
     try {
       const category = await this.prisma.category.create({
-        data: { category_name: createCategoryDTO.value },
-        select: { id: true, category_name: true },
+        data: { name: createCategoryDTO.value },
+        select: { id: true, name: true },
       });
 
-      return new CategoryDTO(category.id, category.category_name);
+      return new CategoryDTO(category.id, category.name);
     } catch (error) {
       console.error('Category could not be created. Error:', error);
       // unique constraint
@@ -43,11 +43,11 @@ export class CategoryService {
     try {
       const category = await this.prisma.category.update({
         where: { id: categoryId },
-        data: { category_name: name },
-        select: { id: true, category_name: true },
+        data: { name: name },
+        select: { id: true, name: true },
       });
 
-      return new CategoryDTO(category.id, category.category_name);
+      return new CategoryDTO(category.id, category.name);
     } catch (error) {
       console.error('Category name could not be updated. Error:', error);
       throw new Error('Category name could not be updated.');

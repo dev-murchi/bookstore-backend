@@ -14,7 +14,7 @@ const mockJwtService = {
 };
 
 const mockPrismaService = {
-  user_session: {
+  userSession: {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
@@ -27,17 +27,17 @@ const mockRequest = {
 } as unknown as Request;
 
 const baseUserSession = {
-  refresh_token: 'some-refresh-token',
-  refresh_required: false,
-  expires_at: new Date(Date.now() + 10_000),
+  refreshToken: 'some-refresh-token',
+  refreshRequired: false,
+  expiresAt: new Date(Date.now() + 10_000),
   user: {
     id: 'user123',
     name: 'Test User',
     email: 'testuser@email.com',
-    role: { role_name: 'admin' },
+    role: { name: 'admin' },
     cart: { id: 'cart123' },
     password: 'hashed',
-    last_password_reset_at: new Date(Date.now() - 500_000),
+    lastPasswordResetAt: new Date(Date.now() - 500_000),
   },
 };
 
@@ -83,7 +83,7 @@ describe('JwtStrategy', () => {
     mockJwtService.verify.mockImplementation(() => {
       throw { name: 'TokenExpiredError' };
     });
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(null);
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(null);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'User session id not found. Please login',
@@ -99,11 +99,11 @@ describe('JwtStrategy', () => {
       ...baseUserSession,
       user: {
         ...baseUserSession.user,
-        last_password_reset_at: new Date(Date.now() + 100_000), // in the future
+        lastPasswordResetAt: new Date(Date.now() + 100_000), // in the future
       },
     };
 
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(session);
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(session);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Session expired due to password change. Please log in again.',
@@ -117,55 +117,55 @@ describe('JwtStrategy', () => {
 
     const session = {
       ...baseUserSession,
-      expires_at: new Date(Date.now() - 100_000),
+      expiresAt: new Date(Date.now() - 100_000),
     };
 
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(session);
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(session);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Expired token. Please login.',
     );
   });
 
-  it.only('should throw if refresh_required is true', async () => {
+  it.only('should throw if refreshRequired is true', async () => {
     mockJwtService.verify.mockImplementation(() => {
       throw { name: 'TokenExpiredError' };
     });
 
     const session = {
       ...baseUserSession,
-      refresh_required: true,
+      refreshRequired: true,
     };
 
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(session);
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(session);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Expired token. Please refresh your token.',
     );
   });
 
-  it.only('should mark session as refresh_required if expired and return tokenRefreshRequired=true', async () => {
+  it.only('should mark session as refreshRequired if expired and return tokenRefreshRequired=true', async () => {
     mockJwtService.verify.mockImplementation(() => {
       throw { name: 'TokenExpiredError' };
     });
 
     const session = {
       ...baseUserSession,
-      refresh_required: false,
+      refreshRequired: false,
     };
 
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(session);
-    mockPrismaService.user_session.update.mockResolvedValueOnce({});
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(session);
+    mockPrismaService.userSession.update.mockResolvedValueOnce({});
 
     const result = await strategy.validate(mockRequest, payload);
 
-    expect(mockPrismaService.user_session.update).toHaveBeenCalled();
+    expect(mockPrismaService.userSession.update).toHaveBeenCalled();
     expect(result.tokenRefreshRequired).toBe(true);
   });
 
   it.only('should throw generic UnauthorizedException on unknown error', async () => {
     mockJwtService.verify.mockResolvedValueOnce(true);
-    mockPrismaService.user_session.findUnique.mockRejectedValueOnce(
+    mockPrismaService.userSession.findUnique.mockRejectedValueOnce(
       new Error('Unexpected error'),
     );
 
@@ -176,7 +176,7 @@ describe('JwtStrategy', () => {
 
   it.only('should validate a correct token when user has no cart', async () => {
     mockJwtService.verify.mockReturnValueOnce(true);
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce({
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce({
       ...baseUserSession,
       user: {
         ...baseUserSession.user,
@@ -200,7 +200,7 @@ describe('JwtStrategy', () => {
 
   it.only('should validate a correct token when user has cart', async () => {
     mockJwtService.verify.mockReturnValueOnce(true);
-    mockPrismaService.user_session.findUnique.mockResolvedValueOnce(
+    mockPrismaService.userSession.findUnique.mockResolvedValueOnce(
       baseUserSession,
     );
 

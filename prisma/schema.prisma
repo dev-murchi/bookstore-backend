@@ -13,125 +13,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Roles {
-  id        Int    @id @default(autoincrement())
-  role_name String @unique
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 
-  User User[]
+  users User[]
 }
 
 model User {
-  id                     String   @id @default(uuid())
-  name                   String
-  email                  String   @unique
-  password               String
-  role                   Roles    @relation(fields: [roleid], references: [id])
-  roleid                 Int
-  cart                   cart?
-  is_active              Boolean  @default(true)
-  last_password_reset_at DateTime
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  password            String
+  role                Role                 @relation(fields: [roleId], references: [id])
+  roleId              Int
+  cart                Cart?
+  isActive            Boolean              @default(true)
+  lastPasswordResetAt DateTime
+  passwordResetTokens PasswordResetToken[]
 
-  password_reset_tokens password_reset_tokens[]
+  books   Book[]
+  orders  Order[]
+  reviews Review[]
 
-  books   books[]
-  order   orders[]
-  reviews reviews[]
-
-  user_session user_session[]
+  userSessions UserSession[]
 }
 
-model password_reset_tokens {
-  token_id   Int      @id @default(autoincrement())
-  user       User     @relation(fields: [userid], references: [id])
-  userid     String
-  token      String   @unique
-  expires_at DateTime @db.Timestamptz(6)
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(6)
 }
 
-model category {
-  id            Int    @id @default(autoincrement())
-  category_name String @unique
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 
-  books books[]
+  books Book[]
 }
 
-model books {
-  id             String   @id @default(uuid())
-  title          String
-  author         User     @relation(fields: [authorid], references: [id])
-  authorid       String
-  category       category @relation(fields: [categoryid], references: [id])
-  categoryid     Int
-  isbn           String   @unique
-  price          Decimal  @db.Decimal(10, 2)
-  description    String?
-  stock_quantity Int      @default(0)
-  rating         Float    @default(0)
-  image_url      String?
-  is_active      Boolean  @default(false)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @default(now()) @updatedAt
+model Book {
+  id            String   @id @default(uuid())
+  title         String
+  author        User     @relation(fields: [authorId], references: [id])
+  authorId      String
+  category      Category @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  isbn          String   @unique
+  price         Decimal  @db.Decimal(10, 2)
+  description   String?
+  stockQuantity Int      @default(0)
+  rating        Float    @default(0)
+  imageUrl      String?
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
-  cart_items  cart_items[]
-  order_items order_items[]
-  reviews     reviews[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
 }
 
-model cart {
-  id               String       @id @default(uuid())
-  userid           String?      @unique
-  guest_cart_token String?      @unique
-  cart_items       cart_items[]
-  created_at       DateTime     @default(now())
-  updated_at       DateTime     @updatedAt
+model Cart {
+  id             String     @id @default(uuid())
+  userId         String?    @unique
+  guestCartToken String?    @unique
+  cartItems      CartItem[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  user User? @relation(fields: [userid], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 }
 
-model cart_items {
-  id         Int      @id @default(autoincrement())
-  cartid     String
-  bookid     String
-  quantity   Int
-  cart       cart     @relation(fields: [cartid], references: [id], onDelete: Cascade)
-  book       books    @relation(fields: [bookid], references: [id])
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    String
+  bookId    String
+  quantity  Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([cartid, bookid])
+  @@unique([cartId, bookId])
 }
 
-model orders {
-  id               String    @id @default(uuid())
-  userid           String?
-  totalPrice       Decimal   @default(0) @db.Decimal(10, 2)
-  shipping_details shipping?
-  status           String    @default("pending")
-  user             User?     @relation(fields: [userid], references: [id])
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @default(now()) @updatedAt
+model Order {
+  id              String    @id @default(uuid())
+  userId          String?
+  totalPrice      Decimal   @default(0) @db.Decimal(10, 2)
+  shippingDetails Shipping?
+  status          String    @default("pending")
+  user            User?     @relation(fields: [userId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
 
-  order_items order_items[]
-  payment     payment?
-  refunds     refunds[]
+  orderItems OrderItem[]
+  payment    Payment?
+  refunds    Refund[]
 }
 
-model order_items {
+model OrderItem {
   id       Int     @id @default(autoincrement())
-  orderid  String
-  bookid   String
+  orderId  String
+  bookId   String
   quantity Int
   price    Decimal @default(0) @db.Decimal(10, 2)
 
-  order      orders   @relation(fields: [orderid], references: [id])
-  book       books    @relation(fields: [bookid], references: [id])
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  order     Order    @relation(fields: [orderId], references: [id])
+  book      Book     @relation(fields: [bookId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([orderid, bookid])
+  @@unique([orderId, bookId])
 }
 
-model address {
+model Address {
   id         Int     @id @default(autoincrement())
   country    String
   state      String?
@@ -140,67 +139,68 @@ model address {
   line2      String?
   postalCode String
 
-  shipping_address shipping[]
+  shippingAddresses Shipping[]
 }
 
-model shipping {
+model Shipping {
   id        Int     @id @default(autoincrement())
   email     String
   phone     String?
   name      String
-  orderid   String  @unique
-  addressid Int
+  orderId   String  @unique
+  addressId Int
 
-  order   orders  @relation(fields: [orderid], references: [id])
-  address address @relation(fields: [addressid], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+  address Address @relation(fields: [addressId], references: [id])
 }
 
-model payment {
-  id             String   @id @default(uuid())
-  orderid        String   @unique
-  transaction_id String?
-  status         String
-  method         String
-  amount         Decimal  @db.Decimal(10, 2)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+model Payment {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  transactionId String?
+  status        String
+  method        String
+  amount        Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  order orders @relation(fields: [orderid], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
-model reviews {
+model Review {
   id     String @id @default(uuid())
   rating Float
   data   String
-  bookid String
-  userid String
+  bookId String
+  userId String
 
-  user User  @relation(fields: [userid], references: [id])
-  book books @relation(fields: [bookid], references: [id])
+  user User @relation(fields: [userId], references: [id])
+  book Book @relation(fields: [bookId], references: [id])
 
-  @@unique([bookid, userid])
+  @@unique([bookId, userId])
 }
 
-model refunds {
-  id             Int      @id @default(autoincrement())
-  refundid       String   @unique
-  orderid        String
-  transaction_id String
-  status         String
-  amount         Decimal  @db.Decimal(10, 2)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  failure_reason String?
+model Refund {
+  id            Int      @id @default(autoincrement())
+  refundId      String   @unique
+  orderId       String
+  transactionId String
+  status        String
+  amount        Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  failureReason String?
 
-  order orders @relation(fields: [orderid], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
-model user_session {
-  id               String   @id @default(uuid())
-  userid           String
-  refresh_token    String?
-  refresh_required Boolean  @default(false)
-  created_at       DateTime @default(now())
-  expires_at       DateTime
-  user             User     @relation(fields: [userid], references: [id])
+model UserSession {
+  id              String   @id @default(uuid())
+  userId          String
+  refreshToken    String?
+  refreshRequired Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+
+  user User @relation(fields: [userId], references: [id])
 }

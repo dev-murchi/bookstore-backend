@@ -26,20 +26,20 @@ export class CheckoutService {
         const cart = await pr.cart.findUnique({
           where: { id: data.cartId },
           select: {
-            cart_items: {
+            cartItems: {
               select: {
                 book: {
                   select: {
                     id: true,
                     title: true,
                     price: true,
-                    stock_quantity: true,
+                    stockQuantity: true,
                     description: true,
                     isbn: true,
                     rating: true,
-                    image_url: true,
+                    imageUrl: true,
                     author: { select: { name: true } },
-                    category: { select: { category_name: true } },
+                    category: { select: { name: true } },
                   },
                 },
                 quantity: true,
@@ -52,7 +52,7 @@ export class CheckoutService {
           throw new CustomAPIError('Please check if the cart ID is correct.');
         }
 
-        if (cart.cart_items.length < 1) {
+        if (cart.cartItems.length < 1) {
           throw new CustomAPIError(
             'Please add items to your cart to perform checkout.',
           );
@@ -65,8 +65,8 @@ export class CheckoutService {
         const orderItemsToCreate = [];
         const updateStockPromises = [];
 
-        for (const cartItem of cart.cart_items) {
-          if (cartItem.book.stock_quantity < cartItem.quantity) {
+        for (const cartItem of cart.cartItems) {
+          if (cartItem.book.stockQuantity < cartItem.quantity) {
             throw new CustomAPIError(
               `Not enough stock for book ID: ${cartItem.book.id}`,
             );
@@ -80,16 +80,16 @@ export class CheckoutService {
           lineItems.push(this.transformToStripeLineItem(cartItem));
 
           updateStockPromises.push(
-            pr.books.update({
+            pr.book.update({
               where: { id: cartItem.book.id },
               data: {
-                stock_quantity: { decrement: cartItem.quantity },
+                stockQuantity: { decrement: cartItem.quantity },
               },
             }),
           );
 
           orderItemsToCreate.push({
-            bookid: cartItem.book.id,
+            bookId: cartItem.book.id,
             quantity: cartItem.quantity,
           });
         }
@@ -97,12 +97,12 @@ export class CheckoutService {
         totalPrice = Number(totalPrice.toFixed(2));
 
         // Create the order
-        const order = await pr.orders.create({
+        const order = await pr.order.create({
           data: {
             totalPrice,
             status: 'pending',
-            userid: userId,
-            order_items: {
+            userId: userId,
+            orderItems: {
               createMany: {
                 data: orderItemsToCreate,
               },
@@ -180,13 +180,10 @@ export class CheckoutService {
       cartItem.book.description,
       cartItem.book.isbn,
       { name: cartItem.book.author.name },
-      new CategoryDTO(
-        cartItem.book.category.id,
-        cartItem.book.category.category_name,
-      ),
+      new CategoryDTO(cartItem.book.category.id, cartItem.book.category.name),
       Number(cartItem.book.price.toFixed(2)),
       Number(cartItem.book.rating.toFixed(2)),
-      cartItem.book.image_url,
+      cartItem.book.imageUrl,
     );
 
     const orderItem = new OrderItemDTO(item, cartItem.quantity);

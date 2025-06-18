@@ -3,7 +3,7 @@ import { UserSessionService } from './user-session.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const mockPrismaService = {
-  user_session: {
+  userSession: {
     create: jest.fn(),
     delete: jest.fn(),
     update: jest.fn(),
@@ -33,7 +33,7 @@ describe('UserSessionService', () => {
 
   describe('createSession', () => {
     it('should throw error when user session creation fails', async () => {
-      mockPrismaService.user_session.create.mockRejectedValueOnce(
+      mockPrismaService.userSession.create.mockRejectedValueOnce(
         new Error('DB Error'),
       );
 
@@ -43,12 +43,12 @@ describe('UserSessionService', () => {
     });
     it('should return user session', async () => {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
-      mockPrismaService.user_session.create.mockResolvedValueOnce({
+      mockPrismaService.userSession.create.mockResolvedValueOnce({
         id: 'session-id',
-        userid: mockUserId,
-        refresh_token: 'refreshTokenHash',
-        refresh_required: false,
-        expires_at: new Date(Date.now() + oneWeekMs),
+        userId: mockUserId,
+        refreshToken: 'refreshTokenHash',
+        refreshRequired: false,
+        expiresAt: new Date(Date.now() + oneWeekMs),
       });
 
       const result = await service.createSession(
@@ -58,24 +58,24 @@ describe('UserSessionService', () => {
 
       expect(result).toEqual({
         id: 'session-id',
-        userid: mockUserId,
-        refresh_token: 'refreshTokenHash',
-        refresh_required: false,
-        expires_at: new Date(Date.now() + oneWeekMs),
+        userId: mockUserId,
+        refreshToken: 'refreshTokenHash',
+        refreshRequired: false,
+        expiresAt: new Date(Date.now() + oneWeekMs),
       });
-      expect(mockPrismaService.user_session.create).toHaveBeenCalledWith({
+      expect(mockPrismaService.userSession.create).toHaveBeenCalledWith({
         data: {
           user: { connect: { id: mockUserId } },
-          refresh_token: 'refreshTokenHash',
-          refresh_required: false,
-          expires_at: new Date(Date.now() + oneWeekMs),
+          refreshToken: 'refreshTokenHash',
+          refreshRequired: false,
+          expiresAt: new Date(Date.now() + oneWeekMs),
         },
       });
     });
   });
   describe('deleteSession', () => {
     it('should throw error when user session delete fails', async () => {
-      mockPrismaService.user_session.delete.mockRejectedValueOnce(
+      mockPrismaService.userSession.delete.mockRejectedValueOnce(
         new Error('DB Error'),
       );
 
@@ -85,15 +85,15 @@ describe('UserSessionService', () => {
     });
 
     it('should successfully delete the user session', async () => {
-      mockPrismaService.user_session.delete.mockResolvedValueOnce({});
+      mockPrismaService.userSession.delete.mockResolvedValueOnce({});
 
       await expect(
         service.deleteSession(mockUserId, 'session-id'),
       ).resolves.toBeUndefined();
 
-      expect(mockPrismaService.user_session.delete).toHaveBeenCalledWith({
+      expect(mockPrismaService.userSession.delete).toHaveBeenCalledWith({
         where: {
-          userid: mockUserId,
+          userId: mockUserId,
           id: 'session-id',
         },
       });
@@ -102,7 +102,7 @@ describe('UserSessionService', () => {
 
   describe('updateSession', () => {
     it('should throw error when user session update fails', async () => {
-      mockPrismaService.user_session.update.mockRejectedValueOnce(
+      mockPrismaService.userSession.update.mockRejectedValueOnce(
         new Error('DB Error'),
       );
 
@@ -112,20 +112,20 @@ describe('UserSessionService', () => {
     });
 
     it('should successfully update the user session', async () => {
-      mockPrismaService.user_session.update.mockResolvedValueOnce({});
+      mockPrismaService.userSession.update.mockResolvedValueOnce({});
 
       await expect(
         service.updateSession(mockUserId, 'session-id', 'newTokenHash'),
       ).resolves.toBeUndefined();
 
-      expect(mockPrismaService.user_session.update).toHaveBeenCalledWith({
+      expect(mockPrismaService.userSession.update).toHaveBeenCalledWith({
         where: {
-          userid: mockUserId,
+          userId: mockUserId,
           id: 'session-id',
         },
         data: {
-          refresh_token: 'newTokenHash',
-          refresh_required: false,
+          refreshToken: 'newTokenHash',
+          refreshRequired: false,
         },
       });
     });

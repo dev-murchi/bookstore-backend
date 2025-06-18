@@ -13,7 +13,7 @@ describe('RefreshTokenStrategy', () => {
   };
 
   const mockPrismaService = {
-    user_session: {
+    userSession: {
       findUnique: jest.fn(),
     },
   };
@@ -32,15 +32,15 @@ describe('RefreshTokenStrategy', () => {
   } as unknown as Request;
 
   const mockUserSession = {
-    refresh_token: 'hashed-refresh-token',
-    expires_at: new Date(Date.now() + 60 * 1000),
+    refreshToken: 'hashed-refresh-token',
+    expiresAt: new Date(Date.now() + 60 * 1000),
     user: {
       id: 'user123',
       name: 'Test User',
       email: 'test@example.com',
-      role: { role_name: 'admin' },
+      role: { name: 'admin' },
       cart: { id: 'cart123' },
-      last_password_reset_at: new Date(Date.now() - 500_000),
+      lastPasswordResetAt: new Date(Date.now() - 500_000),
     },
   };
 
@@ -74,7 +74,7 @@ describe('RefreshTokenStrategy', () => {
   });
 
   it('should throw if session is not found', async () => {
-    mockPrismaService.user_session.findUnique.mockResolvedValue(null);
+    mockPrismaService.userSession.findUnique.mockResolvedValue(null);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Session not found. Please login.',
@@ -83,9 +83,7 @@ describe('RefreshTokenStrategy', () => {
 
   it('should throw if refresh token is invalid', async () => {
     jest.spyOn(HelperService, 'verifyTokenHash').mockReturnValue(false);
-    mockPrismaService.user_session.findUnique.mockResolvedValue(
-      mockUserSession,
-    );
+    mockPrismaService.userSession.findUnique.mockResolvedValue(mockUserSession);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Refresh token is invalid.',
@@ -97,10 +95,10 @@ describe('RefreshTokenStrategy', () => {
       ...mockUserSession,
       user: {
         ...mockUserSession.user,
-        last_password_reset_at: new Date(Date.now() + 60 * 1000),
+        lastPasswordResetAt: new Date(Date.now() + 60 * 1000),
       },
     };
-    mockPrismaService.user_session.findUnique.mockResolvedValue(session);
+    mockPrismaService.userSession.findUnique.mockResolvedValue(session);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Session expired due to password change. Please log in again.',
@@ -110,9 +108,9 @@ describe('RefreshTokenStrategy', () => {
   it('should throw if refresh token is expired', async () => {
     const session = {
       ...mockUserSession,
-      expires_at: new Date(Date.now() - 60 * 1000),
+      expiresAt: new Date(Date.now() - 60 * 1000),
     };
-    mockPrismaService.user_session.findUnique.mockResolvedValue(session);
+    mockPrismaService.userSession.findUnique.mockResolvedValue(session);
 
     await expect(strategy.validate(mockRequest, payload)).rejects.toThrow(
       'Expired refresh token. Please login again.',
@@ -120,7 +118,7 @@ describe('RefreshTokenStrategy', () => {
   });
 
   it('should throw generic UnauthorizedException on unexpected error', async () => {
-    mockPrismaService.user_session.findUnique.mockImplementation(() => {
+    mockPrismaService.userSession.findUnique.mockImplementation(() => {
       throw new Error('Unexpected DB error');
     });
 
@@ -130,7 +128,7 @@ describe('RefreshTokenStrategy', () => {
   });
 
   it('should validate a correct refresh token when user has no cart', async () => {
-    mockPrismaService.user_session.findUnique.mockResolvedValue({
+    mockPrismaService.userSession.findUnique.mockResolvedValue({
       ...mockUserSession,
       user: { ...mockUserSession.user, cart: null },
     });
@@ -148,9 +146,7 @@ describe('RefreshTokenStrategy', () => {
   });
 
   it('should validate a correct refresh token when user has cart', async () => {
-    mockPrismaService.user_session.findUnique.mockResolvedValue(
-      mockUserSession,
-    );
+    mockPrismaService.userSession.findUnique.mockResolvedValue(mockUserSession);
 
     const result = await strategy.validate(mockRequest, payload);
 

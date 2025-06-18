@@ -7,12 +7,12 @@ export class UserSessionService {
   async createSession(userId: string, tokenHash: string) {
     try {
       const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
-      const session = await this.prisma.user_session.create({
+      const session = await this.prisma.userSession.create({
         data: {
           user: { connect: { id: userId } },
-          refresh_token: tokenHash,
-          refresh_required: false,
-          expires_at: new Date(Date.now() + oneWeekMs),
+          refreshToken: tokenHash,
+          refreshRequired: false,
+          expiresAt: new Date(Date.now() + oneWeekMs),
         },
       });
 
@@ -25,9 +25,9 @@ export class UserSessionService {
 
   async deleteSession(userId: string, sessionId: string) {
     try {
-      await this.prisma.user_session.delete({
+      await this.prisma.userSession.delete({
         where: {
-          userid: userId,
+          userId: userId,
           id: sessionId,
         },
       });
@@ -39,14 +39,14 @@ export class UserSessionService {
 
   async updateSession(userId: string, sessionId: string, token: string) {
     try {
-      await this.prisma.user_session.update({
+      await this.prisma.userSession.update({
         where: {
-          userid: userId,
+          userId: userId,
           id: sessionId,
         },
         data: {
-          refresh_token: token,
-          refresh_required: false,
+          refreshToken: token,
+          refreshRequired: false,
         },
       });
     } catch (error) {

@@ -18,11 +18,11 @@ const mockPrismaService = {
   payment: {
     upsert: jest.fn(),
   },
-  orders: {
+  order: {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
-  books: {
+  book: {
     update: jest.fn(),
   },
   shipping: {
@@ -166,13 +166,13 @@ describe('StripeWebhookProcessor', () => {
       ];
 
       const existingOrder = {
-        order_items: orderItems,
+        orderItems: orderItems,
         id: 1,
-        orderid: 'order-uuid-123',
+        orderId: 'order-uuid-123',
         status: 'pending',
-        userid: 1,
+        userId: 1,
         totalPrice: 1000,
-        shipping_details: null,
+        shippingDetails: null,
       };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
@@ -294,21 +294,21 @@ describe('StripeWebhookProcessor', () => {
       ];
 
       const existingOrder = {
-        order_items: orderItems,
+        orderItems: orderItems,
         id: 'order-uuid-123',
         status: 'pending',
-        userid: 1,
+        userId: 1,
         totalPrice: 1000,
-        shipping_details: null,
+        shippingDetails: null,
       };
 
       const updatedOrder = {
-        order_items: orderItems,
+        orderItems: orderItems,
         id: 'order-uuid-123',
         status: 'complete',
-        userid: 1,
+        userId: 1,
         totalPrice: 1000,
-        shipping_details: {
+        shippingDetails: {
           email: 'user@email.com',
         },
       };
@@ -485,12 +485,12 @@ describe('StripeWebhookProcessor', () => {
       ];
 
       const existingOrder = {
-        order_items: orderItems,
+        orderItems: orderItems,
         id: 1,
         status: 'pending',
-        userid: 1,
+        userId: 1,
         totalPrice: 1000,
-        shipping_details: null,
+        shippingDetails: null,
       };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);
@@ -567,12 +567,12 @@ describe('StripeWebhookProcessor', () => {
       ];
 
       const existingOrder = {
-        order_items: orderItems,
+        orderItems: orderItems,
         id: 1,
         status: 'pending',
-        userid: 1,
+        userId: 1,
         totalPrice: 1000,
-        shipping_details: null,
+        shippingDetails: null,
       };
 
       mockOrdersService.getOrder.mockResolvedValueOnce(existingOrder);

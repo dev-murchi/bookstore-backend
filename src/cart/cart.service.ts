@@ -16,8 +16,8 @@ export class CartService {
 
   private readonly cartSelect = {
     id: true,
-    userid: true,
-    guest_cart_token: true,
+    userId: true,
+    guestCartToken: true,
   };
 
   async createCart(userId: string | null) {
@@ -35,7 +35,7 @@ export class CartService {
       }
 
       const cart = await this.prisma.cart.create({
-        data: { userid: userId, guest_cart_token: guestCartTokenHash },
+        data: { userId: userId, guestCartToken: guestCartTokenHash },
         select: this.cartSelect,
       });
 
@@ -54,7 +54,7 @@ export class CartService {
       const expirationDate = new Date(currentDateTime - 24 * 60 * 60 * 1000);
 
       const result = await this.prisma.cart.deleteMany({
-        where: { userid: null, created_at: { lt: expirationDate } },
+        where: { userId: null, createdAt: { lt: expirationDate } },
       });
 
       return { removed: result.count };
@@ -74,7 +74,7 @@ export class CartService {
 
     const cart = new CartDTO(
       cartData.id,
-      cartData.userid,
+      cartData.userId,
       totalPrice,
       cartItems,
     );
@@ -103,7 +103,7 @@ export class CartService {
       const cart = await this.prisma.cart.findFirst({
         where: {
           id: cartId,
-          userid: hasUserId ? trimmedUserId : null,
+          userId: hasUserId ? trimmedUserId : null,
         },
         select: this.cartSelect,
       });
@@ -111,13 +111,13 @@ export class CartService {
       if (!cart) return null;
 
       if (hasUserId) {
-        if (cart.guest_cart_token) return null;
+        if (cart.guestCartToken) return null;
       } else if (hasGuestToken) {
-        if (!cart.guest_cart_token) return null;
+        if (!cart.guestCartToken) return null;
 
         const isValid = HelperService.verifyTokenHash(
           trimmedGuestToken,
-          cart.guest_cart_token,
+          cart.guestCartToken,
           'base64url',
         );
 
@@ -194,13 +194,13 @@ export class CartService {
     if (!hasUserId && !hasGuestToken) {
       throw new CustomAPIError('Either userID or guestToken must be provided.');
     }
-    const updateData: Prisma.cartUpdateInput = {};
+    const updateData: Prisma.CartUpdateInput = {};
 
     if (hasUserId) {
       updateData.user = { connect: { id: trimmedUserId! } };
-      updateData.guest_cart_token = null;
+      updateData.guestCartToken = null;
     } else if (hasGuestToken) {
-      updateData.guest_cart_token = HelperService.hashToken(
+      updateData.guestCartToken = HelperService.hashToken(
         trimmedGuestToken!,
         'base64url',
       );

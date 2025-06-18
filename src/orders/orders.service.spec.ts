@@ -19,10 +19,10 @@ const mockPaymentId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
 
 const mockPrismaOrder1 = {
   id: orderId1,
-  userid: userId,
+  user: { id: userId, name: 'user name', email: 'user@email.com' },
   totalPrice: 21.25,
   status: 'pending',
-  order_items: [
+  orderItems: [
     {
       quantity: 1,
       book: {
@@ -32,22 +32,22 @@ const mockPrismaOrder1 = {
         isbn: 'book-isbn',
         price: 21.25,
         rating: 4.0,
-        image_url: 'book-image-url',
+        imageUrl: 'book-image-url',
         author: { name: 'Traveller Hobbit' },
-        category: { id: 1, category_name: 'test category' },
+        category: { id: 1, name: 'test category' },
       },
     },
   ],
-  shipping_details: null,
+  shippingDetails: null,
   payment: null,
 };
 
 const mockPrismaOrder2 = {
   id: orderId2,
-  userid: userId,
+  user: { id: userId, name: 'user name', email: 'user@email.com' },
   totalPrice: 42.5,
   status: 'complete',
-  order_items: [
+  orderItems: [
     {
       quantity: 2,
       book: {
@@ -57,13 +57,13 @@ const mockPrismaOrder2 = {
         isbn: 'book-isbn',
         price: 21.25,
         rating: 4.0,
-        image_url: 'book-image-url',
+        imageUrl: 'book-image-url',
         author: { name: 'Traveller Hobbit' },
-        category: { id: 1, category_name: 'test category' },
+        category: { id: 1, name: 'test category' },
       },
     },
   ],
-  shipping_details: {
+  shippingDetails: {
     email: 'aragorn@gondor.com',
     phone: '+44 1234 567890',
     address: {
@@ -77,7 +77,7 @@ const mockPrismaOrder2 = {
   },
   payment: {
     id: mockPaymentId,
-    transaction_id: 'lotr_txn_00112233',
+    transactionId: 'lotr_txn_00112233',
     status: 'completed',
     method: 'ring_coin',
     amount: 42.5,
@@ -85,15 +85,15 @@ const mockPrismaOrder2 = {
 };
 
 const mockPrismaService = {
-  orders: {
+  order: {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
   },
-  order_items: {
+  orderItem: {
     findMany: jest.fn(),
   },
-  books: {
+  book: {
     update: jest.fn(),
   },
   $transaction: jest.fn((fn) => fn(mockPrismaService)),
@@ -121,7 +121,7 @@ describe('OrdersService', () => {
 
   describe('getAll', () => {
     it('should retrieve all orders', async () => {
-      mockPrismaService.orders.findMany.mockResolvedValueOnce([
+      mockPrismaService.order.findMany.mockResolvedValueOnce([
         mockPrismaOrder1,
         mockPrismaOrder2,
       ]);
@@ -148,7 +148,7 @@ describe('OrdersService', () => {
 
       const result = await service.getAll();
 
-      expect(mockPrismaService.orders.findMany).toHaveBeenCalledWith(
+      expect(mockPrismaService.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: {} }),
       );
       expect(result).toEqual([
@@ -202,13 +202,13 @@ describe('OrdersService', () => {
     });
 
     it('should return [] when no orders found', async () => {
-      mockPrismaService.orders.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.order.findMany.mockResolvedValueOnce([]);
       const result = await service.getAll();
       expect(result).toEqual([]);
     });
 
     it('should throw an error if findMany fails', async () => {
-      mockPrismaService.orders.findMany.mockRejectedValueOnce(
+      mockPrismaService.order.findMany.mockRejectedValueOnce(
         new Error('DB failure'),
       );
 
@@ -220,7 +220,7 @@ describe('OrdersService', () => {
 
   describe('getUserOrders', () => {
     it('should get orders for a user', async () => {
-      mockPrismaService.orders.findMany.mockResolvedValueOnce([
+      mockPrismaService.order.findMany.mockResolvedValueOnce([
         mockPrismaOrder1,
       ]);
       const result = await service.getUserOrders(userId);
@@ -236,13 +236,13 @@ describe('OrdersService', () => {
 
   describe('getOrder', () => {
     it('should get an order by ID', async () => {
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce(
+      mockPrismaService.order.findUnique.mockResolvedValueOnce(
         mockPrismaOrder1,
       );
 
       const result = await service.getOrder(orderId1);
 
-      expect(mockPrismaService.orders.findUnique).toHaveBeenCalledWith({
+      expect(mockPrismaService.order.findUnique).toHaveBeenCalledWith({
         where: { id: orderId1 },
         select: expect.anything(),
       });
@@ -271,7 +271,7 @@ describe('OrdersService', () => {
     });
 
     it('should return null if not found', async () => {
-      mockPrismaService.orders.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.order.findUnique.mockResolvedValueOnce(null);
 
       const result = await service.getOrder(orderIdNotFound);
       expect(result).toBeNull();
@@ -287,11 +287,11 @@ describe('OrdersService', () => {
   describe('updateStatus', () => {
     it('should update the status', async () => {
       const updatedOrder = { ...mockPrismaOrder1, status: 'canceled' };
-      mockPrismaService.orders.update.mockResolvedValueOnce(updatedOrder);
+      mockPrismaService.order.update.mockResolvedValueOnce(updatedOrder);
 
       const result = await service.updateStatus(orderId1, OrderStatus.Canceled);
 
-      expect(mockPrismaService.orders.update).toHaveBeenCalledWith({
+      expect(mockPrismaService.order.update).toHaveBeenCalledWith({
         where: { id: orderId1 },
         data: { status: 'canceled' },
         select: expect.anything(),
@@ -321,7 +321,7 @@ describe('OrdersService', () => {
     });
 
     it('should throw an error if update fails', async () => {
-      mockPrismaService.orders.update.mockRejectedValueOnce(
+      mockPrismaService.order.update.mockRejectedValueOnce(
         new Error('Update failed'),
       );
 
@@ -339,23 +339,23 @@ describe('OrdersService', () => {
 
   describe('revertOrderStocks', () => {
     it('should revert stocks correctly', async () => {
-      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+      mockPrismaService.orderItem.findMany.mockResolvedValueOnce([
         {
-          bookid: 'booki-uuid-10',
+          bookId: 'booki-uuid-10',
           quantity: 2,
         },
       ]);
-      mockPrismaService.books.update.mockResolvedValueOnce({});
+      mockPrismaService.book.update.mockResolvedValueOnce({});
 
       await expect(service.revertOrderStocks(orderId1)).resolves.not.toThrow();
 
-      expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
-        where: { orderid: orderId1 },
+      expect(mockPrismaService.orderItem.findMany).toHaveBeenCalledWith({
+        where: { orderId: orderId1 },
       });
 
-      expect(mockPrismaService.books.update).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.update).toHaveBeenCalledWith({
         where: { id: 'booki-uuid-10' },
-        data: { stock_quantity: { increment: 2 } },
+        data: { stockQuantity: { increment: 2 } },
       });
     });
 
@@ -366,25 +366,25 @@ describe('OrdersService', () => {
     });
 
     it('should throw if book update fails', async () => {
-      mockPrismaService.order_items.findMany.mockResolvedValueOnce([
+      mockPrismaService.orderItem.findMany.mockResolvedValueOnce([
         {
-          bookid: 'booki-uuid-10',
+          bookId: 'booki-uuid-10',
           quantity: 2,
         },
       ]);
-      mockPrismaService.books.update.mockRejectedValue(new Error('DB error'));
+      mockPrismaService.book.update.mockRejectedValue(new Error('DB error'));
 
       await expect(service.revertOrderStocks(orderId1)).rejects.toThrow(
         `Stock counts could not be reverted for Order ${orderId1}.`,
       );
 
-      expect(mockPrismaService.order_items.findMany).toHaveBeenCalledWith({
-        where: { orderid: orderId1 },
+      expect(mockPrismaService.orderItem.findMany).toHaveBeenCalledWith({
+        where: { orderId: orderId1 },
       });
 
-      expect(mockPrismaService.books.update).toHaveBeenCalledWith({
+      expect(mockPrismaService.book.update).toHaveBeenCalledWith({
         where: { id: 'booki-uuid-10' },
-        data: { stock_quantity: { increment: 2 } },
+        data: { stockQuantity: { increment: 2 } },
       });
     });
   });
@@ -400,9 +400,9 @@ describe('OrdersService', () => {
           isbn: 'book-isbn',
           price: 21.25,
           rating: 4.0,
-          image_url: 'book-image-url',
+          imageUrl: 'book-image-url',
           author: { name: 'Traveller Hobbit' },
-          category: { id: 1, category_name: 'test category' },
+          category: { id: 1, name: 'test category' },
         },
       });
       expect(result).toEqual(
@@ -441,9 +441,9 @@ describe('OrdersService', () => {
             isbn: 'book-isbn',
             price: 21.25,
             rating: 4.0,
-            image_url: 'book-image-url',
+            imageUrl: 'book-image-url',
             author: { name: 'Traveller Hobbit' },
-            category: { id: 1, category_name: 'test category' },
+            category: { id: 1, name: 'test category' },
           },
         }),
       ).rejects.toThrow('Validation failed.');

@@ -156,9 +156,9 @@ describe('AuthService', () => {
 
       mockUserSessionService.createSession.mockResolvedValueOnce({
         id: 'session-id-1',
-        userid: 'user-1',
-        refresh_token: null,
-        refresh_required: false,
+        userId: 'user-1',
+        refreshToken: null,
+        refreshRequired: false,
       });
 
       mockJwtService.signAsync.mockResolvedValueOnce('accesstoken' as never);
@@ -211,8 +211,8 @@ describe('AuthService', () => {
         name: 'test user',
         email: 'testuser@email.com',
         password: 'password123',
-        roleid: 1,
-        is_active: true,
+        roleId: 1,
+        isActive: true,
       });
 
       mockUserService.createPasswordResetToken.mockReturnValueOnce({

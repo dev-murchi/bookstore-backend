@@ -16,9 +16,9 @@ const bookSelect = {
   isbn: true,
   price: true,
   rating: true,
-  image_url: true,
+  imageUrl: true,
   author: { select: { name: true } },
-  category: { select: { id: true, category_name: true } },
+  category: { select: { id: true, name: true } },
 };
 
 const cartItemSelect = {
@@ -36,29 +36,29 @@ export class CartItemService {
     data: AddToCartDTO,
   ): Promise<CartItemDTO> {
     try {
-      const book = await this.prisma.books.findUnique({
+      const book = await this.prisma.book.findUnique({
         where: { id: data.bookId },
-        select: { stock_quantity: true },
+        select: { stockQuantity: true },
       });
 
       if (!book) {
         throw new CustomAPIError(`Book ID #${data.bookId} does not exist.`);
       }
 
-      if (book.stock_quantity < data.quantity) {
+      if (book.stockQuantity < data.quantity) {
         throw new CustomAPIError(
           `Insufficient stock for book ID: ${data.bookId}`,
         );
       }
 
-      const cartItem = await this.prisma.cart_items.upsert({
+      const cartItem = await this.prisma.cartItem.upsert({
         where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: data.bookId,
+          cartId_bookId: {
+            cartId: cartId,
+            bookId: data.bookId,
           },
         },
-        update: { quantity: data.quantity, updated_at: new Date() },
+        update: { quantity: data.quantity, updatedAt: new Date() },
         create: {
           cart: { connect: { id: cartId } },
           book: { connect: { id: data.bookId } },
@@ -80,11 +80,11 @@ export class CartItemService {
     data: DeleteCartItemDTO,
   ): Promise<{ message: string }> {
     try {
-      await this.prisma.cart_items.delete({
+      await this.prisma.cartItem.delete({
         where: {
-          cartid_bookid: {
-            cartid: cartId,
-            bookid: data.bookId,
+          cartId_bookId: {
+            cartId: cartId,
+            bookId: data.bookId,
           },
         },
       });
@@ -97,9 +97,9 @@ export class CartItemService {
   }
 
   async getItems(cartId: string) {
-    const items = await this.prisma.cart_items.findMany({
-      where: { cartid: cartId },
-      orderBy: { bookid: Prisma.SortOrder.asc },
+    const items = await this.prisma.cartItem.findMany({
+      where: { cartId: cartId },
+      orderBy: { bookId: Prisma.SortOrder.asc },
       select: cartItemSelect,
     });
 
@@ -109,8 +109,8 @@ export class CartItemService {
   }
 
   async deleteItems(cartId: string): Promise<{ count: number }> {
-    const res = await this.prisma.cart_items.deleteMany({
-      where: { cartid: cartId },
+    const res = await this.prisma.cartItem.deleteMany({
+      where: { cartId: cartId },
     });
     return { count: res.count };
   }
@@ -122,10 +122,10 @@ export class CartItemService {
       data.book.description,
       data.book.isbn,
       { name: data.book.author.name },
-      new CategoryDTO(data.book.category.id, data.book.category.category_name),
+      new CategoryDTO(data.book.category.id, data.book.category.name),
       Number(data.book.price.toFixed(2)),
       Number(data.book.rating.toFixed(2)),
-      data.book.image_url,
+      data.book.imageUrl,
     );
     const cartItem = new CartItemDTO(data.quantity, item);
 

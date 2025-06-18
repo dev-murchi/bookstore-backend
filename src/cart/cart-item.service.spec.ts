@@ -9,11 +9,11 @@ const mockBookId = 'ba22e8c2-8d5f-4ae2-835d-12f488667aed'; // just example
 const mockBookId3 = 'ba22e8c2-1234-1234-835d-12f488667aed'; // just example
 
 const mockPrismaService = {
-  books: {
+  book: {
     findUnique: jest.fn(),
   },
 
-  cart_items: {
+  cartItem: {
     upsert: jest.fn(),
     delete: jest.fn(),
     findMany: jest.fn(),
@@ -61,9 +61,9 @@ describe('CartItemService', () => {
           isbn: '1234567890',
           price: 25.5,
           rating: 4.0,
-          image_url: 'http://example.com/image.jpg',
+          imageUrl: 'http://example.com/image.jpg',
           author: { name: 'Test Author' },
-          category: { id: 5, category_name: 'Fiction' },
+          category: { id: 5, name: 'Fiction' },
         },
       };
 
@@ -90,9 +90,9 @@ describe('CartItemService', () => {
           isbn: '1234567890',
           price: 25.5,
           rating: 4.0,
-          image_url: 'http://example.com/image.jpg',
+          imageUrl: 'http://example.com/image.jpg',
           author: { name: 'Test Author' },
-          category: { id: 5, category_name: 'Fiction' },
+          category: { id: 5, name: 'Fiction' },
         },
       };
 
@@ -121,7 +121,7 @@ describe('CartItemService', () => {
       const data = {
         bookId: mockBookId,
       };
-      mockPrismaService.cart_items.delete.mockRejectedValueOnce('DB error.');
+      mockPrismaService.cartItem.delete.mockRejectedValueOnce('DB error.');
 
       try {
         await service.deleteItem(mockCartId, data);
@@ -135,7 +135,7 @@ describe('CartItemService', () => {
     it('should remove an item from the cart', async () => {
       const data = { bookId: mockBookId };
 
-      mockPrismaService.cart_items.delete.mockResolvedValueOnce({});
+      mockPrismaService.cartItem.delete.mockResolvedValueOnce({});
 
       const result = await service.deleteItem(mockCartId, data);
 
@@ -147,7 +147,7 @@ describe('CartItemService', () => {
 
   describe('createOrUpdateItem', () => {
     it('it should throw an error if the book with the specified id does not exist', async () => {
-      mockPrismaService.books.findUnique.mockReturnValueOnce(null);
+      mockPrismaService.book.findUnique.mockReturnValueOnce(null);
 
       const data = {
         bookId: mockBookId,
@@ -166,9 +166,9 @@ describe('CartItemService', () => {
         bookId: mockBookId,
         quantity: 10,
       };
-      mockPrismaService.books.findUnique.mockReturnValueOnce({
+      mockPrismaService.book.findUnique.mockReturnValueOnce({
         id: 1,
-        stock_quantity: 1,
+        stockQuantity: 1,
       });
 
       try {
@@ -181,11 +181,11 @@ describe('CartItemService', () => {
     });
 
     it('should throw an error if the user tries to upser an item to a cart that belongs to someone else', async () => {
-      mockPrismaService.books.findUnique.mockReturnValueOnce({
+      mockPrismaService.book.findUnique.mockReturnValueOnce({
         id: 1,
-        stock_quantity: 10,
+        stockQuantity: 10,
       });
-      mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
+      mockPrismaService.cartItem.upsert.mockRejectedValueOnce(
         'This is not your cart.',
       );
 
@@ -201,12 +201,12 @@ describe('CartItemService', () => {
       }
     });
     it('should upsert an item in the cart (create or update)', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({
+      mockPrismaService.book.findUnique.mockResolvedValueOnce({
         id: 1,
-        stock_quantity: 10,
+        stockQuantity: 10,
       });
 
-      mockPrismaService.cart_items.upsert.mockResolvedValueOnce({
+      mockPrismaService.cartItem.upsert.mockResolvedValueOnce({
         quantity: 5,
         book: {
           id: mockBookId,
@@ -215,9 +215,9 @@ describe('CartItemService', () => {
           isbn: 'book-isbn',
           price: 10.99,
           rating: 3.5,
-          image_url: 'book-image-url',
+          imageUrl: 'book-image-url',
           author: { name: 'test author' },
-          category: { id: 1, category_name: 'test category' },
+          category: { id: 1, name: 'test category' },
         },
       });
 
@@ -243,11 +243,11 @@ describe('CartItemService', () => {
     });
 
     it('should throw a generic error if an unexpected error occurs during upsert', async () => {
-      mockPrismaService.books.findUnique.mockResolvedValueOnce({
+      mockPrismaService.book.findUnique.mockResolvedValueOnce({
         id: 1,
-        stock_quantity: 10,
+        stockQuantity: 10,
       });
-      mockPrismaService.cart_items.upsert.mockRejectedValueOnce(
+      mockPrismaService.cartItem.upsert.mockRejectedValueOnce(
         new Error('Unexpected database error'),
       );
 
@@ -264,7 +264,7 @@ describe('CartItemService', () => {
 
   describe('getItems', () => {
     it('should return cart items for given cart', async () => {
-      mockPrismaService.cart_items.findMany.mockResolvedValueOnce([
+      mockPrismaService.cartItem.findMany.mockResolvedValueOnce([
         {
           quantity: 3,
           book: {
@@ -274,9 +274,9 @@ describe('CartItemService', () => {
             isbn: 'book-isbn',
             price: 10.99,
             rating: 3.5,
-            image_url: 'book-image-url',
+            imageUrl: 'book-image-url',
             author: { name: 'test author' },
-            category: { id: 1, category_name: 'test category' },
+            category: { id: 1, name: 'test category' },
           },
         },
       ]);
@@ -304,7 +304,7 @@ describe('CartItemService', () => {
 
   describe('deleteItem', () => {
     it('should remove an item from the cart', async () => {
-      mockPrismaService.cart_items.deleteMany.mockResolvedValueOnce({
+      mockPrismaService.cartItem.deleteMany.mockResolvedValueOnce({
         count: 2,
       });
 
@@ -313,8 +313,8 @@ describe('CartItemService', () => {
       expect(result).toEqual({
         count: 2,
       });
-      expect(mockPrismaService.cart_items.deleteMany).toHaveBeenCalledWith({
-        where: { cartid: mockCartId },
+      expect(mockPrismaService.cartItem.deleteMany).toHaveBeenCalledWith({
+        where: { cartId: mockCartId },
       });
     });
   });

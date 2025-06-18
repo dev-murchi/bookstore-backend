@@ -38,8 +38,8 @@ const mockCartItemService = {
 
 const cartSelect = {
   id: true,
-  userid: true,
-  guest_cart_token: true,
+  userId: true,
+  guestCartToken: true,
 };
 
 describe('CartService', () => {
@@ -88,8 +88,8 @@ describe('CartService', () => {
       mockCartItemService.getItems.mockResolvedValueOnce([]);
       mockPrismaService.cart.create.mockReturnValueOnce({
         id: mockCartId,
-        userid: null,
-        guest_cart_token: 'cartTokenHash',
+        userId: null,
+        guestCartToken: 'cartTokenHash',
       });
 
       const result = await service.createCart(null);
@@ -103,7 +103,7 @@ describe('CartService', () => {
         guestCartToken: 'cartToken',
       });
       expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
-        data: { userid: null, guest_cart_token: 'cartTokenHash' },
+        data: { userId: null, guestCartToken: 'cartTokenHash' },
         select: cartSelect,
       });
     });
@@ -112,8 +112,8 @@ describe('CartService', () => {
       mockCartItemService.getItems.mockResolvedValueOnce([]);
       mockPrismaService.cart.create.mockReturnValueOnce({
         id: mockCartId,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       });
 
       const result = await service.createCart(mockUserId);
@@ -127,7 +127,7 @@ describe('CartService', () => {
         guestCartToken: null,
       });
       expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
-        data: { userid: mockUserId, guest_cart_token: null },
+        data: { userId: mockUserId, guestCartToken: null },
         select: cartSelect,
       });
     });
@@ -154,8 +154,8 @@ describe('CartService', () => {
       expect(result).toEqual({ removed: 5 });
       expect(mockPrismaService.cart.deleteMany).toHaveBeenCalledWith({
         where: {
-          userid: null,
-          created_at: { lt: expirationDate },
+          userId: null,
+          createdAt: { lt: expirationDate },
         },
       });
     });
@@ -171,8 +171,8 @@ describe('CartService', () => {
       expect(result).toEqual({ removed: 0 });
       expect(mockPrismaService.cart.deleteMany).toHaveBeenCalledWith({
         where: {
-          userid: null,
-          created_at: { lt: expirationDate },
+          userId: null,
+          createdAt: { lt: expirationDate },
         },
       });
     });
@@ -207,8 +207,8 @@ describe('CartService', () => {
       mockCartItemService.getItems.mockResolvedValueOnce([cartItem]);
       const mockPrismaCart = {
         id: mockCartId,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       };
 
       const transformedData =
@@ -240,8 +240,8 @@ describe('CartService', () => {
     it('should correctly transform cart data with empty items', async () => {
       const mockPrismaCart = {
         id: mockCartId,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       };
 
       mockCartItemService.getItems.mockResolvedValueOnce([]);
@@ -259,8 +259,8 @@ describe('CartService', () => {
     it('should trow validation error when mismatched value is return from db', async () => {
       const mockPrismaCart = {
         id: 1,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       };
       mockCartItemService.getItems.mockResolvedValueOnce([]);
       jest.spyOn(classValidator, 'validate').mockResolvedValueOnce([
@@ -326,8 +326,8 @@ describe('CartService', () => {
 
       mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
-        userid: null,
-        guest_cart_token: 'validTokenHash',
+        userId: null,
+        guestCartToken: 'validTokenHash',
       });
 
       jest.spyOn(HelperService, 'verifyTokenHash').mockReturnValueOnce(false);
@@ -340,8 +340,8 @@ describe('CartService', () => {
     it('should return cart data when valid userId is provided', async () => {
       mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       });
 
       mockCartItemService.getItems.mockResolvedValueOnce([]);
@@ -355,7 +355,7 @@ describe('CartService', () => {
         items: [],
       });
       expect(mockPrismaService.cart.findFirst).toHaveBeenCalledWith({
-        where: { id: mockCartId, userid: mockUserId },
+        where: { id: mockCartId, userId: mockUserId },
         select: cartSelect,
       });
     });
@@ -365,8 +365,8 @@ describe('CartService', () => {
 
       mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
-        userid: null,
-        guest_cart_token: 'hashedToken',
+        userId: null,
+        guestCartToken: 'hashedToken',
       });
 
       mockCartItemService.getItems.mockResolvedValueOnce([]);
@@ -383,11 +383,11 @@ describe('CartService', () => {
       });
     });
 
-    it('should return null if userId is provided but cart has a guest_cart_token', async () => {
+    it('should return null if userId is provided but cart has a guestCartToken', async () => {
       mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
-        userid: mockUserId,
-        guest_cart_token: 'non-null-token',
+        userId: mockUserId,
+        guestCartToken: 'non-null-token',
       });
 
       const result = await service.findCart(mockCartId, { userId: mockUserId });
@@ -395,11 +395,11 @@ describe('CartService', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null if both userid and guest_cart_token are null', async () => {
+    it('should return null if both userId and guestCartToken are null', async () => {
       mockPrismaService.cart.findFirst.mockReturnValueOnce({
         id: mockCartId,
-        userid: null,
-        guest_cart_token: null,
+        userId: null,
+        guestCartToken: null,
       });
 
       const result = await service.findCart(mockCartId, {
@@ -469,8 +469,8 @@ describe('CartService', () => {
   describe('updateCart', () => {
     const baseCart = {
       id: mockCartId,
-      userid: mockUserId,
-      guest_cart_token: null,
+      userId: mockUserId,
+      guestCartToken: null,
     };
 
     it('should throw an error if neither userId nor guestToken is provided', async () => {
@@ -482,8 +482,8 @@ describe('CartService', () => {
     it('should update cart with userId and clear guest token', async () => {
       const updatedCart = {
         ...baseCart,
-        userid: mockUserId,
-        guest_cart_token: null,
+        userId: mockUserId,
+        guestCartToken: null,
       };
 
       mockPrismaService.cart.update.mockResolvedValueOnce(updatedCart);
@@ -495,7 +495,7 @@ describe('CartService', () => {
         where: { id: mockCartId },
         data: {
           user: { connect: { id: mockUserId } },
-          guest_cart_token: null,
+          guestCartToken: null,
         },
         select: cartSelect,
       });
@@ -516,8 +516,8 @@ describe('CartService', () => {
 
       const updatedCart = {
         id: mockCartId,
-        userid: null,
-        guest_cart_token: hashedToken,
+        userId: null,
+        guestCartToken: hashedToken,
       };
 
       mockPrismaService.cart.update.mockResolvedValueOnce(updatedCart);
@@ -528,7 +528,7 @@ describe('CartService', () => {
       expect(mockPrismaService.cart.update).toHaveBeenCalledWith({
         where: { id: mockCartId },
         data: {
-          guest_cart_token: hashedToken,
+          guestCartToken: hashedToken,
           user: { disconnect: true },
         },
         select: cartSelect,
@@ -631,8 +631,8 @@ describe('CartService', () => {
       mockPrismaService.cart.delete.mockResolvedValueOnce({});
       mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id',
-        userid: 'user-1',
-        guest_cart_token: null,
+        userId: 'user-1',
+        guestCartToken: null,
       });
 
       const result = await service.mergeCarts(sourceCartId, destCartId);
@@ -689,8 +689,8 @@ describe('CartService', () => {
       mockPrismaService.cart.delete.mockResolvedValueOnce({});
       mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id-2',
-        userid: 'user-2',
-        guest_cart_token: null,
+        userId: 'user-2',
+        guestCartToken: null,
       });
 
       const result = await service.mergeCarts(sourceCartId, destCartId);
@@ -737,8 +737,8 @@ describe('CartService', () => {
 
       mockPrismaService.cart.findFirst.mockResolvedValueOnce({
         id: 'cart-id',
-        userid: 'user-3',
-        guest_cart_token: null,
+        userId: 'user-3',
+        guestCartToken: null,
       });
 
       const result = await service.mergeCarts(sourceCartId, destCartId);

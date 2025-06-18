@@ -146,8 +146,8 @@ describe('PaymentService', () => {
 
       mockPrismaService.payment.upsert.mockResolvedValueOnce({
         id: 'payment-uuid-1',
-        orderid: 'order-uuid-1',
-        transaction_id: 'pi_123',
+        orderId: 'order-uuid-1',
+        transactionId: 'pi_123',
         status: 'paid',
         method: 'card',
         amount: 1000,
@@ -158,10 +158,10 @@ describe('PaymentService', () => {
         await paymentService.createOrUpdatePayment(paymentData);
 
       expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: { orderid: 'order-uuid-1' },
+        where: { orderId: 'order-uuid-1' },
         update: { status: 'paid' },
         create: {
-          transaction_id: 'pi_123',
+          transactionId: 'pi_123',
           order: { connect: { id: 'order-uuid-1' } },
           status: 'paid',
           method: 'card',

@@ -48,9 +48,9 @@ export class PaymentService {
   async createOrUpdatePayment(data: PaymentData) {
     try {
       const savedPayment = await this.prisma.payment.upsert({
-        where: { orderid: data.orderId },
+        where: { orderId: data.orderId },
         create: {
-          transaction_id: data.transactionId,
+          transactionId: data.transactionId,
           order: { connect: { id: data.orderId } },
           status: data.status,
           method: 'card',
@@ -66,7 +66,7 @@ export class PaymentService {
       payment.amount = Number(savedPayment.amount.toFixed(2));
       payment.method = savedPayment.method;
       payment.status = savedPayment.status;
-      payment.transactionId = savedPayment.transaction_id;
+      payment.transactionId = savedPayment.transactionId;
 
       return payment;
     } catch (error) {

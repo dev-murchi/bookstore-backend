@@ -21,7 +21,7 @@ const mockPrismaService = {
     update: jest.fn(),
     delete: jest.fn(),
   },
-  password_reset_tokens: {
+  passwordResetToken: {
     findUnique: jest.fn(),
     delete: jest.fn(),
   },
@@ -73,8 +73,8 @@ describe('UserService', () => {
         id: mockUserId,
         name: 'test user',
         email: 'testuser@email.com',
-        role: { role_name: 'user' },
-        last_password_reset_at: new Date(),
+        role: { name: 'user' },
+        lastPasswordResetAt: new Date(),
       });
       const spyHash = jest.spyOn(HelperService, 'generateHash');
       spyHash.mockResolvedValueOnce('hashedPassword');
@@ -89,22 +89,22 @@ describe('UserService', () => {
           role: {
             connectOrCreate: {
               where: {
-                role_name: 'user',
+                name: 'user',
               },
               create: {
-                role_name: 'user',
+                name: 'user',
               },
             },
           },
-          is_active: true,
-          last_password_reset_at: expect.any(Date),
+          isActive: true,
+          lastPasswordResetAt: expect.any(Date),
         },
         select: {
           id: true,
           name: true,
           email: true,
           password: true,
-          role: { select: { id: true, role_name: true } },
+          role: { select: { id: true, name: true } },
         },
       });
 
@@ -135,9 +135,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       try {
@@ -173,9 +173,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
       expect(result).toEqual(
         new UserDTO(mockUserId, 'test user', 'testuser@email.com', 'user'),
@@ -189,9 +189,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       };
       validateSpy.mockResolvedValueOnce([
         {
@@ -221,9 +221,9 @@ describe('UserService', () => {
           email: 'testuser@email.com',
           role: {
             id: 1,
-            role_name: 'user',
+            name: 'user',
           },
-          is_active: true,
+          isActive: true,
         },
       ]);
 
@@ -256,9 +256,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       const user = await service.findById(mockUserId);
@@ -275,10 +275,10 @@ describe('UserService', () => {
           role: {
             select: {
               id: true,
-              role_name: true,
+              name: true,
             },
           },
-          is_active: true,
+          isActive: true,
         },
       });
 
@@ -315,9 +315,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       const user = await service.findByEmail('testuser@email.com');
@@ -334,10 +334,10 @@ describe('UserService', () => {
           role: {
             select: {
               id: true,
-              role_name: true,
+              name: true,
             },
           },
-          is_active: true,
+          isActive: true,
         },
       });
 
@@ -380,9 +380,9 @@ describe('UserService', () => {
         email: 'updatedtestuser@email.com',
         role: {
           id: 1,
-          role_name: 'author',
+          name: 'author',
         },
-        is_active: true,
+        isActive: true,
       });
 
       const spy = jest.spyOn(HelperService, 'generateHash');
@@ -396,15 +396,15 @@ describe('UserService', () => {
           name: 'updated test user',
           email: 'updatedtestuser@email.com',
           password: 'hashedPassword',
-          last_password_reset_at: expect.any(Date),
-          role: { connect: { role_name: 'author' } },
+          lastPasswordResetAt: expect.any(Date),
+          role: { connect: { name: 'author' } },
         },
         select: {
           id: true,
           name: true,
           email: true,
           password: true,
-          role: { select: { id: true, role_name: true } },
+          role: { select: { id: true, name: true } },
         },
       });
 
@@ -456,9 +456,9 @@ describe('UserService', () => {
         password: 'newpassword123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
@@ -496,10 +496,10 @@ describe('UserService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
         data: {
-          password_reset_tokens: {
+          passwordResetTokens: {
             create: {
               token: 'mock-uuid-token',
-              expires_at: expect.any(Date),
+              expiresAt: expect.any(Date),
             },
           },
         },
@@ -526,9 +526,7 @@ describe('UserService', () => {
 
   describe('resetPassword', () => {
     it('should throw an error if the token is invalid', async () => {
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
-        null,
-      );
+      mockPrismaService.passwordResetToken.findUnique.mockReturnValueOnce(null);
 
       try {
         await service.resetPassword(
@@ -540,7 +538,7 @@ describe('UserService', () => {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Invalid token');
         expect(
-          prismaService.password_reset_tokens.findUnique,
+          prismaService.passwordResetToken.findUnique,
         ).toHaveBeenCalledWith({
           where: {
             token: 'invalid-token',
@@ -553,15 +551,15 @@ describe('UserService', () => {
       const currentDateTime = Date.now();
 
       const mockPasswordResetData = {
-        token_id: 1,
-        userid: mockUserId,
+        id: 1,
+        userId: mockUserId,
         token: 'token',
-        expires_at: new Date(currentDateTime - 60 * 1000), // token expired 1 minute ago
+        expiresAt: new Date(currentDateTime - 60 * 1000), // token expired 1 minute ago
       };
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce(
+      mockPrismaService.passwordResetToken.findUnique.mockReturnValueOnce(
         mockPasswordResetData,
       );
-      mockPrismaService.password_reset_tokens.delete.mockReturnValueOnce(
+      mockPrismaService.passwordResetToken.delete.mockReturnValueOnce(
         mockPasswordResetData,
       );
 
@@ -575,28 +573,26 @@ describe('UserService', () => {
         expect(error).toBeInstanceOf(CustomAPIError);
         expect(error.message).toBe('Expired token');
         expect(
-          prismaService.password_reset_tokens.findUnique,
+          prismaService.passwordResetToken.findUnique,
         ).toHaveBeenCalledWith({
           where: { token: 'token' },
         });
 
-        expect(prismaService.password_reset_tokens.delete).toHaveBeenCalledWith(
-          {
-            where: { token: 'token' },
-          },
-        );
+        expect(prismaService.passwordResetToken.delete).toHaveBeenCalledWith({
+          where: { token: 'token' },
+        });
       }
     });
 
     it('should throw an error if the email does not match the token', async () => {
       const currentDateTime = Date.now();
       const mockPasswordResetData = {
-        token_id: 1,
-        userid: mockUserId,
+        id: 1,
+        userId: mockUserId,
         token: 'token',
-        expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
+        expiresAt: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       };
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValue(
+      mockPrismaService.passwordResetToken.findUnique.mockReturnValue(
         mockPasswordResetData,
       );
 
@@ -607,8 +603,8 @@ describe('UserService', () => {
           id: mockUserId2,
           email: 'seconduser@email.com',
           password: 'oldpassword',
-          role: { id: 1, role_name: 'user' },
-          is_active: true,
+          role: { id: 1, name: 'user' },
+          isActive: true,
         });
 
       try {
@@ -633,16 +629,16 @@ describe('UserService', () => {
         expect(error.message).toBe('Invalid email');
       }
 
-      mockPrismaService.password_reset_tokens.findUnique.mockClear();
+      mockPrismaService.passwordResetToken.findUnique.mockClear();
     });
 
     it('should throw an error if the new password is the same as the old password', async () => {
       const currentDateTime = Date.now();
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
-        token_id: 1,
-        userid: mockUserId,
+      mockPrismaService.passwordResetToken.findUnique.mockReturnValueOnce({
+        id: 1,
+        userId: mockUserId,
         token: 'token',
-        expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
+        expiresAt: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
 
       mockPrismaService.user.findUnique.mockReturnValueOnce({
@@ -650,8 +646,8 @@ describe('UserService', () => {
         id: mockUserId,
         email: 'testuser@email.com',
         password: 'oldpassword',
-        role: { id: 1, role_name: 'user' },
-        is_active: true,
+        role: { id: 1, name: 'user' },
+        isActive: true,
       });
 
       const spy = jest.spyOn(HelperService, 'compareHash');
@@ -674,11 +670,11 @@ describe('UserService', () => {
 
     it('should reset the password successfully', async () => {
       const currentDateTime = Date.now();
-      mockPrismaService.password_reset_tokens.findUnique.mockReturnValueOnce({
-        token_id: 1,
-        userid: mockUserId,
+      mockPrismaService.passwordResetToken.findUnique.mockReturnValueOnce({
+        id: 1,
+        userId: mockUserId,
         token: 'token',
-        expires_at: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
+        expiresAt: new Date(currentDateTime + 10 * 60 * 1000), // token will expire 10 minutes later
       });
 
       mockPrismaService.user.findUnique.mockReturnValueOnce({
@@ -686,15 +682,15 @@ describe('UserService', () => {
         id: mockUserId,
         email: 'testuser@email.com',
         password: 'oldpassword',
-        role: { id: 1, role_name: 'user' },
-        is_active: true,
+        role: { id: 1, name: 'user' },
+        isActive: true,
       });
 
       mockPrismaService.user.update.mockResolvedValueOnce({
         name: 'test user',
-        userid: mockUserId,
+        userId: mockUserId,
         email: 'testuser@email.com',
-        role: { role_name: 'user' },
+        role: { name: 'user' },
       });
 
       const spyCampare = jest.spyOn(HelperService, 'compareHash');
@@ -717,9 +713,7 @@ describe('UserService', () => {
 
       expect(mockPrismaService.user.update).toHaveBeenCalledTimes(1);
 
-      expect(
-        mockPrismaService.password_reset_tokens.delete,
-      ).toHaveBeenCalledWith({
+      expect(mockPrismaService.passwordResetToken.delete).toHaveBeenCalledWith({
         where: { token: 'token' },
       });
 
@@ -728,7 +722,7 @@ describe('UserService', () => {
       spyHash.mockRestore();
     });
     it('should throw an error when db error occurs', async () => {
-      mockPrismaService.password_reset_tokens.findUnique.mockRejectedValueOnce(
+      mockPrismaService.passwordResetToken.findUnique.mockRejectedValueOnce(
         new Error('DB Error'),
       );
 
@@ -769,9 +763,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       jest.spyOn(HelperService, 'compareHash').mockResolvedValueOnce(false);
@@ -791,9 +785,9 @@ describe('UserService', () => {
         password: 'password123',
         role: {
           id: 1,
-          role_name: 'user',
+          name: 'user',
         },
-        is_active: true,
+        isActive: true,
       });
 
       jest.spyOn(HelperService, 'compareHash').mockResolvedValueOnce(true);

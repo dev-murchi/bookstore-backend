@@ -40,8 +40,8 @@ describe('CategoryService', () => {
   describe('getAll', () => {
     it('should return a list of categories', async () => {
       const expectedCategories = [
-        { id: 1, category_name: 'Fiction' },
-        { id: 2, category_name: 'Non-fiction' },
+        { id: 1, name: 'Fiction' },
+        { id: 2, name: 'Non-fiction' },
       ];
       mockPrismaService.category.findMany.mockResolvedValue(expectedCategories);
 
@@ -52,7 +52,7 @@ describe('CategoryService', () => {
         new CategoryDTO(2, 'Non-fiction'),
       ]);
       expect(mockPrismaService.category.findMany).toHaveBeenCalledWith({
-        select: { id: true, category_name: true },
+        select: { id: true, name: true },
       });
     });
 
@@ -70,15 +70,15 @@ describe('CategoryService', () => {
   describe('create', () => {
     it('should create a new category', async () => {
       const createCategoryDTO: CreateCategoryDTO = { value: 'Science' };
-      const createdCategory = { id: 1, category_name: 'Science' };
+      const createdCategory = { id: 1, name: 'Science' };
       mockPrismaService.category.create.mockResolvedValue(createdCategory);
 
       const result = await service.create(createCategoryDTO);
 
       expect(result).toEqual(new CategoryDTO(1, 'Science'));
       expect(mockPrismaService.category.create).toHaveBeenCalledWith({
-        data: { category_name: createCategoryDTO.value },
-        select: { id: true, category_name: true },
+        data: { name: createCategoryDTO.value },
+        select: { id: true, name: true },
       });
     });
 
@@ -96,7 +96,7 @@ describe('CategoryService', () => {
     it('should throw an error if the category is already exist', async () => {
       const createCategoryDTO: CreateCategoryDTO = { value: 'Science' };
       const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Unique constraint failed on the fields: (category_name)',
+        'Unique constraint failed on the fields: (name)',
         {
           code: 'P2002',
         } as any,
@@ -117,7 +117,7 @@ describe('CategoryService', () => {
     it('should update category name', async () => {
       mockPrismaService.category.update.mockResolvedValueOnce({
         id: 1,
-        category_name: 'new-category',
+        name: 'new-category',
       });
 
       const category = await service.update(1, 'new-category');
