@@ -12,6 +12,7 @@ import { ShippingDTO } from './shipping.dto';
 import { PaymentDTO } from './payment.dto';
 import { OrderItemDTO } from './order-item.dto';
 import { OrderStatus } from '../enum/order-status.enum';
+import { OrderOwnerDTO } from './order-owner.dto';
 
 export class OrderDTO {
   @ApiProperty({
@@ -23,13 +24,14 @@ export class OrderDTO {
   id: string;
 
   @ApiProperty({
-    description: 'UUID of the user who owns the order',
-    type: String,
-    example: 'abcdef01-2345-6789-abcd-ef0123456789',
+    description:
+      'Details of the owner of the order, either a registered user or a guest.',
+    type: OrderOwnerDTO,
+    nullable: true,
   })
   @IsOptional()
-  @IsUUID()
-  owner?: string;
+  @Type(() => OrderOwnerDTO)
+  owner?: OrderOwnerDTO | null;
 
   @ApiProperty({
     description: 'List of items in the order',

@@ -9,6 +9,7 @@ import * as classValidator from 'class-validator';
 import { AddressDTO } from '../common/dto/address.dto';
 import { ShippingDTO } from '../common/dto/shipping.dto';
 import { PaymentDTO } from '../common/dto/payment.dto';
+import { OrderOwnerDTO } from '../common/dto/order-owner.dto';
 
 const orderId1 = '461802bb-8792-42f6-b4b3-a620f91cedb6'; // just example
 const orderId2 = '58fcf574-f144-4c3e-8eb1-72efe85541db'; // just example
@@ -19,7 +20,7 @@ const mockPaymentId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
 
 const mockPrismaOrder1 = {
   id: orderId1,
-  user: { id: userId, name: 'user name', email: 'user@email.com' },
+  user: null,
   totalPrice: 21.25,
   status: 'pending',
   orderItems: [
@@ -154,7 +155,7 @@ describe('OrdersService', () => {
       expect(result).toEqual([
         {
           id: orderId1,
-          owner: userId,
+          owner: null,
           status: 'pending',
           price: 21.25,
           items: [
@@ -176,7 +177,11 @@ describe('OrdersService', () => {
         },
         {
           id: orderId2,
-          owner: userId,
+          owner: new OrderOwnerDTO(
+            mockPrismaOrder2.user.id,
+            mockPrismaOrder2.user.name,
+            mockPrismaOrder2.user.email,
+          ),
           status: 'complete',
           price: 42.5,
           items: [
@@ -248,7 +253,7 @@ describe('OrdersService', () => {
       });
       expect(result).toEqual({
         id: orderId1,
-        owner: userId,
+        owner: null,
         status: 'pending',
         price: 21.25,
         items: [
@@ -286,7 +291,10 @@ describe('OrdersService', () => {
 
   describe('updateStatus', () => {
     it('should update the status', async () => {
-      const updatedOrder = { ...mockPrismaOrder1, status: 'canceled' };
+      const updatedOrder = {
+        ...mockPrismaOrder1,
+        status: 'canceled',
+      };
       mockPrismaService.order.update.mockResolvedValueOnce(updatedOrder);
 
       const result = await service.updateStatus(orderId1, OrderStatus.Canceled);
@@ -298,7 +306,7 @@ describe('OrdersService', () => {
       });
       expect(result).toEqual({
         id: orderId1,
-        owner: userId,
+        owner: null,
         status: 'canceled',
         price: 21.25,
         items: [
@@ -451,11 +459,39 @@ describe('OrdersService', () => {
   });
 
   describe('transformToOrder', () => {
-    it('should transform full order to OrderDTO', async () => {
+    it('should transform full order to OrderDTO for guest', async () => {
       const result = await service['transformToOrder'](mockPrismaOrder1);
       expect(result).toEqual({
         id: orderId1,
-        owner: userId,
+        owner: null,
+        status: 'pending',
+        price: 21.25,
+        items: [
+          new OrderItemDTO(
+            new BookDTO(
+              bookId,
+              'Test Book',
+              'test book description',
+              'book-isbn',
+              { name: 'Traveller Hobbit' },
+              new CategoryDTO(1, 'test category'),
+              21.25,
+              4.0,
+              'book-image-url',
+            ),
+            1,
+          ),
+        ],
+      });
+    });
+    it('should transform full order to OrderDTO for loggedin user', async () => {
+      const result = await service['transformToOrder']({
+        ...mockPrismaOrder1,
+        user: { id: userId, name: 'user name', email: 'user@email.com' },
+      });
+      expect(result).toEqual({
+        id: orderId1,
+        owner: new OrderOwnerDTO(userId, 'user name', 'user@email.com'),
         status: 'pending',
         price: 21.25,
         items: [

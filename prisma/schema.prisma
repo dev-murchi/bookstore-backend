@@ -103,6 +103,8 @@ model CartItem {
 model Order {
   id              String    @id @default(uuid())
   userId          String?
+  guestName       String?
+  guestEmail      String?
   totalPrice      Decimal   @default(0) @db.Decimal(10, 2)
   shippingDetails Shipping?
   status          String    @default("pending")

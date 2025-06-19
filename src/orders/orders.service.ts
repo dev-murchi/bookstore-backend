@@ -10,6 +10,7 @@ import { AddressDTO } from '../common/dto/address.dto';
 import { ShippingDTO } from '../common/dto/shipping.dto';
 import { PaymentDTO } from '../common/dto/payment.dto';
 import { validate } from 'class-validator';
+import { OrderOwnerDTO } from '../common/dto/order-owner.dto';
 
 @Injectable()
 export class OrdersService {
@@ -67,6 +68,8 @@ export class OrdersService {
     id: true,
     status: true,
     user: { select: { id: true, name: true, email: true } },
+    guestName: true,
+    guestEmail: true,
     totalPrice: true,
     orderItems: this.orderItemSelect,
     shippingDetails: this.shippingSelect,
@@ -197,6 +200,8 @@ export class OrdersService {
         orderItems,
         shippingDetails,
         payment,
+        guestName,
+        guestEmail,
       } = order;
 
       const items = await Promise.all(
@@ -209,7 +214,13 @@ export class OrdersService {
       orderData.status = status;
       orderData.price = Number(totalPrice.toFixed(2));
       if (user) {
-        orderData.owner = user.id;
+        orderData.owner = new OrderOwnerDTO(user.id, user.name, user.email);
+      } else {
+        if (guestName && guestEmail) {
+          orderData.owner = new OrderOwnerDTO(null, guestName, guestEmail);
+        } else {
+          orderData.owner = null;
+        }
       }
 
       if (shippingDetails) {

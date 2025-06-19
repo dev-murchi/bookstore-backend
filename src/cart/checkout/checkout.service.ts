@@ -10,6 +10,7 @@ import { OrderItemDTO } from '../../common/dto/order-item.dto';
 import { BookDTO } from '../../common/dto/book.dto';
 import { CategoryDTO } from '../../common/dto/category.dto';
 import { OrderStatus } from '../../common/enum/order-status.enum';
+import { OrderOwnerDTO } from '../../common/dto/order-owner.dto';
 
 @Injectable()
 export class CheckoutService {
@@ -111,7 +112,7 @@ export class CheckoutService {
           select: {
             id: true,
             status: true,
-            user: { select: { name: true, email: true } },
+            user: { select: { id: true, name: true, email: true } },
           },
         });
 
@@ -153,10 +154,18 @@ export class CheckoutService {
 
         const orderData = new OrderDTO();
         orderData.id = order.id;
-        orderData.owner = userId;
         orderData.price = totalPrice;
         orderData.status = order.status as OrderStatus;
         orderData.items = orderItems;
+        if (order.user) {
+          orderData.owner = new OrderOwnerDTO(
+            order.user.id,
+            order.user.name,
+            order.user.email,
+          );
+        } else {
+          orderData.owner = null;
+        }
 
         const checkoutData = new CheckoutDTO();
         checkoutData.expiresAt = session.expires;

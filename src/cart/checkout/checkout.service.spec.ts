@@ -313,7 +313,8 @@ describe('CheckoutService', () => {
       id: 'order-uuid-123',
       status: 'pending',
       user: {
-        name: mockUserId,
+        id: mockUserId,
+        name: 'user name',
         email: 'user@email.com',
       },
     });
@@ -332,7 +333,7 @@ describe('CheckoutService', () => {
     expect(result).toEqual({
       order: {
         id: 'order-uuid-123',
-        owner: mockUserId,
+        owner: { id: mockUserId, name: 'user name', email: 'user@email.com' },
         items: [
           {
             quantity: 2,
