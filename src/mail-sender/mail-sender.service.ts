@@ -4,7 +4,6 @@ import { createTransport, Transporter } from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { EmailTemplateKey, EmailTemplates } from '../common/config';
 import {
   OrderStatusUpdateJob,
   PasswordResetJob,
@@ -12,6 +11,10 @@ import {
 import { MailConfigError } from '../common/errors/mail-config.error';
 import { MailTemplateError } from '../common/errors/mail-template.error';
 import { MailSendError } from '../common/errors/mail-send.error';
+import {
+  EmailTemplateKey,
+  EmailTemplates,
+} from '../common/types/email-config.type';
 
 type TemplateContent = { subject: string; text: string; html: string };
 type TemplateFields = { key: string; value: string }[];

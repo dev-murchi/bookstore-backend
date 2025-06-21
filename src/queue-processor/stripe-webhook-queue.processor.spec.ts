@@ -12,22 +12,11 @@ import { ShippingService } from '../orders/shipping/shipping.service';
 import { PaymentStatus } from '../common/enum/payment-status.enum';
 import { EmailService } from '../email/email.service';
 import { OrderStatus } from '../common/enum/order-status.enum';
+import { RefundStatus } from '../common/enum/refund-status.enum';
 
 const mockPrismaService = {
   $transaction: jest.fn((fn) => fn()),
-  payment: {
-    upsert: jest.fn(),
-  },
-  order: {
-    findUnique: jest.fn(),
-    update: jest.fn(),
-  },
-  book: {
-    update: jest.fn(),
-  },
-  shipping: {
-    create: jest.fn(),
-  },
+  refund: { create: jest.fn(), update: jest.fn() },
 };
 
 const mockOrdersService = {
@@ -40,6 +29,7 @@ const mockPaymentService = {
 };
 const mockShippingService = {
   createShipping: jest.fn(),
+  findByOrder: jest.fn(),
 };
 
 const mockStripeService = {
@@ -48,6 +38,7 @@ const mockStripeService = {
 
 const mockEmailService = {
   sendOrderStatusChangeMail: jest.fn(),
+  sendRefundStatusChangeMail: jest.fn(),
 };
 
 describe('StripeWebhookProcessor', () => {
@@ -601,6 +592,84 @@ describe('StripeWebhookProcessor', () => {
       });
     });
 
+    it('should handle refund.created event', async () => {
+      const job = {
+        data: {
+          eventType: 'refund.created',
+          eventData: {
+            id: 're_123',
+            payment_intent: 'pi_123',
+            amount: 1000,
+            status: 'pending',
+            metadata: { orderId: 'order-uuid-123' },
+          },
+        },
+      } as any;
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        name: 'John Doe',
+        email: 'user@email.com',
+      });
+
+      const spy = jest.spyOn(processor as any, 'refundCreated');
+      await processor.process(job);
+
+      expect(spy).toHaveBeenCalledWith(job.data.eventData);
+    });
+
+    it('should handle refund.updated event', async () => {
+      const job = {
+        data: {
+          eventType: 'refund.updated',
+          eventData: {
+            id: 're_456',
+            status: 'succeeded',
+          },
+        },
+      } as any;
+
+      mockPrismaService.refund.update.mockResolvedValueOnce({
+        orderId: 'order-uuid-123',
+      });
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        name: 'John Doe',
+        email: 'user@email.com',
+      });
+
+      const spy = jest.spyOn(processor as any, 'refundUpdated');
+      await processor.process(job);
+
+      expect(spy).toHaveBeenCalledWith(job.data.eventData);
+    });
+
+    it('should handle refund.failed event', async () => {
+      const job = {
+        data: {
+          eventType: 'refund.failed',
+          eventData: {
+            id: 're_789',
+            status: 'failed',
+            failure_reason: 'bank_account_closed',
+          },
+        },
+      } as any;
+
+      mockPrismaService.refund.update.mockResolvedValueOnce({
+        orderId: 'order-uuid-123',
+      });
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        name: 'John Doe',
+        email: 'user@email.com',
+      });
+
+      const spy = jest.spyOn(processor as any, 'refundFailed');
+      await processor.process(job);
+
+      expect(spy).toHaveBeenCalledWith(job.data.eventData);
+    });
+
     it('should log unhandled event types', async () => {
       const consoleSpy = jest.spyOn(console, 'warn');
       const job = {
@@ -615,6 +684,143 @@ describe('StripeWebhookProcessor', () => {
         'Unhandled Stripe webhook event: unhandled_event',
       );
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('refundCreated', () => {
+    it('should create a refund and send email', async () => {
+      const refundData = {
+        id: 're_123',
+        payment_intent: 'pi_123',
+        amount: 1000,
+        status: 'pending',
+        metadata: { orderId: 'order-uuid-123' },
+      } as any;
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        email: 'user@email.com',
+        name: 'John Doe',
+      });
+
+      await (processor as any).refundCreated(refundData);
+
+      expect(mockPrismaService.refund.create).toHaveBeenCalledWith({
+        data: {
+          refundId: 're_123',
+          orderId: 'order-uuid-123',
+          transactionId: 'pi_123',
+          amount: 1000,
+          status: 'pending',
+        },
+      });
+
+      expect(mockShippingService.findByOrder).toHaveBeenCalledWith(
+        'order-uuid-123',
+      );
+
+      expect(mockEmailService.sendRefundStatusChangeMail).toHaveBeenCalledWith(
+        RefundStatus.RefundCreated,
+        {
+          orderId: 'order-uuid-123',
+          username: 'John Doe',
+          email: 'user@email.com',
+        },
+      );
+    });
+
+    it('should log error if orderId is missing', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await (processor as any).refundCreated({
+        id: 're_123',
+        payment_intent: 'pi_123',
+        amount: 1000,
+        status: 'pending',
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Missing orderId in refund metadata for refund re_123',
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('refundUpdated', () => {
+    it('should update refund and send success email if succeeded', async () => {
+      mockPrismaService.refund.update.mockResolvedValueOnce({
+        orderId: 'order-uuid-123',
+      });
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        name: 'John Doe',
+        email: 'user@email.com',
+      });
+
+      await (processor as any).refundUpdated({
+        id: 're_123',
+        status: 'succeeded',
+      });
+
+      expect(mockPrismaService.refund.update).toHaveBeenCalledWith({
+        where: { refundId: 're_123' },
+        data: { status: 'succeeded' },
+        select: { orderId: true },
+      });
+
+      expect(mockShippingService.findByOrder).toHaveBeenCalledWith(
+        'order-uuid-123',
+      );
+
+      expect(mockEmailService.sendRefundStatusChangeMail).toHaveBeenCalledWith(
+        RefundStatus.RefundComplete,
+        {
+          orderId: 'order-uuid-123',
+          username: 'John Doe',
+          email: 'user@email.com',
+        },
+      );
+    });
+  });
+
+  describe('refundFailed', () => {
+    it('should update refund as failed and send failed email', async () => {
+      mockPrismaService.refund.update.mockResolvedValueOnce({
+        orderId: 'order-uuid-123',
+      });
+
+      mockShippingService.findByOrder.mockResolvedValue({
+        name: 'John Doe',
+        email: 'user@email.com',
+      });
+
+      await (processor as any).refundFailed({
+        id: 're_123',
+        status: 'failed',
+        failure_reason: 'bank_account_closed',
+      });
+
+      expect(mockPrismaService.refund.update).toHaveBeenCalledWith({
+        where: { refundId: 're_123' },
+        data: {
+          status: 'failed',
+          failureReason: 'bank_account_closed',
+        },
+        select: { orderId: true },
+      });
+
+      expect(mockShippingService.findByOrder).toHaveBeenCalledWith(
+        'order-uuid-123',
+      );
+
+      expect(mockEmailService.sendRefundStatusChangeMail).toHaveBeenCalledWith(
+        RefundStatus.RefundFailed,
+        {
+          orderId: 'order-uuid-123',
+          username: 'John Doe',
+          email: 'user@email.com',
+        },
+      );
     });
   });
 });

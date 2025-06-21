@@ -3,7 +3,10 @@ import { ShippingService } from './shipping.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const mockPrismaService = {
-  shipping: { create: jest.fn() },
+  shipping: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+  },
 };
 
 describe('ShippingService', () => {
@@ -125,6 +128,50 @@ describe('ShippingService', () => {
       ).rejects.toThrow(
         `Shipping details could not be created for Order ${orderId}`,
       );
+    });
+  });
+
+  describe('findByOrder', () => {
+    it('should throw error when database fails', async () => {
+      const orderId = 'order-uuid-1';
+      mockPrismaService.shipping.findUnique.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(service.findByOrder(orderId)).rejects.toThrow(
+        new Error(`Failed to find a shipping for the order ${orderId}`),
+      );
+    });
+    it('should return null a shipping for the order is not exist', async () => {
+      const orderId = 'order-uuid-1';
+      mockPrismaService.shipping.findUnique.mockResolvedValueOnce(null);
+
+      const result = await service.findByOrder(orderId);
+      expect(result).toBeNull();
+    });
+    it('should find the shipping for the order', async () => {
+      const orderId = 'order-uuid-1';
+
+      const shippingData = {
+        id: 1,
+        orderId,
+        address: {
+          line1: 'Test Street 123',
+          line2: 'Apt 101',
+          city: 'Test City',
+          state: 'Test State',
+          country: 'Test Country',
+          postalCode: '12345',
+        },
+        email: 'testuser@example.com',
+        name: 'test user',
+      };
+
+      mockPrismaService.shipping.findUnique.mockResolvedValueOnce(shippingData);
+
+      const result = await service.findByOrder(orderId);
+
+      expect(result).toEqual(shippingData);
     });
   });
 });

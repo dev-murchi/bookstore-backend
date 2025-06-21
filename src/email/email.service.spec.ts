@@ -5,8 +5,9 @@ import {
   OrderStatusUpdateJob,
   PasswordResetJob,
 } from '../common/types/mail-sender-queue-job.type';
-import { EmailTemplateKey } from '../common/config';
 import { OrderStatus } from '../common/enum/order-status.enum';
+import { RefundStatus } from '../common/enum/refund-status.enum';
+import { EmailTemplateKey } from 'src/common/types/email-config.type';
 
 const mockMailSenderQueue = {
   add: jest.fn(),
@@ -40,7 +41,10 @@ describe('EmailService', () => {
         username: 'testuser@email.com',
       };
 
-      await service.sendOrderStatusChangeMail(OrderStatus.RefundCreated, data);
+      await service.sendRefundStatusChangeMail(
+        RefundStatus.RefundCreated,
+        data,
+      );
 
       expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
         'refundCreated',
@@ -71,12 +75,12 @@ describe('EmailService', () => {
         username: 'testuser@email.com',
       };
 
-      const status = OrderStatus.RefundCreated;
+      const status = RefundStatus.RefundCreated;
 
       mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
 
       await expect(
-        service.sendOrderStatusChangeMail(status, data),
+        service.sendRefundStatusChangeMail(status, data),
       ).rejects.toThrow(
         `Could not send email for order ${data.orderId} with status ${status}`,
       );

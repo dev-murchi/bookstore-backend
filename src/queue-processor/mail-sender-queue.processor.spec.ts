@@ -5,8 +5,8 @@ import { Job } from 'bullmq';
 import {
   MailSenderQueueJob,
   PasswordResetJob,
-} from 'src/common/types/mail-sender-queue-job.type';
-import { EmailTemplateKey } from 'src/common/config';
+} from '../common/types/mail-sender-queue-job.type';
+import { EmailTemplateKey } from '../common/types/email-config.type';
 
 describe('MailSenderQueueProcessor', () => {
   let processor: MailSenderQueueProcessor;

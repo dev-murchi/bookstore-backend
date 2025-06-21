@@ -13,6 +13,7 @@ import { PaymentData } from '../common/types/payment-data.interface';
 import { PaymentStatus } from '../common/enum/payment-status.enum';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import Stripe from 'stripe';
+import { RefundStatus } from '../common/enum/refund-status.enum';
 
 export interface StripeMetadata {
   orderId: string;
@@ -276,14 +277,11 @@ export class StripeWebhookProcessor extends WorkerHost {
       },
     });
 
-    const shipping = await this.prisma.shipping.findUnique({
-      where: { orderId: orderId },
-      select: { email: true, name: true },
-    });
+    const shipping = await this.shippingService.findByOrder(orderId);
 
     try {
-      await this.emailService.sendOrderStatusChangeMail(
-        OrderStatus.RefundCreated,
+      await this.emailService.sendRefundStatusChangeMail(
+        RefundStatus.RefundCreated,
         {
           orderId,
           username: shipping.name,
@@ -309,13 +307,10 @@ export class StripeWebhookProcessor extends WorkerHost {
 
     if (status === 'succeeded') {
       try {
-        const shipping = await this.prisma.shipping.findUnique({
-          where: { orderId: refund.orderId },
-          select: { email: true, name: true },
-        });
+        const shipping = await this.shippingService.findByOrder(refund.orderId);
 
-        await this.emailService.sendOrderStatusChangeMail(
-          OrderStatus.RefundComplete,
+        await this.emailService.sendRefundStatusChangeMail(
+          RefundStatus.RefundComplete,
           {
             orderId: refund.orderId,
             username: shipping.name,
@@ -342,15 +337,12 @@ export class StripeWebhookProcessor extends WorkerHost {
       },
     });
 
-    const shipping = await this.prisma.shipping.findUnique({
-      where: { orderId: refund.orderId },
-      select: { email: true, name: true },
-    });
+    const shipping = await this.shippingService.findByOrder(refund.orderId);
 
     if (refund.orderId) {
       try {
-        await this.emailService.sendOrderStatusChangeMail(
-          OrderStatus.RefundFailed,
+        await this.emailService.sendRefundStatusChangeMail(
+          RefundStatus.RefundFailed,
           {
             orderId: refund.orderId,
             username: shipping.name,

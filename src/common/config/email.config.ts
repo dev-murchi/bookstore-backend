@@ -1,6 +1,7 @@
 import { registerAs } from '@nestjs/config';
+import { EmailConfig } from '../types/email-config.type';
 
-export const emailConfig = registerAs('email', () => ({
+const config: EmailConfig = {
   host: process.env.EMAIL_HOST || 'smtp.example.com',
   port: Number.parseInt(process.env.EMAIL_PORT, 10) || 587,
   user: process.env.EMAIL_USER || 'your@email.com',
@@ -44,15 +45,11 @@ export const emailConfig = registerAs('email', () => ({
       subject: 'Your Order #{{order_id}} Has Been Canceled',
       fileName: 'order-canceled',
     },
-    orderExipred: {
+    orderExpired: {
       subject: 'Order #{{order_id}} Expired – Time to Reorder Your Books',
       fileName: 'order-expired',
     },
   },
-}));
+};
 
-export type EmailConfigType = ReturnType<typeof emailConfig>;
-
-export type EmailTemplates = EmailConfigType['templates'];
-
-export type EmailTemplateKey = keyof EmailTemplates;
+export const emailConfig = registerAs('email', () => config);

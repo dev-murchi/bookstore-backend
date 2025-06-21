@@ -7,7 +7,7 @@ import * as path from 'path';
 import { MailConfigError } from '../common/errors/mail-config.error';
 import { MailTemplateError } from '../common/errors/mail-template.error';
 import { MailSendError } from '../common/errors/mail-send.error';
-import { EmailTemplateKey } from '../common/config';
+import { EmailTemplateKey } from 'src/common/types/email-config.type';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn(() => ({

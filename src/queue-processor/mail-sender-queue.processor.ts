@@ -6,7 +6,7 @@ import {
   OrderStatusUpdateJob,
   PasswordResetJob,
 } from '../common/types/mail-sender-queue-job.type';
-import { EmailTemplateKey } from '../common/config';
+import { EmailTemplateKey } from '../common/types/email-config.type';
 
 @Processor('mail-sender-queue')
 export class MailSenderQueueProcessor extends WorkerHost {

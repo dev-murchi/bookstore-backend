@@ -50,4 +50,23 @@ export class ShippingService {
       );
     }
   }
+
+  async findByOrder(orderId: string) {
+    try {
+      const shipping = await this.prisma.shipping.findUnique({
+        where: { orderId },
+        select: {
+          id: true,
+          orderId: true,
+          address: true,
+          name: true,
+          email: true,
+        },
+      });
+      if (!shipping) return null;
+      return shipping;
+    } catch (error) {
+      throw new Error(`Failed to find a shipping for the order ${orderId}`);
+    }
+  }
 }
