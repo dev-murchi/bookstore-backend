@@ -1,0 +1,12 @@
+Hello {{customer_name}},
+
+We've received your returned order #{{order_id}}.
+
+We're currently processing your refund, and you can expect it to be issued to your original payment method within {{number_of_days}} business days. Please note that it may take additional time for the refund to appear on your statement, depending on your bank or payment provider.
+
+If you have any questions, please contact us.
+
+You can reach our support team at {{support_email}}.
+
+Warm regards,
+{{company_name}} Team

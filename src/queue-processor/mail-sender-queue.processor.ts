@@ -17,7 +17,7 @@ export class MailSenderQueueProcessor extends WorkerHost {
     job: Job<MailSenderQueueJob, any, EmailTemplateKey>,
   ): Promise<any> {
     switch (job.name) {
-      case 'passwordReset':
+      case 'authPasswordReset':
         await this.mailSenderService.sendResetPasswordMail(
           job.data as PasswordResetJob,
         );

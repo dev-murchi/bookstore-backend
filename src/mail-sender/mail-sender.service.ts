@@ -167,7 +167,7 @@ export class MailSenderService {
       { key: '{{support_email}}', value: this.supportEmail },
     ];
 
-    await this.sendTemplatedEmail('passwordReset', data.email, fields);
+    await this.sendTemplatedEmail('authPasswordReset', data.email, fields);
   }
 
   async sendOrderStatusChangeMail(

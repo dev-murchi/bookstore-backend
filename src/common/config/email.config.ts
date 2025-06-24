@@ -9,7 +9,7 @@ const config: EmailConfig = {
   companyName: process.env.COMPANY_NAME || 'Book Store',
   supportEmail: process.env.SUPPORT_EMAIL || 'support@bookstore.com',
   templates: {
-    passwordReset: {
+    authPasswordReset: {
       subject: 'Reset your password',
       fileName: 'password-reset',
     },
@@ -48,6 +48,10 @@ const config: EmailConfig = {
     orderExpired: {
       subject: 'Order #{{order_id}} Expired – Time to Reorder Your Books',
       fileName: 'order-expired',
+    },
+    orderReturned: {
+      subject: 'Return Confirmation for Order #{{order_id}}',
+      fileName: 'order-returned',
     },
   },
 };

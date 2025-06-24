@@ -34,9 +34,9 @@ describe('MailSenderQueueProcessor', () => {
     expect(processor).toBeDefined();
   });
 
-  it('should process passwordReset job correctly', async () => {
+  it('should process authPasswordReset job correctly', async () => {
     const job = {
-      name: 'passwordReset',
+      name: 'authPasswordReset',
       data: {
         email: 'user@example.com',
         username: 'username',

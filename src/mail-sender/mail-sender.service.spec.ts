@@ -7,7 +7,10 @@ import * as path from 'path';
 import { MailConfigError } from '../common/errors/mail-config.error';
 import { MailTemplateError } from '../common/errors/mail-template.error';
 import { MailSendError } from '../common/errors/mail-send.error';
-import { EmailTemplateKey } from 'src/common/types/email-config.type';
+import {
+  EmailConfig,
+  EmailTemplateKey,
+} from '../common/types/email-config.type';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn(() => ({
@@ -70,39 +73,37 @@ const mockTransporter = {
 };
 
 const mockMailConfig = {
-  email: {
-    host: 'smtp.test.com',
-    port: 587,
-    user: 'test@example.com',
-    password: 'password',
-    companyName: 'Test Company',
-    supportEmail: 'support@test.com',
-    templates: {
-      passwordReset: {
-        subject: 'Reset Your Password - {{company_name}}',
-        fileName: 'password-reset',
-      },
-      orderPlaced: {
-        subject: 'Order Placed! - {{company_name}}',
-        fileName: 'order-placed',
-      },
-      orderShipped: {
-        subject: 'Your Order Has Shipped! - {{company_name}}',
-        fileName: 'order-shipped',
-      },
+  host: 'smtp.test.com',
+  port: 587,
+  user: 'test@example.com',
+  password: 'password',
+  companyName: 'Test Company',
+  supportEmail: 'support@test.com',
+  templates: {
+    authPasswordReset: {
+      subject: 'Reset Your Password - {{company_name}}',
+      fileName: 'password-reset',
+    },
+    orderComplete: {
+      subject: 'Order Placed! - {{company_name}}',
+      fileName: 'order-complete',
+    },
+    orderShipped: {
+      subject: 'Your Order Has Shipped! - {{company_name}}',
+      fileName: 'order-shipped',
     },
   },
-};
+} as EmailConfig;
 
 const mockConfigService = {
   get: jest.fn().mockImplementation((key: string) => {
-    if (key === 'email.host') return mockMailConfig.email.host;
-    if (key === 'email.port') return mockMailConfig.email.port;
-    if (key === 'email.user') return mockMailConfig.email.user;
-    if (key === 'email.password') return mockMailConfig.email.password;
-    if (key === 'email.companyName') return mockMailConfig.email.companyName;
-    if (key === 'email.supportEmail') return mockMailConfig.email.supportEmail;
-    if (key === 'email.templates') return mockMailConfig.email.templates;
+    if (key === 'email.host') return mockMailConfig.host;
+    if (key === 'email.port') return mockMailConfig.port;
+    if (key === 'email.user') return mockMailConfig.user;
+    if (key === 'email.password') return mockMailConfig.password;
+    if (key === 'email.companyName') return mockMailConfig.companyName;
+    if (key === 'email.supportEmail') return mockMailConfig.supportEmail;
+    if (key === 'email.templates') return mockMailConfig.templates;
     return undefined; // For missing config
   }),
 };
@@ -172,16 +173,14 @@ describe('MailSenderService', () => {
             useValue: {
               get: jest.fn((key: string) => {
                 if (key === 'email.host') return undefined;
-                if (key === 'email.port') return mockMailConfig.email.port;
-                if (key === 'email.user') return mockMailConfig.email.user;
-                if (key === 'email.password')
-                  return mockMailConfig.email.password;
+                if (key === 'email.port') return mockMailConfig.port;
+                if (key === 'email.user') return mockMailConfig.user;
+                if (key === 'email.password') return mockMailConfig.password;
                 if (key === 'email.companyName')
-                  return mockMailConfig.email.companyName;
+                  return mockMailConfig.companyName;
                 if (key === 'email.supportEmail')
-                  return mockMailConfig.email.supportEmail;
-                if (key === 'email.templates')
-                  return mockMailConfig.email.templates;
+                  return mockMailConfig.supportEmail;
+                if (key === 'email.templates') return mockMailConfig.templates;
                 return undefined;
               }),
             },
@@ -208,17 +207,15 @@ describe('MailSenderService', () => {
             provide: ConfigService,
             useValue: {
               get: jest.fn((key: string) => {
-                if (key === 'email.host') return mockMailConfig.email.host;
-                if (key === 'email.port') return mockMailConfig.email.port;
-                if (key === 'email.user') return mockMailConfig.email.user;
-                if (key === 'email.password')
-                  return mockMailConfig.email.password;
+                if (key === 'email.host') return mockMailConfig.host;
+                if (key === 'email.port') return mockMailConfig.port;
+                if (key === 'email.user') return mockMailConfig.user;
+                if (key === 'email.password') return mockMailConfig.password;
                 if (key === 'email.companyName')
-                  return mockMailConfig.email.companyName;
+                  return mockMailConfig.companyName;
                 if (key === 'email.supportEmail')
-                  return mockMailConfig.email.supportEmail;
-                if (key === 'email.templates')
-                  return mockMailConfig.email.templates;
+                  return mockMailConfig.supportEmail;
+                if (key === 'email.templates') return mockMailConfig.templates;
                 return undefined;
               }),
             },
@@ -241,12 +238,12 @@ describe('MailSenderService', () => {
       expect(configService.get).toHaveBeenCalledWith('email.supportEmail');
       expect(configService.get).toHaveBeenCalledWith('email.templates');
       expect(createTransport).toHaveBeenCalledWith({
-        host: mockMailConfig.email.host,
-        port: mockMailConfig.email.port,
+        host: mockMailConfig.host,
+        port: mockMailConfig.port,
         secure: true,
         auth: {
-          user: mockMailConfig.email.user,
-          pass: mockMailConfig.email.password,
+          user: mockMailConfig.user,
+          pass: mockMailConfig.password,
         },
       });
 
@@ -346,7 +343,7 @@ describe('MailSenderService', () => {
         'HTML',
       );
       expect(mockTransporter.sendMail).toHaveBeenCalledWith({
-        from: mockMailConfig.email.user,
+        from: mockMailConfig.user,
         to: 'recipient@test.com',
         subject: 'Subject',
         text: 'Text',
@@ -479,7 +476,7 @@ describe('MailSenderService', () => {
     });
 
     it('should log a warning if placeholders remain unfilled', async () => {
-      const templateKey = 'passwordReset';
+      const templateKey = 'authPasswordReset';
       const to = 'test@example.com';
       const fields = [
         { key: '{{customer_name}}', value: 'Test User' },
@@ -489,13 +486,13 @@ describe('MailSenderService', () => {
       await service['sendTemplatedEmail'](templateKey, to, fields);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        `Template 'passwordReset' contains unfilled placeholders`,
+        `Template 'authPasswordReset' contains unfilled placeholders`,
       );
       expect(mockSendMail).toHaveBeenCalled();
     });
 
     it('should send a templated email successfully', async () => {
-      const templateKey = 'passwordReset';
+      const templateKey = 'authPasswordReset';
       const to = 'test@example.com';
       const fields = [
         { key: '{{link}}', value: 'http://reset.com' },
@@ -508,7 +505,7 @@ describe('MailSenderService', () => {
 
       expect(mockFillTemplate).toHaveBeenCalledTimes(3);
       expect(mockFillTemplate).toHaveBeenCalledWith(
-        mockMailConfig.email.templates.passwordReset.subject,
+        mockMailConfig.templates.authPasswordReset.subject,
         fields,
       );
       expect(mockFillTemplate).toHaveBeenCalledWith(
@@ -552,18 +549,18 @@ describe('MailSenderService', () => {
       await service.sendResetPasswordMail(data);
 
       expect(mockSendTemplatedEmail).toHaveBeenCalledWith(
-        'passwordReset',
+        'authPasswordReset',
         data.email,
         [
           { key: '{{link}}', value: data.link },
           { key: '{{customer_name}}', value: data.username },
           {
             key: '{{company_name}}',
-            value: mockMailConfig.email.companyName,
+            value: mockMailConfig.companyName,
           },
           {
             key: '{{support_email}}',
-            value: mockMailConfig.email.supportEmail,
+            value: mockMailConfig.supportEmail,
           },
         ],
       );
@@ -609,10 +606,10 @@ describe('MailSenderService', () => {
       expect(mockSendTemplatedEmail).toHaveBeenCalledWith(type, data.email, [
         { key: '{{customer_name}}', value: data.username },
         { key: '{{order_id}}', value: data.orderId },
-        { key: '{{company_name}}', value: mockMailConfig.email.companyName },
+        { key: '{{company_name}}', value: mockMailConfig.companyName },
         {
           key: '{{support_email}}',
-          value: mockMailConfig.email.supportEmail,
+          value: mockMailConfig.supportEmail,
         },
       ]);
     });
@@ -631,10 +628,10 @@ describe('MailSenderService', () => {
       expect(mockSendTemplatedEmail).toHaveBeenCalledWith(type, data.email, [
         { key: '{{customer_name}}', value: data.username },
         { key: '{{order_id}}', value: data.orderId },
-        { key: '{{company_name}}', value: mockMailConfig.email.companyName },
+        { key: '{{company_name}}', value: mockMailConfig.companyName },
         {
           key: '{{support_email}}',
-          value: mockMailConfig.email.supportEmail,
+          value: mockMailConfig.supportEmail,
         },
         { key: '{{tracking_id}}', value: data.trackingId },
       ]);

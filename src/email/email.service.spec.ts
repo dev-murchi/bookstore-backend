@@ -4,10 +4,10 @@ import {
   MailSenderQueueJob,
   OrderStatusUpdateJob,
   PasswordResetJob,
+  RefundStatusUpdateJob,
 } from '../common/types/mail-sender-queue-job.type';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { RefundStatus } from '../common/enum/refund-status.enum';
-import { EmailTemplateKey } from 'src/common/types/email-config.type';
 
 const mockMailSenderQueue = {
   add: jest.fn(),
@@ -32,7 +32,6 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
-  //  sendOrderStatusChange
   describe('sendOrderStatusChangeMail', () => {
     it('should add a new job to the queue', async () => {
       const data: OrderStatusUpdateJob = {
@@ -41,13 +40,10 @@ describe('EmailService', () => {
         username: 'testuser@email.com',
       };
 
-      await service.sendRefundStatusChangeMail(
-        RefundStatus.RefundCreated,
-        data,
-      );
+      await service.sendOrderStatusChangeMail(OrderStatus.Pending, data);
 
       expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
-        'refundCreated',
+        'orderPending',
         data,
       );
     });
@@ -64,54 +60,89 @@ describe('EmailService', () => {
           'invalid-status' as OrderStatus,
           data,
         ),
-      ).rejects.toThrow(`Unknown order status: invalid-status.`);
+      ).rejects.toThrow(
+        `Invalid template key for order ${data.orderId} status changed to invalid-status`,
+      );
 
       expect(mockMailSenderQueue.add).not.toHaveBeenCalled();
     });
-    it('should throw an error if the job could not be added to the queue ', async () => {
+
+    it('should throw an error if the job could not be added to the queue', async () => {
       const data: OrderStatusUpdateJob = {
         orderId: 'order-uuid-1',
         email: 'testuser@email.com',
         username: 'testuser@email.com',
       };
-
-      const status = RefundStatus.RefundCreated;
-
       mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
 
       await expect(
-        service.sendRefundStatusChangeMail(status, data),
+        service.sendOrderStatusChangeMail(OrderStatus.Pending, data),
       ).rejects.toThrow(
-        `Could not send email for order ${data.orderId} with status ${status}`,
+        `Could not send email for order ${data.orderId} status changed to ${OrderStatus.Pending}`,
+      );
+    });
+  });
+
+  describe('sendRefundStatusChangeMail', () => {
+    it('should add a new job to the queue', async () => {
+      const data: RefundStatusUpdateJob = {
+        orderId: 'order-uuid-2',
+        email: 'refunduser@email.com',
+        username: 'refunduser',
+      };
+
+      await service.sendRefundStatusChangeMail(
+        RefundStatus.RefundCreated,
+        data,
+      );
+
+      expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
+        'refundCreated',
+        data,
+      );
+    });
+
+    it('should throw an error if the job could not be added to the queue', async () => {
+      const data: RefundStatusUpdateJob = {
+        orderId: 'order-uuid-2',
+        email: 'refunduser@email.com',
+        username: 'refunduser',
+      };
+      mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
+
+      await expect(
+        service.sendRefundStatusChangeMail(RefundStatus.RefundCreated, data),
+      ).rejects.toThrow(
+        `Could not send email for refund status changed to ${RefundStatus.RefundCreated} for order ${data.orderId}`,
       );
     });
   });
 
   describe('sendResetPasswordMail', () => {
-    it('should adds a new job to the queue. ', async () => {
+    it('should add a new job to the queue', async () => {
       const data: PasswordResetJob = {
         email: 'testuser@email.com',
         username: 'test user',
         link: 'http://localhost/reset-password?token=reset-token-123',
       };
 
-      const spy = jest.spyOn(service, 'enqueueJob');
+      const spy = jest.spyOn(service as any, 'enqueueJob');
 
       await service.sendResetPasswordMail(data);
 
       expect(spy).toHaveBeenCalledWith(
-        'passwordReset',
+        'authPasswordReset',
         data,
-        `password reset to ${data.email}`,
+        `password reset for ${data.email}`,
       );
 
       expect(mockMailSenderQueue.add).toHaveBeenCalledWith(
-        'passwordReset',
+        'authPasswordReset',
         data,
       );
     });
 
-    it('should throw an error if the job could not be added to the queue ', async () => {
+    it('should throw an error if the job could not be added to the queue', async () => {
       mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
 
       const data: PasswordResetJob = {
@@ -121,29 +152,36 @@ describe('EmailService', () => {
       };
 
       await expect(service.sendResetPasswordMail(data)).rejects.toThrow(
-        `Could not send email for password reset to ${data.email}`,
+        `Could not send email for password reset for ${data.email}`,
       );
     });
   });
 
   describe('enqueueJob', () => {
-    it('should throw error ', async () => {
+    it('should throw error on queue failure', async () => {
       const data = {} as MailSenderQueueJob;
-      const key = 'key' as EmailTemplateKey;
+      const key = 'key' as any;
       mockMailSenderQueue.add.mockRejectedValueOnce(new Error('Queue Error'));
-      await expect(service.enqueueJob(key, data, 'context')).rejects.toThrow(
+      await expect(service['enqueueJob'](key, data, 'context')).rejects.toThrow(
         'Could not send email for context',
       );
     });
 
-    it('should add the job to the queue', async () => {
+    it('should add the job to the queue successfully', async () => {
       const data = {} as MailSenderQueueJob;
-      const key = 'key' as EmailTemplateKey;
+      const key = 'key' as any;
       mockMailSenderQueue.add.mockResolvedValueOnce({});
 
       await expect(
-        service.enqueueJob(key, data, 'context'),
+        service['enqueueJob'](key, data, 'context'),
       ).resolves.toBeUndefined();
+    });
+
+    it('should throw error if templateKey is missing', async () => {
+      const data = {} as MailSenderQueueJob;
+      await expect(
+        service['enqueueJob'](undefined as any, data, 'missing key'),
+      ).rejects.toThrow('Invalid template key for missing key');
     });
   });
 });

@@ -8,24 +8,43 @@ import {
 } from '../common/types/mail-sender-queue-job.type';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { RefundStatus } from '../common/enum/refund-status.enum';
-import { EmailTemplateKey } from '../common/types/email-config.type';
+import {
+  AuthEmailTemplateKey,
+  EmailTemplateKey,
+  OrderEmailTemplateKey,
+  RefundEmailTemplateKey,
+} from '../common/types/email-config.type';
 
 @Injectable()
 export class EmailService {
-  private static readonly mailStatusToTemplate = new Map<
-    OrderStatus | RefundStatus,
-    EmailTemplateKey
-  >([
-    [RefundStatus.RefundCreated, 'refundCreated'],
-    [RefundStatus.RefundComplete, 'refundComplete'],
-    [RefundStatus.RefundFailed, 'refundFailed'],
-    [OrderStatus.Pending, 'orderPending'],
-    [OrderStatus.Complete, 'orderComplete'],
-    [OrderStatus.Shipped, 'orderShipped'],
-    [OrderStatus.Delivered, 'orderDelivered'],
-    [OrderStatus.Canceled, 'orderCanceled'],
-    [OrderStatus.Expired, 'orderExpired'],
-  ]);
+  private readonly orderEmailTemplateKeys: Record<
+    OrderStatus,
+    OrderEmailTemplateKey
+  > = {
+    [OrderStatus.Pending]: 'orderPending',
+    [OrderStatus.Complete]: 'orderComplete',
+    [OrderStatus.Shipped]: 'orderShipped',
+    [OrderStatus.Delivered]: 'orderDelivered',
+    [OrderStatus.Canceled]: 'orderCanceled',
+    [OrderStatus.Expired]: 'orderExpired',
+    [OrderStatus.Returned]: 'orderReturned',
+  };
+
+  private readonly refundEmailTemplateKeys: Record<
+    RefundStatus,
+    RefundEmailTemplateKey
+  > = {
+    [RefundStatus.RefundCreated]: 'refundCreated',
+    [RefundStatus.RefundComplete]: 'refundComplete',
+    [RefundStatus.RefundFailed]: 'refundFailed',
+  };
+
+  private readonly authEmailTemplateKeys: Record<
+    'passwordReset',
+    AuthEmailTemplateKey
+  > = {
+    passwordReset: 'authPasswordReset',
+  };
 
   constructor(
     @Inject('MailSenderQueue')
@@ -37,52 +56,43 @@ export class EmailService {
   ) {}
 
   async sendResetPasswordMail(data: PasswordResetJob) {
-    await this.enqueueJob(
-      'passwordReset',
-      data,
-      `password reset to ${data.email}`,
-    );
+    const templateKey = this.authEmailTemplateKeys['passwordReset'];
+    const context = `password reset for ${data.email}`;
+    await this.enqueueJob(templateKey, data, context);
   }
 
   async sendOrderStatusChangeMail(
     status: OrderStatus,
     data: OrderStatusUpdateJob,
   ) {
-    const key = EmailService.mailStatusToTemplate.get(status);
-    if (!key) {
-      throw new Error(`Unknown order status: ${status}.`);
-    }
-    await this.enqueueJob(
-      key,
-      data,
-      `order ${data.orderId} with status ${status}`,
-    );
+    const templateKey = this.orderEmailTemplateKeys[status];
+    const context = `order ${data.orderId} status changed to ${status}`;
+    await this.enqueueJob(templateKey, data, context);
   }
 
   async sendRefundStatusChangeMail(
     status: RefundStatus,
     data: RefundStatusUpdateJob,
   ) {
-    const key = EmailService.mailStatusToTemplate.get(status);
-    if (!key) {
-      throw new Error(`Unknown order status: ${status}.`);
-    }
-    await this.enqueueJob(
-      key,
-      data,
-      `order ${data.orderId} with status ${status}`,
-    );
+    const templateKey = this.refundEmailTemplateKeys[status];
+    const context = `refund status changed to ${status} for order ${data.orderId}`;
+    await this.enqueueJob(templateKey, data, context);
   }
 
-  async enqueueJob(
-    jobName: EmailTemplateKey,
+  private async enqueueJob(
+    templateKey: EmailTemplateKey,
     data: MailSenderQueueJob,
     context: string,
   ) {
+    if (!templateKey) {
+      console.error(`Missing template key for: ${context}`);
+      throw new Error(`Invalid template key for ${context}`);
+    }
+
     try {
-      await this.mailSenderQueue.add(jobName, data);
+      await this.mailSenderQueue.add(templateKey, data);
     } catch (error) {
-      console.error(`Failed to enqueue job for ${context}`, error);
+      console.error(`Failed to enqueue email for ${context}`, error);
       throw new Error(`Could not send email for ${context}`);
     }
   }

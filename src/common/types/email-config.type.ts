@@ -4,7 +4,7 @@ export type Template = {
 };
 
 export type EmailTemplates = {
-  passwordReset: Template;
+  authPasswordReset: Template;
   refundCreated: Template;
   refundComplete: Template;
   refundFailed: Template;
@@ -14,9 +14,19 @@ export type EmailTemplates = {
   orderDelivered: Template;
   orderCanceled: Template;
   orderExpired: Template;
+  orderReturned: Template;
 };
 
 export type EmailTemplateKey = keyof EmailTemplates;
+
+export type RefundEmailTemplateKey = Extract<
+  EmailTemplateKey,
+  `refund${string}`
+>;
+
+export type OrderEmailTemplateKey = Extract<EmailTemplateKey, `order${string}`>;
+
+export type AuthEmailTemplateKey = Extract<EmailTemplateKey, `auth${string}`>;
 
 export type EmailConfig = {
   host: string;
