@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailSenderQueueProcessor } from './mail-sender-queue.processor';
-import { MailSenderService } from '../mail-sender/mail-sender.service';
+import { MailSenderService } from '../../mail-sender/mail-sender.service';
 import { Job } from 'bullmq';
 import {
   MailSenderQueueJob,
   PasswordResetJob,
-} from '../common/types/mail-sender-queue-job.type';
-import { EmailTemplateKey } from '../common/types/email-config.type';
+} from '../../common/types/mail-sender-queue-job.type';
+import { EmailTemplateKey } from '../../common/types/email-config.type';
 
 describe('MailSenderQueueProcessor', () => {
   let processor: MailSenderQueueProcessor;

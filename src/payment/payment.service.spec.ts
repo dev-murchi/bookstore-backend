@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
 import { StripeService } from './stripe/stripe.service';
 import Stripe from 'stripe';
-import { PrismaService } from '../prisma/prisma.service';
-import { PaymentStatus } from '../common/enum/payment-status.enum';
 
 const mockStripeService = {
   createCheckoutSession: jest.fn(),
@@ -12,10 +10,6 @@ const mockStripeService = {
 
 const mockStripeWebhookQueue = {
   add: jest.fn(),
-};
-
-const mockPrismaService = {
-  payment: { upsert: jest.fn() },
 };
 
 describe('PaymentService', () => {
@@ -32,10 +26,6 @@ describe('PaymentService', () => {
         {
           provide: 'StripeWebhookQueue',
           useValue: mockStripeWebhookQueue,
-        },
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
         },
       ],
     }).compile();
@@ -131,70 +121,6 @@ describe('PaymentService', () => {
       await expect(
         paymentService.handleStripeWebhook(payload, signature),
       ).rejects.toThrow('Webhook Error: Invalid signature');
-    });
-  });
-
-  describe('createOrUpdatePayment', () => {
-    it('should create a new payment when the order does not exist', async () => {
-      // Arrange
-      const paymentData = {
-        orderId: 'order-uuid-1',
-        transactionId: 'pi_123',
-        status: PaymentStatus.Paid,
-        amount: 1000,
-      };
-
-      mockPrismaService.payment.upsert.mockResolvedValueOnce({
-        id: 'payment-uuid-1',
-        orderId: 'order-uuid-1',
-        transactionId: 'pi_123',
-        status: 'paid',
-        method: 'card',
-        amount: 1000,
-        payment_date: new Date(),
-      });
-
-      const receivedPayment =
-        await paymentService.createOrUpdatePayment(paymentData);
-
-      expect(mockPrismaService.payment.upsert).toHaveBeenCalledWith({
-        where: { orderId: 'order-uuid-1' },
-        update: { status: 'paid' },
-        create: {
-          transactionId: 'pi_123',
-          order: { connect: { id: 'order-uuid-1' } },
-          status: 'paid',
-          method: 'card',
-          amount: 1000,
-        },
-      });
-
-      expect(receivedPayment).toEqual({
-        id: 'payment-uuid-1',
-        transactionId: 'pi_123',
-        status: 'paid',
-        method: 'card',
-        amount: 1000,
-      });
-    });
-
-    it('should propagate error when Prisma throws an exception', async () => {
-      const paymentData = {
-        orderId: 'order-uuid-1',
-        transactionId: 'pi_123',
-        status: PaymentStatus.Paid,
-        amount: 1000,
-      };
-
-      mockPrismaService.payment.upsert.mockRejectedValueOnce(
-        new Error('DB Error'),
-      );
-
-      await expect(
-        paymentService.createOrUpdatePayment(paymentData),
-      ).rejects.toThrow(
-        new Error('An internal server error occurred. Please try again later.'),
-      );
     });
   });
 });

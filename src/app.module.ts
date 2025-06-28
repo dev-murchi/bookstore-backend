@@ -20,6 +20,7 @@ import {
   emailConfig,
   redisConfig,
 } from './common/config';
+import { OrderPaymentModule } from './order-payment/order-payment.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import {
     MailSenderModule,
     EmailModule,
     QueueProcessorModule,
+    OrderPaymentModule,
   ],
   controllers: [],
   providers: [],

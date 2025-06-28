@@ -1,12 +1,12 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { MailSenderService } from '../mail-sender/mail-sender.service';
+import { MailSenderService } from '../../mail-sender/mail-sender.service';
 import {
   MailSenderQueueJob,
   OrderStatusUpdateJob,
   PasswordResetJob,
-} from '../common/types/mail-sender-queue-job.type';
-import { EmailTemplateKey } from '../common/types/email-config.type';
+} from '../../common/types/mail-sender-queue-job.type';
+import { EmailTemplateKey } from '../../common/types/email-config.type';
 
 @Processor('mail-sender-queue')
 export class MailSenderQueueProcessor extends WorkerHost {

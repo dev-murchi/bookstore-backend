@@ -113,7 +113,7 @@ model Order {
   updatedAt       DateTime  @default(now()) @updatedAt
 
   orderItems OrderItem[]
-  payment    Payment?
+  payment    OrderPayment?
   refunds    Refund[]
 }
 
@@ -156,10 +156,10 @@ model Shipping {
   address Address @relation(fields: [addressId], references: [id])
 }
 
-model Payment {
+model OrderPayment {
   id            String   @id @default(uuid())
   orderId       String   @unique
-  transactionId String?
+  transactionId String   @unique
   status        String
   method        String
   amount        Decimal  @db.Decimal(10, 2)
