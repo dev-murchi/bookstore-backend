@@ -97,7 +97,7 @@ const mockPrismaService = {
   book: {
     update: jest.fn(),
   },
-  $transaction: jest.fn((fn) => fn(mockPrismaService)),
+  $transaction: jest.fn().mockImplementation((cb) => cb(mockPrismaService)),
 };
 
 describe('OrdersService', () => {
@@ -525,6 +525,115 @@ describe('OrdersService', () => {
       await expect(
         service['transformToOrder'](mockPrismaOrder1),
       ).rejects.toThrow('Order transformation failed.');
+    });
+  });
+
+  describe('assignGuestToOrder', () => {
+    it('should throw an error if orderId is missing or empty', async () => {
+      const orderId = null;
+      const name = 'guest name';
+      const email = 'guest@email.com';
+
+      await expect(
+        service.assignGuestToOrder(orderId, email, name),
+      ).rejects.toThrow(
+        'Invalid parameter: orderId and guestEmail are required and cannot be empty',
+      );
+    });
+    it('should throw an error if guestEmail is missing or empty', async () => {
+      const orderId = mockPrismaOrder1.id;
+      const name = 'guest name';
+      const email = '   '; // empty after trimming
+
+      await expect(
+        service.assignGuestToOrder(orderId, email, name),
+      ).rejects.toThrow(
+        'Invalid parameter: orderId and guestEmail are required and cannot be empty',
+      );
+    });
+    it('should throw an error if Prisma update fails', async () => {
+      const orderId = mockPrismaOrder1.id;
+      const name = 'guest name';
+      const email = 'guest@email.com';
+
+      mockPrismaService.order.update.mockRejectedValueOnce(
+        new Error('DB Error'),
+      );
+
+      await expect(
+        service.assignGuestToOrder(orderId, email, name),
+      ).rejects.toThrow(`Failed to assign guest to order ${orderId}.`);
+    });
+    it('should successfully assign guest details to an order, even when name is empty', async () => {
+      const orderId = mockPrismaOrder1.id;
+      const name = 'guest name';
+      const email = 'guest@email.com';
+
+      mockPrismaService.order.update
+        .mockResolvedValueOnce({
+          ...mockPrismaOrder1,
+          guestEmail: email,
+          guestName: name,
+        })
+        .mockResolvedValueOnce({
+          ...mockPrismaOrder1,
+          guestEmail: email,
+          guestName: null,
+        });
+
+      const result = await service.assignGuestToOrder(orderId, email, name);
+
+      const resultWithEmptyName = await service.assignGuestToOrder(
+        orderId,
+        email,
+        '   ', // empty after trimming
+      );
+
+      expect(result).toEqual({
+        id: orderId1,
+        owner: new OrderOwnerDTO(null, name, email),
+        status: 'pending',
+        price: 21.25,
+        items: [
+          new OrderItemDTO(
+            new BookDTO(
+              bookId,
+              'Test Book',
+              'test book description',
+              'book-isbn',
+              { name: 'Traveller Hobbit' },
+              new CategoryDTO(1, 'test category'),
+              21.25,
+              4.0,
+              'book-image-url',
+            ),
+            1,
+          ),
+        ],
+      });
+
+      expect(resultWithEmptyName).toEqual({
+        id: orderId1,
+        owner: new OrderOwnerDTO(null, null, email),
+        status: 'pending',
+        price: 21.25,
+        items: [
+          new OrderItemDTO(
+            new BookDTO(
+              bookId,
+              'Test Book',
+              'test book description',
+              'book-isbn',
+              { name: 'Traveller Hobbit' },
+              new CategoryDTO(1, 'test category'),
+              21.25,
+              4.0,
+              'book-image-url',
+            ),
+            1,
+          ),
+        ],
+      });
     });
   });
 });

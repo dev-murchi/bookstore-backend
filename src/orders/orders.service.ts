@@ -216,8 +216,12 @@ export class OrdersService {
       if (user) {
         orderData.owner = new OrderOwnerDTO(user.id, user.name, user.email);
       } else {
-        if (guestName && guestEmail) {
-          orderData.owner = new OrderOwnerDTO(null, guestName, guestEmail);
+        if (guestEmail?.trim()) {
+          orderData.owner = new OrderOwnerDTO(
+            null,
+            guestName?.trim() || null,
+            guestEmail,
+          );
         } else {
           orderData.owner = null;
         }
@@ -234,7 +238,7 @@ export class OrdersService {
         addressData.postalCode = shippingDetails.address.postalCode;
 
         shippingData.email = shippingDetails.email;
-        shippingData.phone = shippingDetails.phone;
+        shippingData.phone = shippingDetails.phone || null;
         shippingData.address = addressData;
 
         orderData.shipping = shippingData;
@@ -260,6 +264,36 @@ export class OrdersService {
     } catch (error) {
       console.error('Failed to transform order:', error);
       throw new Error('Order transformation failed.');
+    }
+  }
+
+  async assignGuestToOrder(orderId: string, email: string, name: string) {
+    // trim guestName and guestEmail
+    const guestName = name?.trim() || null;
+    const guestEmail = email?.trim() || null;
+
+    if (!orderId || !guestEmail) {
+      throw new Error(
+        'Invalid parameter: orderId and guestEmail are required and cannot be empty',
+      );
+    }
+    try {
+      const order = await this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+          guestName,
+          guestEmail,
+          updatedAt: new Date(),
+        },
+        select: this.orderSelect,
+      });
+      return await this.transformToOrder(order);
+    } catch (error) {
+      console.error(
+        `Failed to assign guest to order ${orderId}. Error:`,
+        error,
+      );
+      throw new Error(`Failed to assign guest to order ${orderId}.`);
     }
   }
 }

@@ -9,7 +9,7 @@ import { OrdersService } from '../../orders/orders.service';
 import { OrderDTO } from '../../common/dto/order.dto';
 
 const mockPrismaService = {
-  $transaction: jest.fn((fn) => fn(mockPrismaService)),
+  $transaction: jest.fn().mockImplementation((cb) => cb(mockPrismaService)),
 };
 
 const mockOrdersService = {

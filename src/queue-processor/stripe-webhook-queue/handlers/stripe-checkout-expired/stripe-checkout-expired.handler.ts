@@ -66,6 +66,31 @@ export class StripeCheckoutExpired implements StripeHandler {
       // revert stocks
       await this.ordersService.revertOrderStocks(order.id);
 
+      // handle guest checkout
+      if (!order.owner) {
+        // ensure customer details are present
+        if (eventData.customer_details) {
+          // extract and trim the guest's email and name
+          const guestEmail = eventData.customer_details.email?.trim() || null;
+          const guestName = eventData.customer_details.name?.trim() || null;
+
+          // assign guest to order if email is available
+          if (guestEmail) {
+            await this.ordersService.assignGuestToOrder(
+              order.id,
+              guestEmail,
+              guestName,
+            );
+          } else {
+            console.info(`Guest email is missing for Order: ${order.id}`);
+          }
+        } else {
+          console.info(
+            `Customer details are missing in event data for Order: ${order.id}`,
+          );
+        }
+      }
+
       return { success: true, log: null };
     } catch (error) {
       console.error(

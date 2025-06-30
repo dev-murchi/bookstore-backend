@@ -1,4 +1,4 @@
-import { IsEmail, IsString, ValidateNested } from 'class-validator';
+import { IsEmail, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { AddressDTO } from './address.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -17,8 +17,9 @@ export class ShippingDTO {
     type: String,
     example: '999-009-0009',
   })
+  @IsOptional()
   @IsString()
-  phone: string;
+  phone?: string;
 
   @ApiProperty({
     description: 'Shipping address of the recipient',

@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 const mockOrdersService = {
   updateStatus: jest.fn(),
   revertOrderStocks: jest.fn(),
+  assignGuestToOrder: jest.fn(),
 };
 const mockOrderPaymentService = {
   update: jest.fn(),
@@ -20,6 +21,11 @@ const mockOrderWithoutPayment = {
   id: 'order-uuid-1',
   status: OrderStatus.Pending,
   payment: undefined,
+  owner: {
+    id: 'user-uuid-1',
+    name: 'test user',
+    email: 'testuser@email.com',
+  },
 } as OrderDTO;
 
 const mockOrderWithPayment = {
@@ -29,7 +35,20 @@ const mockOrderWithPayment = {
     id: 'payment-uuid-1',
     transactionId: 'txn-1234',
   },
+  owner: {
+    id: 'user-uuid-1',
+    name: 'test user',
+    email: 'testuser@email.com',
+  },
 } as OrderDTO;
+
+const mockGuestOrder = {
+  id: 'order-uuid-guest',
+  status: OrderStatus.Pending,
+  payment: undefined,
+  owner: null,
+} as OrderDTO;
+
 describe('StripeCheckoutExpired', () => {
   let provider: StripeCheckoutExpired;
 
@@ -103,7 +122,7 @@ describe('StripeCheckoutExpired', () => {
       });
     });
 
-    it('should handle when the given order has a payment', async () => {
+    it('should handle when the given order has a payment for the registered user', async () => {
       const eventData = {
         payment_intent: mockOrderWithPayment.payment.transactionId,
         amount_total: 100,
@@ -128,7 +147,7 @@ describe('StripeCheckoutExpired', () => {
         order.id,
       );
     });
-    it('should handle when the given order has no payment', async () => {
+    it('should handle when the given order has no payment for the registered user', async () => {
       const eventData = {
         payment_intent: null,
         amount_total: 100,
@@ -161,6 +180,101 @@ describe('StripeCheckoutExpired', () => {
       await expect(provider.handle(eventData, order)).rejects.toThrow(
         `Failed to handle StripeCheckoutExpired event for Order ${order.id}. An unexpected error occurred.`,
       );
+    });
+
+    it('should not assign guest if customer details are missing', async () => {
+      const eventData = {
+        payment_intent: null,
+        amount_total: 100,
+        customer_details: null,
+      } as unknown as Stripe.Checkout.Session;
+
+      const order = { ...mockGuestOrder };
+
+      const consoleSpy = jest
+        .spyOn(console, 'info')
+        .mockImplementation(() => {});
+
+      const result = await provider.handle(eventData, order);
+
+      expect(mockOrdersService.assignGuestToOrder).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        `Customer details are missing in event data for Order: ${order.id}`,
+      );
+      expect(result).toEqual({ success: true, log: null });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should not assign guest if email is missing in customer details for the guest user', async () => {
+      const eventData = {
+        payment_intent: null,
+        amount_total: 100,
+        customer_details: {
+          email: '   ', // empty after trimming
+          name: 'guest user',
+        },
+      } as unknown as Stripe.Checkout.Session;
+
+      const order = { ...mockGuestOrder };
+
+      const consoleSpy = jest
+        .spyOn(console, 'info')
+        .mockImplementation(() => {});
+
+      const result = await provider.handle(eventData, order);
+
+      expect(mockOrdersService.assignGuestToOrder).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        `Guest email is missing for Order: ${order.id}`,
+      );
+      expect(result).toEqual({ success: true, log: null });
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should assign guest with trimmed email and name (or null if name empty) when customer details and email are provide for the guest user', async () => {
+      const eventData = {
+        payment_intent: null,
+        amount_total: 100,
+        customer_details: {
+          email: ' guest@example.com ',
+          name: ' guest user ',
+        },
+      } as unknown as Stripe.Checkout.Session;
+
+      const order = { ...mockGuestOrder };
+
+      // First case: with guest name
+      const resultWithGuestName = await provider.handle(eventData, order);
+      expect(mockOrdersService.assignGuestToOrder).toHaveBeenCalledWith(
+        order.id,
+        'guest@example.com',
+        'guest user',
+      );
+      expect(resultWithGuestName).toEqual({ success: true, log: null });
+
+      mockOrdersService.assignGuestToOrder.mockClear();
+
+      // Second case: with empty guest name (should become null)
+      const eventDataEmptyName = {
+        ...eventData,
+        customer_details: {
+          ...eventData.customer_details,
+          name: '    ', // empty whitespace name
+        },
+      };
+
+      const resultEmptyGuestName = await provider.handle(
+        eventDataEmptyName,
+        order,
+      );
+      expect(mockOrdersService.assignGuestToOrder).toHaveBeenCalledWith(
+        order.id,
+        'guest@example.com',
+        null,
+      );
+      expect(resultEmptyGuestName).toEqual({ success: true, log: null });
     });
   });
 });

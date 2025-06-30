@@ -93,6 +93,24 @@ export class StripeCheckoutComplete implements StripeHandler {
         },
       });
 
+      // handle guest checkout
+      if (!order.owner) {
+        // extract and trim the guest's email and name
+        const guestEmail = eventData.customer_details.email?.trim() || null;
+        const guestName = eventData.customer_details.name?.trim() || null;
+
+        // assign guest to order if email is available
+        if (guestEmail) {
+          await this.ordersService.assignGuestToOrder(
+            order.id,
+            guestEmail,
+            guestName,
+          );
+        } else {
+          console.info(`Guest email is missing for Order: ${order.id}`);
+        }
+      }
+
       return { success: true, log: null };
     } catch (error) {
       console.error(
