@@ -186,7 +186,6 @@ model Refund {
   id            Int      @id @default(autoincrement())
   refundId      String   @unique
   orderId       String
-  transactionId String
   status        String
   amount        Decimal  @db.Decimal(10, 2)
   createdAt     DateTime @default(now())

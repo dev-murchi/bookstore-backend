@@ -21,6 +21,7 @@ import {
   redisConfig,
 } from './common/config';
 import { OrderPaymentModule } from './order-payment/order-payment.module';
+import { RefundModule } from './refund/refund.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { OrderPaymentModule } from './order-payment/order-payment.module';
     EmailModule,
     QueueProcessorModule,
     OrderPaymentModule,
+    RefundModule,
   ],
   controllers: [],
   providers: [],
