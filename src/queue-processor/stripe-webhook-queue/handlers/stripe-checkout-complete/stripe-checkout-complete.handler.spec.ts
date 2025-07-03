@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { StripeCheckoutComplete } from './stripe-checkout-complete.handler';
+import { StripeCheckoutCompleteHandler } from './stripe-checkout-complete.handler';
 import { OrdersService } from '../../../../orders/orders.service';
 import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
 import { ShippingService } from '../../../../orders/shipping/shipping.service';
@@ -45,20 +45,22 @@ const mockOrderWithPayment = {
     email: 'testuser@email.com',
   },
 } as OrderDTO;
-describe('StripeCheckoutComplete', () => {
-  let provider: StripeCheckoutComplete;
+describe('StripeCheckoutCompleteHandler', () => {
+  let provider: StripeCheckoutCompleteHandler;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        StripeCheckoutComplete,
+        StripeCheckoutCompleteHandler,
         { provide: OrdersService, useValue: mockOrdersService },
         { provide: OrderPaymentService, useValue: mockOrderPaymentService },
         { provide: ShippingService, useValue: mockShippingService },
       ],
     }).compile();
 
-    provider = module.get<StripeCheckoutComplete>(StripeCheckoutComplete);
+    provider = module.get<StripeCheckoutCompleteHandler>(
+      StripeCheckoutCompleteHandler,
+    );
   });
 
   it('should be defined', () => {
@@ -247,7 +249,7 @@ describe('StripeCheckoutComplete', () => {
       );
 
       await expect(provider.handle(eventData, order)).rejects.toThrow(
-        `Failed to handle StripeCheckoutComplete event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripeCheckoutCompleteHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     });
 

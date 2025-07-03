@@ -11,7 +11,7 @@ import { PaymentData } from '../../../../common/types/payment-data.interface';
 import Stripe from 'stripe';
 
 @Injectable()
-export class StripeCheckoutComplete implements StripeHandler {
+export class StripeCheckoutCompleteHandler implements StripeHandler {
   eventType = StripeEvent.CheckoutSessionCompleted;
 
   constructor(
@@ -114,12 +114,12 @@ export class StripeCheckoutComplete implements StripeHandler {
       return { success: true, log: null };
     } catch (error) {
       console.error(
-        `Failed to handle StripeCheckoutComplete event for Order ${order.id}. log:`,
+        `Failed to handle StripeCheckoutCompleteHandler event for Order ${order.id}. log:`,
         error,
       );
 
       throw new Error(
-        `Failed to handle StripeCheckoutComplete event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripeCheckoutCompleteHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     }
   }

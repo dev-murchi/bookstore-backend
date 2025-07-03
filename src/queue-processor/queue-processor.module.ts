@@ -9,9 +9,9 @@ import { MailSenderQueueProcessor } from './mail-sender-queue/mail-sender-queue.
 import { EmailModule } from 'src/email/email.module';
 import { MailSenderModule } from 'src/mail-sender/mail-sender.module';
 import { OrderPaymentModule } from 'src/order-payment/order-payment.module';
-import { StripeCheckoutExpired } from './stripe-webhook-queue/handlers/stripe-checkout-expired/stripe-checkout-expired.handler';
-import { StripePaymentFailed } from './stripe-webhook-queue/handlers/stripe-payment-failed/stripe-payment-failed.handler';
-import { StripeCheckoutComplete } from './stripe-webhook-queue/handlers/stripe-checkout-complete/stripe-checkout-complete.handler';
+import { StripeCheckoutExpiredHandler } from './stripe-webhook-queue/handlers/stripe-checkout-expired/stripe-checkout-expired.handler';
+import { StripePaymentFailedHandler } from './stripe-webhook-queue/handlers/stripe-payment-failed/stripe-payment-failed.handler';
+import { StripeCheckoutCompleteHandler } from './stripe-webhook-queue/handlers/stripe-checkout-complete/stripe-checkout-complete.handler';
 @Module({
   imports: [
     PaymentModule,
@@ -23,20 +23,20 @@ import { StripeCheckoutComplete } from './stripe-webhook-queue/handlers/stripe-c
   providers: [
     StripeWebhookProcessor,
     MailSenderQueueProcessor,
-    StripePaymentFailed,
-    StripeCheckoutExpired,
-    StripeCheckoutComplete,
+    StripePaymentFailedHandler,
+    StripeCheckoutExpiredHandler,
+    StripeCheckoutCompleteHandler,
     {
       provide: STRIPE_HANDLER_TOKEN,
       useFactory: (
-        stripePaymentFailed: StripePaymentFailed,
-        stripeCheckoutExpired: StripeCheckoutExpired,
-        stripeCheckoutComplete: StripeCheckoutComplete,
+        stripePaymentFailed: StripePaymentFailedHandler,
+        stripeCheckoutExpired: StripeCheckoutExpiredHandler,
+        stripeCheckoutComplete: StripeCheckoutCompleteHandler,
       ) => [stripePaymentFailed, stripeCheckoutExpired, stripeCheckoutComplete],
       inject: [
-        StripePaymentFailed,
-        StripeCheckoutExpired,
-        StripeCheckoutComplete,
+        StripePaymentFailedHandler,
+        StripeCheckoutExpiredHandler,
+        StripeCheckoutCompleteHandler,
       ],
     },
   ],

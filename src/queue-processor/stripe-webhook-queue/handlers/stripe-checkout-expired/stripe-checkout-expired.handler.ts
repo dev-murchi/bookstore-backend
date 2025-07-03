@@ -9,7 +9,7 @@ import { OrderDTO } from '../../../../common/dto/order.dto';
 import Stripe from 'stripe';
 
 @Injectable()
-export class StripeCheckoutExpired implements StripeHandler {
+export class StripeCheckoutExpiredHandler implements StripeHandler {
   eventType = StripeEvent.CheckoutSessionExpired;
 
   constructor(
@@ -94,12 +94,12 @@ export class StripeCheckoutExpired implements StripeHandler {
       return { success: true, log: null };
     } catch (error) {
       console.error(
-        `Failed to handle StripeCheckoutExpired event for Order ${order.id}. log:`,
+        `Failed to handle StripeCheckoutExpiredHandler event for Order ${order.id}. log:`,
         error,
       );
 
       throw new Error(
-        `Failed to handle StripeCheckoutExpired event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripeCheckoutExpiredHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     }
   }

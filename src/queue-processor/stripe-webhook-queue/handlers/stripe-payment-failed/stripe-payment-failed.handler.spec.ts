@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { StripePaymentFailed } from './stripe-payment-failed.handler';
+import { StripePaymentFailedHandler } from './stripe-payment-failed.handler';
 import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
 import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
 import { OrderDTO } from '../../../../common/dto/order.dto';
@@ -22,18 +22,20 @@ const mockOrderWithPayment = {
   },
 } as OrderDTO;
 
-describe('StripePaymentFailed', () => {
-  let provider: StripePaymentFailed;
+describe('StripePaymentFailedHandler', () => {
+  let provider: StripePaymentFailedHandler;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        StripePaymentFailed,
+        StripePaymentFailedHandler,
         { provide: OrderPaymentService, useValue: mockOrderPaymentService },
       ],
     }).compile();
 
-    provider = module.get<StripePaymentFailed>(StripePaymentFailed);
+    provider = module.get<StripePaymentFailedHandler>(
+      StripePaymentFailedHandler,
+    );
   });
 
   it('should be defined', () => {
@@ -111,7 +113,7 @@ describe('StripePaymentFailed', () => {
         new Error('DB Error'),
       );
       await expect(provider.handle(eventData, order)).rejects.toThrow(
-        `Failed to handle StripePaymentFailed event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripePaymentFailedHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     });
   });

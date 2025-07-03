@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { StripeCheckoutExpired } from './stripe-checkout-expired.handler';
+import { StripeCheckoutExpiredHandler } from './stripe-checkout-expired.handler';
 import { OrdersService } from '../../../../orders/orders.service';
 import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
 import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
@@ -49,19 +49,21 @@ const mockGuestOrder = {
   owner: null,
 } as OrderDTO;
 
-describe('StripeCheckoutExpired', () => {
-  let provider: StripeCheckoutExpired;
+describe('StripeCheckoutExpiredHandler', () => {
+  let provider: StripeCheckoutExpiredHandler;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        StripeCheckoutExpired,
+        StripeCheckoutExpiredHandler,
         { provide: OrdersService, useValue: mockOrdersService },
         { provide: OrderPaymentService, useValue: mockOrderPaymentService },
       ],
     }).compile();
 
-    provider = module.get<StripeCheckoutExpired>(StripeCheckoutExpired);
+    provider = module.get<StripeCheckoutExpiredHandler>(
+      StripeCheckoutExpiredHandler,
+    );
   });
   afterEach(() => {
     jest.clearAllMocks();
@@ -178,7 +180,7 @@ describe('StripeCheckoutExpired', () => {
       );
 
       await expect(provider.handle(eventData, order)).rejects.toThrow(
-        `Failed to handle StripeCheckoutExpired event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripeCheckoutExpiredHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     });
 

@@ -9,7 +9,7 @@ import { OrderDTO } from '../../../../common/dto/order.dto';
 import Stripe from 'stripe';
 
 @Injectable()
-export class StripePaymentFailed implements StripeHandler {
+export class StripePaymentFailedHandler implements StripeHandler {
   readonly eventType: StripeEvent = StripeEvent.PaymentIntentFailed;
   constructor(private readonly orderPaymentService: OrderPaymentService) {}
   async handle(
@@ -49,12 +49,12 @@ export class StripePaymentFailed implements StripeHandler {
       return { success: true, log: null };
     } catch (error) {
       console.error(
-        `Failed to handle StripePaymentFailed event for Order ${order.id}. log:`,
+        `Failed to handle StripePaymentFailedHandler event for Order ${order.id}. log:`,
         error,
       );
 
       throw new Error(
-        `Failed to handle StripePaymentFailed event for Order ${order.id}. An unexpected error occurred.`,
+        `Failed to handle StripePaymentFailedHandler event for Order ${order.id}. An unexpected error occurred.`,
       );
     }
   }
