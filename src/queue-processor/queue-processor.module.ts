@@ -12,6 +12,10 @@ import { OrderPaymentModule } from 'src/order-payment/order-payment.module';
 import { StripeCheckoutExpiredHandler } from './stripe-webhook-queue/handlers/stripe-checkout-expired/stripe-checkout-expired.handler';
 import { StripePaymentFailedHandler } from './stripe-webhook-queue/handlers/stripe-payment-failed/stripe-payment-failed.handler';
 import { StripeCheckoutCompleteHandler } from './stripe-webhook-queue/handlers/stripe-checkout-complete/stripe-checkout-complete.handler';
+import { StripeRefundCompleteHandler } from './stripe-webhook-queue/handlers/stripe-refund/stripe-refund-complete/stripe-refund-complete.handler';
+import { StripeRefundCreatedHandler } from './stripe-webhook-queue/handlers/stripe-refund/stripe-refund-created/stripe-refund-created.handler';
+import { StripeRefundFailedHandler } from './stripe-webhook-queue/handlers/stripe-refund/stripe-refund-failed/stripe-refund-failed.handler';
+import { RefundModule } from 'src/refund/refund.module';
 @Module({
   imports: [
     PaymentModule,
@@ -19,6 +23,7 @@ import { StripeCheckoutCompleteHandler } from './stripe-webhook-queue/handlers/s
     EmailModule,
     MailSenderModule,
     OrderPaymentModule,
+    RefundModule,
   ],
   providers: [
     StripeWebhookProcessor,
@@ -26,17 +31,33 @@ import { StripeCheckoutCompleteHandler } from './stripe-webhook-queue/handlers/s
     StripePaymentFailedHandler,
     StripeCheckoutExpiredHandler,
     StripeCheckoutCompleteHandler,
+    StripeRefundCreatedHandler,
+    StripeRefundCompleteHandler,
+    StripeRefundFailedHandler,
     {
       provide: STRIPE_HANDLER_TOKEN,
       useFactory: (
         stripePaymentFailed: StripePaymentFailedHandler,
         stripeCheckoutExpired: StripeCheckoutExpiredHandler,
         stripeCheckoutComplete: StripeCheckoutCompleteHandler,
-      ) => [stripePaymentFailed, stripeCheckoutExpired, stripeCheckoutComplete],
+        stripeRefundCreatedHandler: StripeRefundCreatedHandler,
+        stripeRefundCompleteHandler: StripeRefundCompleteHandler,
+        stripeRefundFailedHandler: StripeRefundFailedHandler,
+      ) => [
+        stripePaymentFailed,
+        stripeCheckoutExpired,
+        stripeCheckoutComplete,
+        stripeRefundCreatedHandler,
+        stripeRefundCompleteHandler,
+        stripeRefundFailedHandler,
+      ],
       inject: [
         StripePaymentFailedHandler,
         StripeCheckoutExpiredHandler,
         StripeCheckoutCompleteHandler,
+        StripeRefundCreatedHandler,
+        StripeRefundCompleteHandler,
+        StripeRefundFailedHandler,
       ],
     },
   ],
