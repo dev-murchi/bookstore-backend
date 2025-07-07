@@ -21,7 +21,6 @@ import { Request } from 'express';
 import { OrderStatusDTO } from '../common/dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { EmailService } from '../email/email.service';
 import { OrderDTO } from '../common/dto/order.dto';
 import { OrderStatus } from '../common/enum/order-status.enum';
 import { StripeService } from '../payment/stripe/stripe.service';
@@ -39,6 +38,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { OrderEmailTemplateKey } from '../common/types/email-config.type';
+import { QueueService } from '../queue/queue.service';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -57,7 +57,7 @@ export class OrdersController {
   constructor(
     private ordersService: OrdersService,
     private ordersStatusService: OrdersStatusService,
-    private readonly emailService: EmailService,
+    private readonly queueService: QueueService,
     private readonly stripeService: StripeService,
   ) {}
 
@@ -101,8 +101,9 @@ export class OrdersController {
       const emailTemplateKey = this.orderStatusToEmailTemplateMap.get(
         orderStatusDTO.status,
       );
+
       if (emailTemplateKey) {
-        await this.emailService.sendOrderMail(emailTemplateKey, {
+        await this.queueService.addOrderMailJob(emailTemplateKey, {
           orderId,
           email: order.owner.email,
           username: order.owner.name,

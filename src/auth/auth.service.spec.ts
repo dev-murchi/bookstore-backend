@@ -4,13 +4,13 @@ import { UserService } from '../user/user.service';
 import { SignupDTO } from '../common/dto/signup.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import { EmailService } from '../email/email.service';
 import { RoleEnum } from '../common/enum/role.enum';
 
 import { HelperService } from '../common/helper.service';
 import { CustomAPIError } from '../common/errors/custom-api.error';
 import { ConfigService } from '@nestjs/config';
 import { UserSessionService } from '../user/user-session/user-session.service';
+import { QueueService } from '../queue/queue.service';
 
 const mockUserService = {
   create: jest.fn(),
@@ -25,8 +25,8 @@ const mockJwtService = {
   signAsync: jest.fn(),
 };
 
-const mockEmailService = {
-  sendAuthMail: jest.fn(),
+const mockQueueService = {
+  addAuthMailJob: jest.fn(),
 };
 
 const mockConfigService = {
@@ -46,8 +46,6 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: UserService;
 
-  let emailService: EmailService;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,8 +60,8 @@ describe('AuthService', () => {
         },
 
         {
-          provide: EmailService,
-          useValue: mockEmailService,
+          provide: QueueService,
+          useValue: mockQueueService,
         },
 
         { provide: ConfigService, useValue: mockConfigService },
@@ -73,8 +71,6 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
-
-    emailService = module.get<EmailService>(EmailService);
   });
 
   afterEach(() => {
@@ -228,7 +224,7 @@ describe('AuthService', () => {
       expect(userService.findByEmail).toHaveBeenCalledWith(
         'testuser@email.com',
       );
-      expect(emailService.sendAuthMail).toHaveBeenCalledWith(
+      expect(mockQueueService.addAuthMailJob).toHaveBeenCalledWith(
         'authPasswordReset',
         {
           email: 'testuser@email.com',

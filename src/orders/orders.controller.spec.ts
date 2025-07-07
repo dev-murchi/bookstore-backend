@@ -3,9 +3,9 @@ import { OrdersController } from './orders.controller';
 
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { EmailService } from '../email/email.service';
 import { StripeService } from '../payment/stripe/stripe.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { QueueService } from '../queue/queue.service';
 
 const mockOrdersService = {
   getOrder: jest.fn(),
@@ -17,8 +17,8 @@ const mockOrdersStatusService = {
   cancelOrder: jest.fn(),
 };
 
-const mockEmailService = {
-  sendOrderStatusUpdate: jest.fn(),
+const mockQueueService = {
+  addOrderMailJob: jest.fn(),
 };
 
 const mockStripeService = {
@@ -35,8 +35,8 @@ describe('OrdersController', () => {
         { provide: OrdersService, useValue: mockOrdersService },
         { provide: OrdersStatusService, useValue: mockOrdersStatusService },
         {
-          provide: EmailService,
-          useValue: mockEmailService,
+          provide: QueueService,
+          useValue: mockQueueService,
         },
         { provide: StripeService, useValue: mockStripeService },
       ],

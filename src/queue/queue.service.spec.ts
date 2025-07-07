@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmailService } from './email.service';
+import { QueueService } from './queue.service';
 import {
   AuthEmailTemplateKey,
   OrderEmailTemplateKey,
@@ -15,19 +15,19 @@ const mockAuthMailQueue = {
   add: jest.fn(),
 };
 
-describe('EmailService', () => {
-  let service: EmailService;
+describe('QueueService', () => {
+  let service: QueueService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        EmailService,
+        QueueService,
         { provide: 'OrderMailQueue', useValue: mockOrderMailQueue },
         { provide: 'AuthMailQueue', useValue: mockAuthMailQueue },
       ],
     }).compile();
 
-    service = module.get<EmailService>(EmailService);
+    service = module.get<QueueService>(QueueService);
 
     jest.clearAllMocks();
   });
@@ -36,7 +36,7 @@ describe('EmailService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('sendAuthMail', () => {
+  describe('addAuthMailJob', () => {
     it('should add an authPasswordReset mail job to the queue on success', async () => {
       const templateKey: AuthEmailTemplateKey = 'authPasswordReset';
       const data: AuthMailJob = {
@@ -46,7 +46,7 @@ describe('EmailService', () => {
           'http://localhost/reset-password?token=reset-token-123',
       };
 
-      await service.sendAuthMail(templateKey, data);
+      await service.addAuthMailJob(templateKey, data);
 
       expect(mockAuthMailQueue.add).toHaveBeenCalledTimes(1);
       expect(mockAuthMailQueue.add).toHaveBeenCalledWith(templateKey, data);
@@ -64,7 +64,7 @@ describe('EmailService', () => {
           'http://localhost/reset-password?token=reset-token-123',
       };
 
-      await expect(service.sendAuthMail(templateKey, data)).rejects.toThrow(
+      await expect(service.addAuthMailJob(templateKey, data)).rejects.toThrow(
         'Failed to add to the queue',
       );
 
@@ -73,7 +73,7 @@ describe('EmailService', () => {
     });
   });
 
-  describe('sendOrderMail', () => {
+  describe('addOrderMailJob', () => {
     it('should add an order mail job to the queue on success', async () => {
       const templateKey: OrderEmailTemplateKey = 'orderDelivered';
       const data: OrderMailJob = {
@@ -82,7 +82,7 @@ describe('EmailService', () => {
         orderId: 'order-uuid-1',
       };
 
-      await service.sendOrderMail(templateKey, data);
+      await service.addOrderMailJob(templateKey, data);
 
       expect(mockOrderMailQueue.add).toHaveBeenCalledTimes(1);
       expect(mockOrderMailQueue.add).toHaveBeenCalledWith(templateKey, data);
@@ -100,7 +100,7 @@ describe('EmailService', () => {
         refundId: 're_created_123',
       };
 
-      await expect(service.sendOrderMail(templateKey, data)).rejects.toThrow(
+      await expect(service.addOrderMailJob(templateKey, data)).rejects.toThrow(
         'Failed to add to the queue',
       );
 

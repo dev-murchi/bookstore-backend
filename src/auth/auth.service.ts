@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { LoginDTO } from '../common/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { EmailService } from '../email/email.service';
 import { PasswordResetDTO } from '../common/dto/password-reset.dto';
 import { RoleEnum } from '../common/enum/role.enum';
 import { CustomAPIError } from '../common/errors/custom-api.error';
@@ -11,6 +10,7 @@ import { UserDTO } from '../common/dto/user.dto';
 import { ConfigService } from '@nestjs/config';
 import { HelperService } from '../common/helper.service';
 import { UserSessionService } from '../user/user-session/user-session.service';
+import { QueueService } from '../queue/queue.service';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +19,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private jwtService: JwtService,
-    private emailService: EmailService,
+    private queueService: QueueService,
     private configService: ConfigService,
     private userSessionService: UserSessionService,
   ) {
@@ -83,7 +83,7 @@ export class AuthService {
       // send password reset mail
       const link = `http://localhost/reset-password?token=${resetToken.token}`;
 
-      await this.emailService.sendAuthMail('authPasswordReset', {
+      await this.queueService.addAuthMailJob('authPasswordReset', {
         username: user.name,
         email: user.email,
         passwordResetLink: link,

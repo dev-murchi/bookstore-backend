@@ -4,12 +4,13 @@ import {
   AuthEmailTemplateKey,
   OrderEmailTemplateKey,
   RefundEmailTemplateKey,
-} from '../common/types/email-config.type';
-import { AuthMailJob, OrderMailJob } from '../common/types/email-job.type';
+} from 'src/common/types/email-config.type';
+import { OrderMailJob, AuthMailJob } from 'src/common/types/email-job.type';
 
 type MailTemplateKeys = OrderEmailTemplateKey | RefundEmailTemplateKey;
+
 @Injectable()
-export class EmailService {
+export class QueueService {
   constructor(
     @Inject('OrderMailQueue')
     private readonly orderMailQueue: Queue<OrderMailJob, any, MailTemplateKeys>,
@@ -21,7 +22,7 @@ export class EmailService {
     >,
   ) {}
 
-  async sendAuthMail(templateKey: AuthEmailTemplateKey, data: AuthMailJob) {
+  async addAuthMailJob(templateKey: AuthEmailTemplateKey, data: AuthMailJob) {
     try {
       await this.authMailQueue.add(templateKey, data);
     } catch (error) {
@@ -30,7 +31,7 @@ export class EmailService {
     }
   }
 
-  async sendOrderMail(templateKey: MailTemplateKeys, data: OrderMailJob) {
+  async addOrderMailJob(templateKey: MailTemplateKeys, data: OrderMailJob) {
     try {
       await this.orderMailQueue.add(templateKey, data);
     } catch (error) {

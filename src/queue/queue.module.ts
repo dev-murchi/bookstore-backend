@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { BullModule, getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { QueueService } from './queue.service';
+
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -18,7 +20,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
     BullModule.registerQueue(
       { name: 'stripe-webhook-queue' },
-      { name: 'mail-sender-queue' },
       { name: 'order-mail-queue' },
       { name: 'auth-mail-queue' },
     ),
@@ -39,7 +40,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       useFactory: (queue: Queue) => queue,
       inject: [getQueueToken('auth-mail-queue')],
     },
+    QueueService,
   ],
-  exports: ['StripeWebhookQueue', 'OrderMailQueue', 'AuthMailQueue'],
+  exports: [QueueService],
 })
 export class QueueModule {}
