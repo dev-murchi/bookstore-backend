@@ -83,10 +83,10 @@ export class AuthService {
       // send password reset mail
       const link = `http://localhost/reset-password?token=${resetToken.token}`;
 
-      await this.emailService.sendResetPasswordMail({
+      await this.emailService.sendAuthMail('authPasswordReset', {
         username: user.name,
         email: user.email,
-        link,
+        passwordResetLink: link,
       });
     }
 

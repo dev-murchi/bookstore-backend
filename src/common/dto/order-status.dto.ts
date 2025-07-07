@@ -10,5 +10,5 @@ export class OrderStatusDTO {
     example: OrderStatus.Shipped,
   })
   @IsEnum(OrderStatus)
-  status: string;
+  status: OrderStatus;
 }

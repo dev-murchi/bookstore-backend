@@ -38,12 +38,22 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
+import { OrderEmailTemplateKey } from '../common/types/email-config.type';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RoleGuard)
 @ApiTags('Orders')
 @ApiBearerAuth()
 export class OrdersController {
+  private orderStatusToEmailTemplateMap = new Map<
+    OrderStatus,
+    OrderEmailTemplateKey
+  >([
+    [OrderStatus.Delivered, 'orderDelivered'],
+    [OrderStatus.Shipped, 'orderShipped'],
+    [OrderStatus.Canceled, 'orderCanceled'],
+  ]);
+
   constructor(
     private ordersService: OrdersService,
     private ordersStatusService: OrdersStatusService,
@@ -88,11 +98,20 @@ export class OrdersController {
           throw new Error('Invalid order status.');
       }
 
-      await this.emailService.sendOrderStatusChangeMail(order.status, {
-        orderId,
-        username: order.shipping.email,
-        email: order.shipping.email,
-      });
+      const emailTemplateKey = this.orderStatusToEmailTemplateMap.get(
+        orderStatusDTO.status,
+      );
+      if (emailTemplateKey) {
+        await this.emailService.sendOrderMail(emailTemplateKey, {
+          orderId,
+          email: order.owner.email,
+          username: order.owner.name,
+        });
+      } else {
+        console.warn(
+          `No email template found for order status '${orderStatusDTO.status}', email notification not sent.`,
+        );
+      }
 
       return order;
     } catch (error) {

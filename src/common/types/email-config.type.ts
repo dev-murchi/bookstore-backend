@@ -37,3 +37,5 @@ export type EmailConfig = {
   supportEmail: string;
   templates: EmailTemplates;
 };
+
+export type EmailTemplateField = { key: string; value: string };

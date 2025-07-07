@@ -19,6 +19,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     BullModule.registerQueue(
       { name: 'stripe-webhook-queue' },
       { name: 'mail-sender-queue' },
+      { name: 'order-mail-queue' },
+      { name: 'auth-mail-queue' },
     ),
   ],
   providers: [
@@ -28,11 +30,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       inject: [getQueueToken('stripe-webhook-queue')],
     },
     {
-      provide: 'MailSenderQueue',
+      provide: 'OrderMailQueue',
       useFactory: (queue: Queue) => queue,
-      inject: [getQueueToken('mail-sender-queue')],
+      inject: [getQueueToken('order-mail-queue')],
+    },
+    {
+      provide: 'AuthMailQueue',
+      useFactory: (queue: Queue) => queue,
+      inject: [getQueueToken('auth-mail-queue')],
     },
   ],
-  exports: ['StripeWebhookQueue', 'MailSenderQueue'],
+  exports: ['StripeWebhookQueue', 'OrderMailQueue', 'AuthMailQueue'],
 })
 export class QueueModule {}

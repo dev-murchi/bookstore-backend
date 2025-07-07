@@ -10,7 +10,7 @@ import { QueueModule } from './queue/queue.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CategoryModule } from './category/category.module';
-import { MailSenderModule } from './mail-sender/mail-sender.module';
+import { MailModule } from './mail/mail.module';
 import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
 import { JwtGlobalModule } from './jwt-global/jwt-global.module';
@@ -41,7 +41,7 @@ import { RefundModule } from './refund/refund.module';
     OrdersModule,
     ReviewsModule,
     CategoryModule,
-    MailSenderModule,
+    MailModule,
     EmailModule,
     QueueProcessorModule,
     OrderPaymentModule,

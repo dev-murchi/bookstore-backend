@@ -91,7 +91,7 @@
       "**/*.processor.(t|j)s",
       "**/*.strategy.(t|j)s",
       "**/*.handler.(t|j)s",
-      "**/*.handler.base.(t|j)s"
+      "**/*.base.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

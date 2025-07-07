@@ -5,9 +5,8 @@ import {
 } from './stripe-webhook-queue/stripe-webhook-queue.processor';
 import { PaymentModule } from 'src/payment/payment.module';
 import { OrdersModule } from 'src/orders/orders.module';
-import { MailSenderQueueProcessor } from './mail-sender-queue/mail-sender-queue.processor';
 import { EmailModule } from 'src/email/email.module';
-import { MailSenderModule } from 'src/mail-sender/mail-sender.module';
+import { MailModule } from 'src/mail/mail.module';
 import { OrderPaymentModule } from 'src/order-payment/order-payment.module';
 import { StripeCheckoutExpiredHandler } from './stripe-webhook-queue/handlers/stripe-checkout-expired/stripe-checkout-expired.handler';
 import { StripePaymentFailedHandler } from './stripe-webhook-queue/handlers/stripe-payment-failed/stripe-payment-failed.handler';
@@ -16,18 +15,19 @@ import { StripeRefundCompleteHandler } from './stripe-webhook-queue/handlers/str
 import { StripeRefundCreatedHandler } from './stripe-webhook-queue/handlers/stripe-refund/stripe-refund-created/stripe-refund-created.handler';
 import { StripeRefundFailedHandler } from './stripe-webhook-queue/handlers/stripe-refund/stripe-refund-failed/stripe-refund-failed.handler';
 import { RefundModule } from 'src/refund/refund.module';
+import { OrderMailProcessor } from './mail-processor/order-mail/order-mail.processor';
+import { AuthMailProcessor } from './mail-processor/auth-mail/auth-mail.processor';
 @Module({
   imports: [
     PaymentModule,
     OrdersModule,
     EmailModule,
-    MailSenderModule,
+    MailModule,
     OrderPaymentModule,
     RefundModule,
   ],
   providers: [
     StripeWebhookProcessor,
-    MailSenderQueueProcessor,
     StripePaymentFailedHandler,
     StripeCheckoutExpiredHandler,
     StripeCheckoutCompleteHandler,
@@ -60,6 +60,8 @@ import { RefundModule } from 'src/refund/refund.module';
         StripeRefundFailedHandler,
       ],
     },
+    OrderMailProcessor,
+    AuthMailProcessor,
   ],
   exports: [],
 })

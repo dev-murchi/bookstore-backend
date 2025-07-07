@@ -26,7 +26,7 @@ const mockJwtService = {
 };
 
 const mockEmailService = {
-  sendResetPasswordMail: jest.fn(),
+  sendAuthMail: jest.fn(),
 };
 
 const mockConfigService = {
@@ -228,11 +228,14 @@ describe('AuthService', () => {
       expect(userService.findByEmail).toHaveBeenCalledWith(
         'testuser@email.com',
       );
-      expect(emailService.sendResetPasswordMail).toHaveBeenCalledWith({
-        email: 'testuser@email.com',
-        username: 'test user',
-        link: 'http://localhost/reset-password?token=mockToken',
-      });
+      expect(emailService.sendAuthMail).toHaveBeenCalledWith(
+        'authPasswordReset',
+        {
+          email: 'testuser@email.com',
+          username: 'test user',
+          passwordResetLink: 'http://localhost/reset-password?token=mockToken',
+        },
+      );
     });
     it('should handle unexpected errors gracefully in the userService', async () => {
       mockUserService.findByEmail.mockRejectedValue(
