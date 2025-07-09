@@ -11,7 +11,6 @@ import { OrdersModule } from './orders/orders.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { CategoryModule } from './category/category.module';
 import { MailModule } from './mail/mail.module';
-import { EmailModule } from './email/email.module';
 import { QueueProcessorModule } from './queue-processor/queue-processor.module';
 import { JwtGlobalModule } from './jwt-global/jwt-global.module';
 import {
@@ -42,7 +41,6 @@ import { RefundModule } from './refund/refund.module';
     ReviewsModule,
     CategoryModule,
     MailModule,
-    EmailModule,
     QueueProcessorModule,
     OrderPaymentModule,
     RefundModule,

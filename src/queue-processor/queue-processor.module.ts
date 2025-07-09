@@ -5,7 +5,6 @@ import {
 } from './stripe-webhook-queue/stripe-webhook-queue.processor';
 import { PaymentModule } from 'src/payment/payment.module';
 import { OrdersModule } from 'src/orders/orders.module';
-import { EmailModule } from 'src/email/email.module';
 import { MailModule } from 'src/mail/mail.module';
 import { OrderPaymentModule } from 'src/order-payment/order-payment.module';
 import { StripeCheckoutExpiredHandler } from './stripe-webhook-queue/handlers/stripe-checkout-expired/stripe-checkout-expired.handler';
@@ -21,7 +20,6 @@ import { AuthMailProcessor } from './mail-processor/auth-mail/auth-mail.processo
   imports: [
     PaymentModule,
     OrdersModule,
-    EmailModule,
     MailModule,
     OrderPaymentModule,
     RefundModule,
