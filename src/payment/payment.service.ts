@@ -1,13 +1,29 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { Queue } from 'bullmq';
+import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { StripeService } from './stripe/stripe.service';
+import { QueueService } from '../queue/queue.service';
+import {
+  StripeEventTypeCheckout,
+  StripeEventTypePaymentIntent,
+  StripeEventTypeRefund,
+} from '../common/types/stripe-event.type';
+
+const PaymentIntentEvents = new Set(['payment_intent.payment_failed']);
+const CheckoutEvents = new Set([
+  'checkout.session.expired',
+  'checkout.session.completed',
+]);
+const RefundEvents = new Set([
+  'refund.created',
+  'refund.updated',
+  'refund.failed',
+]);
 
 @Injectable()
 export class PaymentService {
   constructor(
     private stripeService: StripeService,
-    @Inject('StripeWebhookQueue') private readonly stripeWebhookQueue: Queue,
+    private queueService: QueueService,
   ) {}
 
   async createStripeCheckoutSession(data: Stripe.Checkout.SessionCreateParams) {
@@ -30,14 +46,32 @@ export class PaymentService {
         signature,
       );
 
-      // add stripe event into queue
-      await this.stripeWebhookQueue.add('process-event', {
-        eventType: event.type,
-        eventData: event.data.object,
-      });
+      const eventType = event.type;
+      const eventData = event.data.object;
+
+      if (PaymentIntentEvents.has(eventType)) {
+        await this.queueService.addStripePaymentJob({
+          eventType: eventType as StripeEventTypePaymentIntent,
+          eventData: eventData as Stripe.PaymentIntent,
+        });
+      } else if (CheckoutEvents.has(eventType)) {
+        await this.queueService.addStripeCheckoutJob({
+          eventType: eventType as StripeEventTypeCheckout,
+          eventData: eventData as Stripe.Checkout.Session,
+        });
+      } else if (RefundEvents.has(eventType)) {
+        await this.queueService.addStripeRefundJob({
+          eventType: eventType as StripeEventTypeRefund,
+          eventData: eventData as Stripe.Refund,
+        });
+      } else {
+        console.error('Unknown Stripe event type:', eventType);
+      }
     } catch (error) {
-      console.error('Stripe Webhook Error:', error);
-      throw new Error(`Webhook Error: ${error.message}`);
+      if (error instanceof Error) {
+        throw new Error(`Webhook Error: ${error.message}`);
+      }
+      throw new Error('Webhook Error: Unexpected error');
     }
   }
 }

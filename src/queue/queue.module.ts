@@ -19,17 +19,14 @@ import { QueueService } from './queue.service';
     }),
 
     BullModule.registerQueue(
-      { name: 'stripe-webhook-queue' },
+      { name: 'stripe-payment-queue' },
+      { name: 'stripe-checkout-queue' },
+      { name: 'stripe-refund-queue' },
       { name: 'order-mail-queue' },
       { name: 'auth-mail-queue' },
     ),
   ],
   providers: [
-    {
-      provide: 'StripeWebhookQueue',
-      useFactory: (queue: Queue) => queue,
-      inject: [getQueueToken('stripe-webhook-queue')],
-    },
     {
       provide: 'OrderMailQueue',
       useFactory: (queue: Queue) => queue,
@@ -39,6 +36,21 @@ import { QueueService } from './queue.service';
       provide: 'AuthMailQueue',
       useFactory: (queue: Queue) => queue,
       inject: [getQueueToken('auth-mail-queue')],
+    },
+    {
+      provide: 'StripePaymentQueue',
+      useFactory: (queue: Queue) => queue,
+      inject: [getQueueToken('stripe-payment-queue')],
+    },
+    {
+      provide: 'StripeCheckoutQueue',
+      useFactory: (queue: Queue) => queue,
+      inject: [getQueueToken('stripe-checkout-queue')],
+    },
+    {
+      provide: 'StripeRefundQueue',
+      useFactory: (queue: Queue) => queue,
+      inject: [getQueueToken('stripe-refund-queue')],
     },
     QueueService,
   ],

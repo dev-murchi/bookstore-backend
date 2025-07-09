@@ -6,12 +6,29 @@ import {
   RefundEmailTemplateKey,
 } from '../common/types/email-config.type';
 import { AuthMailJob, OrderMailJob } from '../common/types/email-job.type';
+import {
+  StripeCheckoutJob,
+  StripePaymentJob,
+  StripeRefundJob,
+} from 'src/common/types/stripe-job.type';
 
 const mockOrderMailQueue = {
   add: jest.fn(),
 };
 
 const mockAuthMailQueue = {
+  add: jest.fn(),
+};
+
+const mockStripePaymentQueue = {
+  add: jest.fn(),
+};
+
+const mockStripeCheckoutQueue = {
+  add: jest.fn(),
+};
+
+const mockStripeRefundQueue = {
   add: jest.fn(),
 };
 
@@ -24,6 +41,9 @@ describe('QueueService', () => {
         QueueService,
         { provide: 'OrderMailQueue', useValue: mockOrderMailQueue },
         { provide: 'AuthMailQueue', useValue: mockAuthMailQueue },
+        { provide: 'StripePaymentQueue', useValue: mockStripePaymentQueue },
+        { provide: 'StripeCheckoutQueue', useValue: mockStripeCheckoutQueue },
+        { provide: 'StripeRefundQueue', useValue: mockStripeRefundQueue },
       ],
     }).compile();
 
@@ -106,6 +126,95 @@ describe('QueueService', () => {
 
       expect(mockOrderMailQueue.add).toHaveBeenCalledTimes(1);
       expect(mockOrderMailQueue.add).toHaveBeenCalledWith(templateKey, data);
+    });
+  });
+
+  describe('addStripePaymentJob', () => {
+    it('should add a stripe payment job to the queue on success', async () => {
+      const job = {
+        eventType: 'payment_intent.payment_failed',
+        eventData: { id: 'pi_123' },
+      } as unknown as StripePaymentJob;
+
+      await service.addStripePaymentJob(job);
+
+      expect(mockStripePaymentQueue.add).toHaveBeenCalledTimes(1);
+      expect(mockStripePaymentQueue.add).toHaveBeenCalledWith(
+        job.eventType,
+        job.eventData,
+      );
+    });
+
+    it('should throw an error if adding stripe payment job to queue fails', async () => {
+      mockStripePaymentQueue.add.mockRejectedValueOnce(new Error('failed'));
+
+      const job = {
+        eventType: 'payment_intent.payment_failed',
+        eventData: { id: 'pi_456' },
+      } as unknown as StripePaymentJob;
+      await expect(service.addStripePaymentJob(job)).rejects.toThrow(
+        'Failed to add to the queue',
+      );
+    });
+  });
+
+  describe('addStripeCheckoutJob', () => {
+    it('should add a stripe checkout job to the queue on success', async () => {
+      const job = {
+        eventType: 'checkout.session.completed',
+        eventData: { id: 'cs_123' },
+      } as unknown as StripeCheckoutJob;
+
+      await service.addStripeCheckoutJob(job);
+
+      expect(mockStripeCheckoutQueue.add).toHaveBeenCalledTimes(1);
+      expect(mockStripeCheckoutQueue.add).toHaveBeenCalledWith(
+        job.eventType,
+        job.eventData,
+      );
+    });
+
+    it('should throw an error if adding stripe checkout job to queue fails', async () => {
+      mockStripeCheckoutQueue.add.mockRejectedValueOnce(new Error('fail'));
+
+      const job = {
+        eventType: 'checkout.session.expired',
+        eventData: { id: 'cs_456' },
+      } as unknown as StripeCheckoutJob;
+
+      await expect(service.addStripeCheckoutJob(job)).rejects.toThrow(
+        'Failed to add to the queue',
+      );
+    });
+  });
+
+  describe('addStripeRefundJob', () => {
+    it('should add a stripe refund job to the queue on success', async () => {
+      const job = {
+        eventType: 'refund.created',
+        eventData: { id: 're_123' },
+      } as unknown as StripeRefundJob;
+
+      await service.addStripeRefundJob(job);
+
+      expect(mockStripeRefundQueue.add).toHaveBeenCalledTimes(1);
+      expect(mockStripeRefundQueue.add).toHaveBeenCalledWith(
+        job.eventType,
+        job.eventData,
+      );
+    });
+
+    it('should throw an error if adding stripe refund job to queue fails', async () => {
+      mockStripeRefundQueue.add.mockRejectedValueOnce(new Error('fail'));
+
+      const job = {
+        eventType: 'refund.failed',
+        eventData: { id: 're_456' },
+      } as unknown as StripeRefundJob;
+
+      await expect(service.addStripeRefundJob(job)).rejects.toThrow(
+        'Failed to add to the queue',
+      );
     });
   });
 });

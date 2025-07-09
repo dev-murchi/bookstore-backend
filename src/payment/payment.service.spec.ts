@@ -2,14 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
 import { StripeService } from './stripe/stripe.service';
 import Stripe from 'stripe';
+import { QueueService } from '../queue/queue.service';
 
 const mockStripeService = {
   createCheckoutSession: jest.fn(),
   constructWebhookEvent: jest.fn(),
 };
 
-const mockStripeWebhookQueue = {
-  add: jest.fn(),
+const mockQueueService = {
+  addStripePaymentJob: jest.fn(),
+  addStripeCheckoutJob: jest.fn(),
+  addStripeRefundJob: jest.fn(),
 };
 
 describe('PaymentService', () => {
@@ -24,8 +27,8 @@ describe('PaymentService', () => {
           useValue: mockStripeService,
         },
         {
-          provide: 'StripeWebhookQueue',
-          useValue: mockStripeWebhookQueue,
+          provide: QueueService,
+          useValue: mockQueueService,
         },
       ],
     }).compile();
@@ -97,6 +100,8 @@ describe('PaymentService', () => {
         data: { object: { id: 'pi_123' } },
       } as Stripe.Event;
 
+      const consoleErrorSpy = jest.spyOn(console, 'error');
+
       mockStripeService.constructWebhookEvent.mockResolvedValueOnce(mockEvent);
 
       await paymentService.handleStripeWebhook(payload, signature);
@@ -105,10 +110,13 @@ describe('PaymentService', () => {
         payload,
         signature,
       );
-      expect(mockStripeWebhookQueue.add).toHaveBeenCalledWith('process-event', {
-        eventType: mockEvent.type,
-        eventData: mockEvent.data.object,
-      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Unknown Stripe event type:',
+        mockEvent.type,
+      );
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should throw an error if webhook event construction fails', async () => {
@@ -121,6 +129,77 @@ describe('PaymentService', () => {
       await expect(
         paymentService.handleStripeWebhook(payload, signature),
       ).rejects.toThrow('Webhook Error: Invalid signature');
+    });
+
+    it('should add stripe payment job for payment_intent.payment_failed event', async () => {
+      const payload = Buffer.from('payment_intent');
+      const signature = 'test-signature';
+
+      const mockEvent = {
+        type: 'payment_intent.payment_failed',
+        data: { object: { id: 'pi_test' } },
+      } as Stripe.Event;
+
+      mockStripeService.constructWebhookEvent.mockResolvedValueOnce(mockEvent);
+
+      await paymentService.handleStripeWebhook(payload, signature);
+
+      expect(mockQueueService.addStripePaymentJob).toHaveBeenCalledWith({
+        eventType: 'payment_intent.payment_failed',
+        eventData: { id: 'pi_test' },
+      });
+    });
+
+    it('should add stripe checkout job for checkout.session.completed event', async () => {
+      const payload = Buffer.from('checkout_session');
+      const signature = 'test-signature';
+
+      const mockEvent = {
+        type: 'checkout.session.completed',
+        data: { object: { id: 'cs_test' } },
+      } as Stripe.Event;
+
+      mockStripeService.constructWebhookEvent.mockResolvedValueOnce(mockEvent);
+
+      await paymentService.handleStripeWebhook(payload, signature);
+
+      expect(mockQueueService.addStripeCheckoutJob).toHaveBeenCalledWith({
+        eventType: 'checkout.session.completed',
+        eventData: { id: 'cs_test' },
+      });
+    });
+
+    it('should add stripe refund job for refund.updated event', async () => {
+      const payload = Buffer.from('refund');
+      const signature = 'test-signature';
+
+      const mockEvent = {
+        type: 'refund.updated',
+        data: { object: { id: 're_test' } },
+      } as Stripe.Event;
+
+      mockStripeService.constructWebhookEvent.mockResolvedValueOnce(mockEvent);
+
+      await paymentService.handleStripeWebhook(payload, signature);
+
+      expect(mockQueueService.addStripeRefundJob).toHaveBeenCalledWith({
+        eventType: 'refund.updated',
+        eventData: { id: 're_test' },
+      });
+    });
+
+    it('should throw generic error if a non-Error value is thrown', async () => {
+      const payload = Buffer.from('test-payload');
+      const signature = 'test-signature';
+
+      // Throw something that's *not* an instance of Error
+      mockStripeService.constructWebhookEvent.mockImplementation(() => {
+        throw 'Non-error string thrown';
+      });
+
+      await expect(
+        paymentService.handleStripeWebhook(payload, signature),
+      ).rejects.toThrow('Webhook Error: Unexpected error');
     });
   });
 });

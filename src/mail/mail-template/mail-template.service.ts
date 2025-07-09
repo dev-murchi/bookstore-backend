@@ -49,7 +49,6 @@ export class MailTemplateService {
   }
 
   private readTemplateFile(fileName: string): string {
-    console.warn({ dirname: __dirname });
     const filePath = path.join(
       __dirname,
       '../../assets/mail-templates',
