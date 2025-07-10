@@ -1,8 +1,5 @@
 import { Job } from 'bullmq';
-import {
-  EmailTemplateKey,
-  EmailTemplateField,
-} from '../../common/types/email-config.type';
+import { EmailTemplateKey } from '../../common/types/email-config.type';
 import { BaseMailJob } from '../../common/types/email-job.type';
 import { MailProcessorBase } from './mail-processor.base';
 import { MailService } from '../../mail/mail.service';
@@ -23,8 +20,8 @@ const mockJob: Job<BaseMailJob, any, EmailTemplateKey> = {
 class TestMailProcessor extends MailProcessorBase {
   async generateTemplateFields(
     job: Job<BaseMailJob, any, EmailTemplateKey>,
-  ): Promise<{ fields: EmailTemplateField[] }> {
-    return { fields: [{ key: '{{username}}', value: job.data.username }] };
+  ): Promise<{ fields: Map<string, string> }> {
+    return { fields: new Map([['{{username}}', job.data.username]]) };
   }
 }
 
@@ -82,13 +79,16 @@ describe('MailProcessorBase', () => {
 
   describe('sendEmail', () => {
     it('should call mailService.sendTemplatedEmail with correct args', async () => {
-      await processor['sendEmail']('orderComplete', 'testuser@email.com', [
-        { key: 'username', value: 'Test User' },
-      ]);
+      const fields = new Map([['username', 'Test User']]);
+      await processor['sendEmail'](
+        'orderComplete',
+        'testuser@email.com',
+        fields,
+      );
       expect(mockMailService.sendTemplatedEmail).toHaveBeenCalledWith(
         'orderComplete',
         'testuser@email.com',
-        [{ key: 'username', value: 'Test User' }],
+        fields,
       );
     });
   });

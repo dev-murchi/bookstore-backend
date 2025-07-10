@@ -264,28 +264,28 @@ describe('MailTemplateService', () => {
   describe('fillTemplate', () => {
     it('should replace all placeholders correctly', () => {
       const template = 'Hello {{name}}, your order {{id}} is {{status}}.';
-      const fields = [
-        { key: '{{name}}', value: 'John Doe' },
-        { key: '{{id}}', value: '12345' },
-        { key: '{{status}}', value: 'shipped' },
-      ];
+      const fields = new Map([
+        ['{{name}}', 'John Doe'],
+        ['{{id}}', '12345'],
+        ['{{status}}', 'shipped'],
+      ]);
       const result = service.fillMailTemplateContent(template, fields);
       expect(result).toBe('Hello John Doe, your order 12345 is shipped.');
     });
 
     it('should handle templates with no placeholders', () => {
       const template = 'Static content.';
-      const fields = [{ key: '{{name}}', value: 'John' }];
+      const fields = new Map([['{{name}}', 'John']]);
       const result = service.fillMailTemplateContent(template, fields);
       expect(result).toBe('Static content.');
     });
 
     it('should handle fields not present in the template', () => {
       const template = 'Hello {{name}}.';
-      const fields = [
-        { key: '{{name}}', value: 'John' },
-        { key: '{{age}}', value: '30' },
-      ];
+      const fields = new Map([
+        ['{{name}}', 'John'],
+        ['{{age}}', '30'],
+      ]);
       const result = service.fillMailTemplateContent(template, fields);
       expect(result).toBe('Hello John.');
     });

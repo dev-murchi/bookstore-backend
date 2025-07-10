@@ -1,23 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { MailTemplateService } from './mail-template/mail-template.service';
 import { NodemailerService } from './nodemailer/nodemailer.service';
-import {
-  EmailTemplateField,
-  EmailTemplateKey,
-} from '../common/types/email-config.type';
+import { EmailTemplateKey } from '../common/types/email-config.type';
 import { MailTemplateError } from '../common/errors/mail-template.error';
+import { ConfigService } from '@nestjs/config';
+import { MailConfigError } from '../common/errors/mail-config.error';
 
 @Injectable()
 export class MailService {
+  private readonly supportEmail: string;
+  private readonly companyName: string;
   constructor(
     private readonly mailTemplateService: MailTemplateService,
     private readonly nodeMailerService: NodemailerService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.supportEmail = this.getConfig<string>('email.supportEmail');
+    this.companyName = this.getConfig<string>('email.companyName');
+  }
 
+  private getConfig<T>(key: string): T {
+    const value = this.configService.get<T>(key);
+    if (!value) throw new MailConfigError(`Missing config value: ${key}`);
+    return value;
+  }
   async sendTemplatedEmail(
     templateKey: EmailTemplateKey,
     to: string,
-    fields: EmailTemplateField[],
+    templateFields: Map<string, string>,
   ) {
     // get template
     const template = this.mailTemplateService.getTemplate(templateKey);
@@ -33,18 +43,29 @@ export class MailService {
       );
     }
 
+    // clone the original map
+    const updatedFields = new Map(templateFields);
+
+    if (!updatedFields.has('{{company_name}}')) {
+      updatedFields.set('{{company_name}}', this.companyName);
+    }
+
+    if (!updatedFields.has('{{support_email}}')) {
+      updatedFields.set('{{support_email}}', this.supportEmail);
+    }
+
     // fill template contents of the subject, text and html
     const dataSubject = this.mailTemplateService.fillMailTemplateContent(
       subject,
-      fields,
+      updatedFields,
     );
     const dataText = this.mailTemplateService.fillMailTemplateContent(
       text,
-      fields,
+      updatedFields,
     );
     const dataHtml = this.mailTemplateService.fillMailTemplateContent(
       html,
-      fields,
+      updatedFields,
     );
 
     // check unfilled templates

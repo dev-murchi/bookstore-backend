@@ -47,13 +47,12 @@ describe('AuthMailProcessor', () => {
   describe('generateTemplateFields', () => {
     it('should generate fields for authPasswordReset', async () => {
       const result = await processor.generateTemplateFields(baseJob);
-      expect(result.fields).toEqual([
-        { key: '{{customer_name}}', value: 'John Doe' },
-        {
-          key: '{{link}}',
-          value: 'http://localhost/reset-password?token=mockToken',
-        },
-      ]);
+      expect(result.fields).toEqual(
+        new Map([
+          ['{{customer_name}}', 'John Doe'],
+          ['{{link}}', 'http://localhost/reset-password?token=mockToken'],
+        ]),
+      );
     });
 
     it('should generate fields without password reset link for other auth jobs', async () => {
@@ -63,9 +62,9 @@ describe('AuthMailProcessor', () => {
         data: { ...baseJobData },
       } as Job<AuthMailJob, any, AuthEmailTemplateKey>;
       const result = await processor.generateTemplateFields(job);
-      expect(result.fields).toEqual([
-        { key: '{{customer_name}}', value: 'John Doe' },
-      ]);
+      expect(result.fields).toEqual(
+        new Map([['{{customer_name}}', 'John Doe']]),
+      );
     });
 
     it('should throw if email is missing', async () => {
@@ -111,13 +110,10 @@ describe('AuthMailProcessor', () => {
       expect(mockSendTemplatedEmail).toHaveBeenCalledWith(
         'authPasswordReset',
         'user@example.com',
-        [
-          { key: '{{customer_name}}', value: 'John Doe' },
-          {
-            key: '{{link}}',
-            value: 'http://localhost/reset-password?token=mockToken',
-          },
-        ],
+        new Map([
+          ['{{customer_name}}', 'John Doe'],
+          ['{{link}}', 'http://localhost/reset-password?token=mockToken'],
+        ]),
       );
     });
 

@@ -44,10 +44,13 @@ describe('OrderMailProcessor', () => {
     } as any;
 
     const result = await processor.generateTemplateFields(job);
-    expect(result.fields).toEqual([
-      { key: '{{order_id}}', value: 'order-uuid-1' },
-      { key: '{{customer_name}}', value: 'Test User' },
-    ]);
+
+    expect(result.fields).toEqual(
+      new Map([
+        ['{{order_id}}', 'order-uuid-1'],
+        ['{{customer_name}}', 'Test User'],
+      ]),
+    );
   });
 
   it('should include trackingId for orderShipped', async () => {
@@ -61,10 +64,13 @@ describe('OrderMailProcessor', () => {
     } as any;
 
     const result = await processor.generateTemplateFields(job);
-    expect(result.fields).toContainEqual({
-      key: '{{tracking_id}}',
-      value: 'TRK456',
-    });
+    expect(result.fields).toEqual(
+      new Map([
+        ['{{order_id}}', 'order-uuid-1'],
+        ['{{customer_name}}', 'Test User'],
+        ['{{tracking_id}}', 'TRK456'],
+      ]),
+    );
   });
 
   it('should throw if trackingId is missing for orderShipped', async () => {
@@ -92,10 +98,13 @@ describe('OrderMailProcessor', () => {
     } as any;
 
     const result = await processor.generateTemplateFields(job);
-    expect(result.fields).toContainEqual({
-      key: '{{refund_id}}',
-      value: 're_123',
-    });
+    expect(result.fields).toEqual(
+      new Map([
+        ['{{order_id}}', 'order-uuid-1'],
+        ['{{customer_name}}', 'Test User'],
+        ['{{refund_id}}', 're_123'],
+      ]),
+    );
   });
 
   it('should throw if refundId missing for refundFailed', async () => {

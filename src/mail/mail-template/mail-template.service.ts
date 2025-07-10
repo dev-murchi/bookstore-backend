@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { MailConfigError } from '../../common/errors/mail-config.error';
 import { MailTemplateError } from '../../common/errors/mail-template.error';
 import {
-  EmailTemplateField,
   EmailTemplateKey,
   EmailTemplates,
 } from '../../common/types/email-config.type';
@@ -77,11 +76,13 @@ export class MailTemplateService {
 
   fillMailTemplateContent(
     templateContent: string,
-    fields: EmailTemplateField[],
+    templateFields: Map<string, string>,
   ): string {
-    return fields.reduce(
-      (result, { key, value }) => result.replaceAll(key, value),
-      templateContent,
-    );
+    return templateContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+      const placeholder = `{{${key}}}`;
+      return templateFields.has(placeholder)
+        ? templateFields.get(placeholder)!
+        : match;
+    });
   }
 }

@@ -1,9 +1,6 @@
 import { WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import {
-  EmailTemplateKey,
-  EmailTemplateField,
-} from '../../common/types/email-config.type';
+import { EmailTemplateKey } from '../../common/types/email-config.type';
 import { BaseMailJob } from '../../common/types/email-job.type';
 import { MailService } from '../../mail/mail.service';
 
@@ -34,7 +31,6 @@ export abstract class MailProcessorBase extends WorkerHost {
     try {
       await this.sendEmail(job.name, job.data.email, fields);
       const successMessage = `Job ${job.id}: Successfully sent email '${job.name}' to ${job.data.email}.`;
-      console.log(successMessage);
       return { success: true, message: successMessage };
     } catch (error) {
       const errorMessage = `Job ${job.id}: Failed to send email '${job.name}' to ${job.data.email}. Error: ${error.message}`;
@@ -45,12 +41,12 @@ export abstract class MailProcessorBase extends WorkerHost {
 
   abstract generateTemplateFields(
     job: Job<BaseMailJob, any, EmailTemplateKey>,
-  ): Promise<{ fields: EmailTemplateField[] }>;
+  ): Promise<{ fields: Map<string, string> }>;
 
   protected async sendEmail(
     templateKey: EmailTemplateKey,
     receipient: string,
-    fields: EmailTemplateField[],
+    fields: Map<string, string>,
   ): Promise<void> {
     await this.mailService.sendTemplatedEmail(templateKey, receipient, fields);
   }

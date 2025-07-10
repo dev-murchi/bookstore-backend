@@ -1,9 +1,6 @@
 import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import {
-  AuthEmailTemplateKey,
-  EmailTemplateField,
-} from '../../../common/types/email-config.type';
+import { AuthEmailTemplateKey } from '../../../common/types/email-config.type';
 import { AuthMailJob } from '../../../common/types/email-job.type';
 import { MailService } from '../../../mail/mail.service';
 import { MailProcessorBase } from '../mail-processor.base';
@@ -16,15 +13,13 @@ export class AuthMailProcessor extends MailProcessorBase {
 
   async generateTemplateFields(
     job: Job<AuthMailJob, any, AuthEmailTemplateKey>,
-  ): Promise<{ fields: EmailTemplateField[] }> {
+  ): Promise<{ fields: Map<string, string> }> {
     const { data, name: jobName, id: jobId } = job;
 
     this.validateFieldOrThrowError(data.email, jobId, jobName, 'email');
     this.validateFieldOrThrowError(data.username, jobId, jobName, 'username');
 
-    const fields: EmailTemplateField[] = [
-      { key: '{{customer_name}}', value: data.username },
-    ];
+    const fields = new Map([['{{customer_name}}', data.username]]);
 
     if (jobName === 'authPasswordReset') {
       this.validateFieldOrThrowError(
@@ -35,10 +30,7 @@ export class AuthMailProcessor extends MailProcessorBase {
         '',
       );
 
-      fields.push({
-        key: '{{link}}',
-        value: data.passwordResetLink,
-      });
+      fields.set('{{link}}', data.passwordResetLink);
     }
 
     return { fields };

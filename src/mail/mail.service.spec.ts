@@ -3,6 +3,7 @@ import { MailService } from './mail.service';
 import { MailTemplateService } from './mail-template/mail-template.service';
 import { NodemailerService } from './nodemailer/nodemailer.service';
 import { MailTemplateError } from '../common/errors/mail-template.error';
+import { ConfigService } from '@nestjs/config';
 
 const mockTemplate = {
   subject: 'Welcome {{name}}',
@@ -10,17 +11,28 @@ const mockTemplate = {
   html: '<p>Hello {{name}}</p>',
 };
 
-const mockFields = [{ key: '{{name}}', value: 'Test User' }];
+const mockFields = new Map([['{{name}}', 'Test User']]);
 
 const mockMailTemplateService = {
   getTemplate: jest.fn(),
-  fillMailTemplateContent: jest.fn((template: string, fields) =>
-    fields.reduce((acc, { key, value }) => acc.replace(key, value), template),
-  ),
+  fillMailTemplateContent: jest.fn((template: string, fields) => {
+    return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+      const placeholder = `{{${key}}}`;
+      return fields.has(placeholder) ? fields.get(placeholder)! : match;
+    });
+  }),
 };
 
 const mockNodemailerService = {
   sendMail: jest.fn(),
+};
+
+const mockConfigService = {
+  get: jest.fn().mockImplementation((key: string) => {
+    if (key === 'email.companyName') return 'book store';
+    if (key === 'email.supportEmail') return 'bookstore@support';
+    return undefined;
+  }),
 };
 
 describe('MailService', () => {
@@ -37,6 +49,10 @@ describe('MailService', () => {
         {
           provide: NodemailerService,
           useValue: mockNodemailerService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
