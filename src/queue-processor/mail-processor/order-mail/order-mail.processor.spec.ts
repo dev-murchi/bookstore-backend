@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderMailProcessor } from './order-mail.processor';
-import { MailService } from '../../../mail/mail.service';
+import { MailService } from 'src/mail/mail.service';
 import { Job } from 'bullmq';
 import {
   OrderEmailTemplateKey,

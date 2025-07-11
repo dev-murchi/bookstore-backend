@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CartItemDTO } from '../common/dto/cart-item.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
-import { DeleteCartItemDTO } from '../common/dto/delete-cart-item.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { AddToCartDTO } from 'src/common/dto/add-to-cart.dto';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { CartItemDTO } from 'src/common/dto/cart-item.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
+import { DeleteCartItemDTO } from 'src/common/dto/delete-cart-item.dto';
 import { Prisma } from '@prisma/client';
 import { validate } from 'class-validator';
 

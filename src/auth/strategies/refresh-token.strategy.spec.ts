@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { RefreshTokenStrategy } from './refresh-token.strategy';
 import { Request } from 'express';
-import { HelperService } from '../../common/helper.service';
+import { HelperService } from 'src/common/helper.service';
 
 describe('RefreshTokenStrategy', () => {
   let strategy: RefreshTokenStrategy;

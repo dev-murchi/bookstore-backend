@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MailConfigError } from '../../common/errors/mail-config.error';
-import { MailTemplateError } from '../../common/errors/mail-template.error';
+import { MailConfigError } from 'src/common/errors/mail-config.error';
+import { MailTemplateError } from 'src/common/errors/mail-template.error';
 import {
   EmailTemplateKey,
   EmailTemplates,
-} from '../../common/types/email-config.type';
+} from 'src/common/types/email-config.type';
 
 import * as fs from 'fs';
 import * as path from 'path';

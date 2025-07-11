@@ -1,8 +1,8 @@
 import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { AuthEmailTemplateKey } from '../../../common/types/email-config.type';
-import { AuthMailJob } from '../../../common/types/email-job.type';
-import { MailService } from '../../../mail/mail.service';
+import { AuthEmailTemplateKey } from 'src/common/types/email-config.type';
+import { AuthMailJob } from 'src/common/types/email-job.type';
+import { MailService } from 'src/mail/mail.service';
 import { MailProcessorBase } from '../mail-processor.base';
 
 @Processor('auth-mail-queue')

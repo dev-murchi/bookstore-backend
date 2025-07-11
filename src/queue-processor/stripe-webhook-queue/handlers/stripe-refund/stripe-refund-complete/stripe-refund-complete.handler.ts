@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { StripeEvent } from '../../../../../common/enum/stripe-event.enum';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
 
 import Stripe from 'stripe';
-import { RefundData } from '../../../../../common/types/refund-data.types';
-import { RefundService } from '../../../../../refund/refund.service';
+import { RefundData } from 'src/common/types/refund-data.types';
+import { RefundService } from 'src/refund/refund.service';
 import { StripeRefundUpdateHandlerBase } from '../stripe-refund-update.handler.base';
-import { RefundStatus } from '../../../../../common/enum/refund-status.enum';
+import { RefundStatus } from 'src/common/enum/refund-status.enum';
 
 @Injectable()
 export class StripeRefundCompleteHandler extends StripeRefundUpdateHandlerBase {

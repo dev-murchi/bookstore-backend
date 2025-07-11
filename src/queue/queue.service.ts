@@ -10,7 +10,7 @@ import {
   StripePaymentJob,
   StripeCheckoutJob,
   StripeRefundJob,
-} from '../common/types/stripe-job.type';
+} from 'src/common/types/stripe-job.type';
 import Stripe from 'stripe';
 
 type MailTemplateKeys = OrderEmailTemplateKey | RefundEmailTemplateKey;

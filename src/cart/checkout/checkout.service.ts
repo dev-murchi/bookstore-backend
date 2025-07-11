@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCheckoutDTO } from '../../common/dto/create-checkout.dto';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PaymentService } from '../../payment/payment.service';
-import { CustomAPIError } from '../../common/errors/custom-api.error';
+import { CreateCheckoutDTO } from 'src/common/dto/create-checkout.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { PaymentService } from 'src/payment/payment.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
 import Stripe from 'stripe';
-import { CheckoutDTO } from '../../common/dto/checkout.dto';
-import { OrderDTO } from '../../common/dto/order.dto';
-import { OrderItemDTO } from '../../common/dto/order-item.dto';
-import { BookDTO } from '../../common/dto/book.dto';
-import { CategoryDTO } from '../../common/dto/category.dto';
-import { OrderStatus } from '../../common/enum/order-status.enum';
-import { OrderOwnerDTO } from '../../common/dto/order-owner.dto';
+import { CheckoutDTO } from 'src/common/dto/checkout.dto';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { OrderItemDTO } from 'src/common/dto/order-item.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderOwnerDTO } from 'src/common/dto/order-owner.dto';
 
 @Injectable()
 export class CheckoutService {

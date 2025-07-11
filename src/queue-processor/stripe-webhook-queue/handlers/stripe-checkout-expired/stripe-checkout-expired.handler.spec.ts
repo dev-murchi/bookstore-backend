@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StripeCheckoutExpiredHandler } from './stripe-checkout-expired.handler';
-import { OrdersService } from '../../../../orders/orders.service';
-import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { OrderStatus } from '../../../../common/enum/order-status.enum';
-import { PaymentStatus } from '../../../../common/enum/payment-status.enum';
+import { OrdersService } from 'src/orders/orders.service';
+import { OrderPaymentService } from 'src/order-payment/order-payment.service';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 import Stripe from 'stripe';
 
 const mockOrdersService = {

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from './mail.service';
 import { MailTemplateService } from './mail-template/mail-template.service';
 import { NodemailerService } from './nodemailer/nodemailer.service';
-import { MailTemplateError } from '../common/errors/mail-template.error';
+import { MailTemplateError } from 'src/common/errors/mail-template.error';
 import { ConfigService } from '@nestjs/config';
 
 const mockTemplate = {

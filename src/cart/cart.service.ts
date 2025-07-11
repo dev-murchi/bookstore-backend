@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CartDTO } from '../common/dto/cart.dto';
-import { HelperService } from '../common/helper.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { CartDTO } from 'src/common/dto/cart.dto';
+import { HelperService } from 'src/common/helper.service';
 import { CartItemService } from './cart-item.service';
 import { validate } from 'class-validator';
 import { Prisma } from '@prisma/client';

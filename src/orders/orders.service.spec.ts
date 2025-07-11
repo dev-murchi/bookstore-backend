@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus } from '../common/enum/order-status.enum';
-import { OrderItemDTO } from '../common/dto/order-item.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderItemDTO } from 'src/common/dto/order-item.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
 import * as classValidator from 'class-validator';
-import { AddressDTO } from '../common/dto/address.dto';
-import { ShippingDTO } from '../common/dto/shipping.dto';
-import { PaymentDTO } from '../common/dto/payment.dto';
-import { OrderOwnerDTO } from '../common/dto/order-owner.dto';
+import { AddressDTO } from 'src/common/dto/address.dto';
+import { ShippingDTO } from 'src/common/dto/shipping.dto';
+import { PaymentDTO } from 'src/common/dto/payment.dto';
+import { OrderOwnerDTO } from 'src/common/dto/order-owner.dto';
 
 const orderId1 = '461802bb-8792-42f6-b4b3-a620f91cedb6'; // just example
 const orderId2 = '58fcf574-f144-4c3e-8eb1-72efe85541db'; // just example

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
-import { StripeHandler } from '../../../../common/types/stripe-handler.interface';
-import { OrdersService } from '../../../../orders/orders.service';
-import { OrderStatus } from '../../../../common/enum/order-status.enum';
-import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
-import { PaymentStatus } from '../../../../common/enum/payment-status.enum';
-import { ShippingService } from '../../../../orders/shipping/shipping.service';
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { PaymentData } from '../../../../common/types/payment-data.interface';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { StripeHandler } from 'src/common/types/stripe-handler.interface';
+import { OrdersService } from 'src/orders/orders.service';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderPaymentService } from 'src/order-payment/order-payment.service';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
+import { ShippingService } from 'src/orders/shipping/shipping.service';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { PaymentData } from 'src/common/types/payment-data.interface';
 import Stripe from 'stripe';
 
 @Injectable()

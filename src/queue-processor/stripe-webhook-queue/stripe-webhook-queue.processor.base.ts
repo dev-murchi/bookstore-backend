@@ -1,9 +1,9 @@
 import { WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { StripeEvent } from '../../common/enum/stripe-event.enum';
-import { StripeHandler } from '../../common/types/stripe-handler.interface';
-import { OrdersService } from '../../orders/orders.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { StripeHandler } from 'src/common/types/stripe-handler.interface';
+import { OrdersService } from 'src/orders/orders.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 export abstract class StripeWebhookProcessorBase<
   TJob,

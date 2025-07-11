@@ -13,14 +13,14 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { CreateCategoryDTO } from '../common/dto/create-category.dto';
+import { CreateCategoryDTO } from 'src/common/dto/create-category.dto';
 import { CategoryService } from './category.service';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/enum/role.enum';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CategoryDTO } from '../common/dto/category.dto';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { CategoryDTO } from 'src/common/dto/category.dto';
 import {
   ApiTags,
   ApiBearerAuth,

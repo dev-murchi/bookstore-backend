@@ -3,10 +3,10 @@ import { Job } from 'bullmq';
 import {
   OrderEmailTemplateKey,
   RefundEmailTemplateKey,
-} from '../../../common/types/email-config.type';
-import { MailService } from '../../../mail/mail.service';
+} from 'src/common/types/email-config.type';
+import { MailService } from 'src/mail/mail.service';
 import { MailProcessorBase } from '../mail-processor.base';
-import { OrderMailJob } from '../../../common/types/email-job.type';
+import { OrderMailJob } from 'src/common/types/email-job.type';
 
 type MailTypes = OrderEmailTemplateKey | RefundEmailTemplateKey;
 

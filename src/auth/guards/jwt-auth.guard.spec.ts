@@ -1,5 +1,5 @@
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { RoleEnum } from '../../common/enum/role.enum';
+import { RoleEnum } from 'src/common/enum/role.enum';
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;

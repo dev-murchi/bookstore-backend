@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, Transporter } from 'nodemailer';
-import { MailConfigError } from '../../common/errors/mail-config.error';
-import { MailSendError } from '../../common/errors/mail-send.error';
+import { MailConfigError } from 'src/common/errors/mail-config.error';
+import { MailSendError } from 'src/common/errors/mail-send.error';
 
 @Injectable()
 export class NodemailerService {

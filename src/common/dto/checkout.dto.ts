@@ -6,7 +6,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderDTO } from '../../common/dto/order.dto';
+import { OrderDTO } from 'src/common/dto/order.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CheckoutDTO {

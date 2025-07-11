@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CartService } from './cart.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CartItemService } from './cart-item.service';
-import { HelperService } from '../common/helper.service';
-import { CategoryDTO } from '../common/dto/category.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CartItemDTO } from '../common/dto/cart-item.dto';
+import { HelperService } from 'src/common/helper.service';
+import { CategoryDTO } from 'src/common/dto/category.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CartItemDTO } from 'src/common/dto/cart-item.dto';
 import * as classValidator from 'class-validator';
-import { CustomAPIError } from '../common/errors/custom-api.error';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
 
 const mockCartId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example
 const emptySpacedMockCartId = '  abcdef01-2345-6789-abcd-ef0123456789'; // just example

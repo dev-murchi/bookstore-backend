@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { OrderStatus } from '../common/enum/order-status.enum';
-import { OrderItemDTO } from '../common/dto/order-item.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
-import { OrderDTO } from '../common/dto/order.dto';
-import { AddressDTO } from '../common/dto/address.dto';
-import { ShippingDTO } from '../common/dto/shipping.dto';
-import { PaymentDTO } from '../common/dto/payment.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderItemDTO } from 'src/common/dto/order-item.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { AddressDTO } from 'src/common/dto/address.dto';
+import { ShippingDTO } from 'src/common/dto/shipping.dto';
+import { PaymentDTO } from 'src/common/dto/payment.dto';
 import { validate } from 'class-validator';
-import { OrderOwnerDTO } from '../common/dto/order-owner.dto';
+import { OrderOwnerDTO } from 'src/common/dto/order-owner.dto';
 
 @Injectable()
 export class OrdersService {

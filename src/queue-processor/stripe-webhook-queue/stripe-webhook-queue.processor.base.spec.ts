@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { Job } from 'bullmq';
-import { OrdersService } from '../../orders/orders.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { StripeEvent } from '../../common/enum/stripe-event.enum';
+import { OrdersService } from 'src/orders/orders.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
 import { StripeWebhookProcessorBase } from './stripe-webhook-queue.processor.base';
 
 describe('StripeWebhookProcessorBase', () => {

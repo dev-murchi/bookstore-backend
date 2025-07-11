@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CheckoutService } from './checkout.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { PaymentService } from '../../payment/payment.service';
-import { CustomAPIError } from '../../common/errors/custom-api.error';
+import { PaymentService } from 'src/payment/payment.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
 
 const mockUserId = 'user-uuid-1';
 const mockGuestCartId = 'abcdef01-2345-6789-abcd-ef0123456789'; // just example

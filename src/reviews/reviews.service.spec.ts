@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewsService } from './reviews.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateReviewDTO } from '../common/dto/create-review.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateReviewDTO } from 'src/common/dto/create-review.dto';
 import { Prisma } from '@prisma/client';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { ReviewDTO } from '../common/dto/review.dto';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { ReviewDTO } from 'src/common/dto/review.dto';
 import * as classValidator from 'class-validator';
 
 const mockReviewId = '12345678-abcd-9012-efab-3456789abcde'; // just example

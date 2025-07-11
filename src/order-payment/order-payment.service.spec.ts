@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderPaymentService } from './order-payment.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { PaymentData } from '../common/types/payment-data.interface';
-import { PaymentStatus } from '../common/enum/payment-status.enum';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { PaymentData } from 'src/common/types/payment-data.interface';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 
 const mockPrismaService = {
   orderPayment: {

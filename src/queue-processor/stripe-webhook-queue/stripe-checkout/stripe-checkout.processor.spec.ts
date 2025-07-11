@@ -4,11 +4,11 @@ import {
   StripeCheckoutProcessor,
   STRIPE_CHECKOUT_SESSION_HANDLER,
 } from './stripe-checkout.processor';
-import { QueueService } from '../../../queue/queue.service';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { OrdersService } from '../../../orders/orders.service';
-import { StripeEventTypeCheckout } from '../../../common/types/stripe-event.type';
-import { OrderStatus } from '../../../common/enum/order-status.enum';
+import { QueueService } from 'src/queue/queue.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { OrdersService } from 'src/orders/orders.service';
+import { StripeEventTypeCheckout } from 'src/common/types/stripe-event.type';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
 import Stripe from 'stripe';
 
 const mockQueueService = {

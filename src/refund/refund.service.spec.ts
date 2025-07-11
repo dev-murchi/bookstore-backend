@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RefundService } from './refund.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { RefundStatus } from '../common/enum/refund-status.enum';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RefundStatus } from 'src/common/enum/refund-status.enum';
 
 const mockPrismaService = {
   refund: {

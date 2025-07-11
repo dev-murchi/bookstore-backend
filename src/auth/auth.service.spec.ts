@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
-import { UserService } from '../user/user.service';
-import { SignupDTO } from '../common/dto/signup.dto';
+import { UserService } from 'src/user/user.service';
+import { SignupDTO } from 'src/common/dto/signup.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
-import { RoleEnum } from '../common/enum/role.enum';
+import { RoleEnum } from 'src/common/enum/role.enum';
 
-import { HelperService } from '../common/helper.service';
-import { CustomAPIError } from '../common/errors/custom-api.error';
+import { HelperService } from 'src/common/helper.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
 import { ConfigService } from '@nestjs/config';
-import { UserSessionService } from '../user/user-session/user-session.service';
-import { QueueService } from '../queue/queue.service';
+import { UserSessionService } from 'src/user/user-session/user-session.service';
+import { QueueService } from 'src/queue/queue.service';
 
 const mockUserService = {
   create: jest.fn(),

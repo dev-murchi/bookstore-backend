@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BooksService, SortType } from './books.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CreateBookDTO } from '../common/dto/create-book.dto';
-import { UpdateBookDTO } from '../common/dto/update-book.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { CreateBookDTO } from 'src/common/dto/create-book.dto';
+import { UpdateBookDTO } from 'src/common/dto/update-book.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
 
 const mockUserId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example
 const mockUserId2 = '5610eb78-1234-4408-88f6-c2889cd136b7'; // just example

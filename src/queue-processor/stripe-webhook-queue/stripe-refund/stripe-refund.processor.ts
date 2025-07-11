@@ -1,11 +1,11 @@
 import { Processor, OnWorkerEvent } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { RefundEmailTemplateKey } from '../../../common/types/email-config.type';
-import { StripeEventTypeRefund } from '../../../common/types/stripe-event.type';
-import { OrdersService } from '../../../orders/orders.service';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { QueueService } from '../../../queue/queue.service';
+import { RefundEmailTemplateKey } from 'src/common/types/email-config.type';
+import { StripeEventTypeRefund } from 'src/common/types/stripe-event.type';
+import { OrdersService } from 'src/orders/orders.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { QueueService } from 'src/queue/queue.service';
 import { StripeWebhookProcessorBase } from '../stripe-webhook-queue.processor.base';
 import Stripe from 'stripe';
 

@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StripeCheckoutCompleteHandler } from './stripe-checkout-complete.handler';
-import { OrdersService } from '../../../../orders/orders.service';
-import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
-import { ShippingService } from '../../../../orders/shipping/shipping.service';
-import { OrderStatus } from '../../../../common/enum/order-status.enum';
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
+import { OrdersService } from 'src/orders/orders.service';
+import { OrderPaymentService } from 'src/order-payment/order-payment.service';
+import { ShippingService } from 'src/orders/shipping/shipping.service';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
 import Stripe from 'stripe';
-import { PaymentStatus } from '../../../../common/enum/payment-status.enum';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 
 const mockOrdersService = {
   updateStatus: jest.fn(),

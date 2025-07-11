@@ -3,9 +3,9 @@ import {
   RefundData,
   CreateRefundData,
   UpdateRefundData,
-} from '../common/types/refund-data.types';
-import { PrismaService } from '../prisma/prisma.service';
-import { RefundStatus } from '../common/enum/refund-status.enum';
+} from 'src/common/types/refund-data.types';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RefundStatus } from 'src/common/enum/refund-status.enum';
 
 @Injectable()
 export class RefundService {

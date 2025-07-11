@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { Request } from 'express';
-import { RoleEnum } from '../common/enum/role.enum';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { ReviewDTO } from '../common/dto/review.dto';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { ReviewDTO } from 'src/common/dto/review.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -25,8 +25,8 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
 
 @ApiTags('Reviews')
 @Controller('reviews')

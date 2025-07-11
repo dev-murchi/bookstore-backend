@@ -1,8 +1,8 @@
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { RefundData } from '../../../../common/types/refund-data.types';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { RefundData } from 'src/common/types/refund-data.types';
 import Stripe from 'stripe';
 import { StripeRefundHandlerBase } from './stripe-refund.handler.base';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
 
 const mockOrder = {
   id: 'order-uuid-1',

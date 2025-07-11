@@ -3,9 +3,9 @@ import { OrdersController } from './orders.controller';
 
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { StripeService } from '../payment/stripe/stripe.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { QueueService } from '../queue/queue.service';
+import { StripeService } from 'src/payment/stripe/stripe.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { QueueService } from 'src/queue/queue.service';
 
 const mockOrdersService = {
   getOrder: jest.fn(),

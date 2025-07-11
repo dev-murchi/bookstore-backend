@@ -1,16 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserService } from '../user/user.service';
-import { LoginDTO } from '../common/dto/login.dto';
+import { UserService } from 'src/user/user.service';
+import { LoginDTO } from 'src/common/dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
-import { PasswordResetDTO } from '../common/dto/password-reset.dto';
-import { RoleEnum } from '../common/enum/role.enum';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { SignupDTO } from '../common/dto/signup.dto';
-import { UserDTO } from '../common/dto/user.dto';
+import { PasswordResetDTO } from 'src/common/dto/password-reset.dto';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { SignupDTO } from 'src/common/dto/signup.dto';
+import { UserDTO } from 'src/common/dto/user.dto';
 import { ConfigService } from '@nestjs/config';
-import { HelperService } from '../common/helper.service';
-import { UserSessionService } from '../user/user-session/user-session.service';
-import { QueueService } from '../queue/queue.service';
+import { HelperService } from 'src/common/helper.service';
+import { UserSessionService } from 'src/user/user-session/user-session.service';
+import { QueueService } from 'src/queue/queue.service';
 
 @Injectable()
 export class AuthService {

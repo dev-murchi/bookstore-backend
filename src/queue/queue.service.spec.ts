@@ -4,8 +4,8 @@ import {
   AuthEmailTemplateKey,
   OrderEmailTemplateKey,
   RefundEmailTemplateKey,
-} from '../common/types/email-config.type';
-import { AuthMailJob, OrderMailJob } from '../common/types/email-job.type';
+} from 'src/common/types/email-config.type';
+import { AuthMailJob, OrderMailJob } from 'src/common/types/email-job.type';
 import {
   StripeCheckoutJob,
   StripePaymentJob,

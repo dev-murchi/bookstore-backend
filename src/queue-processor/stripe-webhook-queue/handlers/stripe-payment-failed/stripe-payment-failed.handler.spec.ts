@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StripePaymentFailedHandler } from './stripe-payment-failed.handler';
-import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { PaymentStatus } from '../../../../common/enum/payment-status.enum';
+import { OrderPaymentService } from 'src/order-payment/order-payment.service';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
 import Stripe from 'stripe';
 
 const mockOrderPaymentService = {

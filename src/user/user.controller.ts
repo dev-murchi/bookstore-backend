@@ -18,14 +18,14 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Request } from 'express';
-import { UpdateUserDTO } from '../common/dto/update-user.dto';
-import { UpdateProfileDTO } from '../common/dto/update-profile.dto';
-import { RoleEnum } from '../common/enum/role.enum';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { UserDTO } from '../common/dto/user.dto';
-import { ReviewsService } from '../reviews/reviews.service';
-import { OrdersService } from '../orders/orders.service';
+import { UpdateUserDTO } from 'src/common/dto/update-user.dto';
+import { UpdateProfileDTO } from 'src/common/dto/update-profile.dto';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { UserDTO } from 'src/common/dto/user.dto';
+import { ReviewsService } from 'src/reviews/reviews.service';
+import { OrdersService } from 'src/orders/orders.service';
 
 import {
   ApiTags,
@@ -40,10 +40,10 @@ import {
   ApiQuery,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { OrderDTO } from '../common/dto/order.dto';
-import { ReviewDTO } from '../common/dto/review.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { ReviewDTO } from 'src/common/dto/review.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()

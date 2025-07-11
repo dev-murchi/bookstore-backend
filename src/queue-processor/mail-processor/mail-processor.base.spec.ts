@@ -1,8 +1,8 @@
 import { Job } from 'bullmq';
-import { EmailTemplateKey } from '../../common/types/email-config.type';
-import { BaseMailJob } from '../../common/types/email-job.type';
+import { EmailTemplateKey } from 'src/common/types/email-config.type';
+import { BaseMailJob } from 'src/common/types/email-job.type';
 import { MailProcessorBase } from './mail-processor.base';
-import { MailService } from '../../mail/mail.service';
+import { MailService } from 'src/mail/mail.service';
 
 const mockMailService = {
   sendTemplatedEmail: jest.fn(),

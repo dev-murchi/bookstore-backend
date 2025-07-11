@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NodemailerService } from './nodemailer.service';
 import { ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
-import { MailConfigError } from '../../common/errors/mail-config.error';
-import { MailSendError } from '../../common/errors/mail-send.error';
+import { MailConfigError } from 'src/common/errors/mail-config.error';
+import { MailSendError } from 'src/common/errors/mail-send.error';
 
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn(() => ({

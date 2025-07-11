@@ -4,9 +4,9 @@ import {
   STRIPE_PAYMENT_HANDLER,
   StripePaymentProcessor,
 } from './stripe-payment.processor';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { OrdersService } from '../../../orders/orders.service';
-import { StripeEventTypePaymentIntent } from '../../../common/types/stripe-event.type';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { OrdersService } from 'src/orders/orders.service';
+import { StripeEventTypePaymentIntent } from 'src/common/types/stripe-event.type';
 import Stripe from 'stripe';
 
 const mockPrismaService = {

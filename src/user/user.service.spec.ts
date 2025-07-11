@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 
-import { UpdateUserDTO } from '../common/dto/update-user.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { RoleEnum } from '../common/enum/role.enum';
+import { UpdateUserDTO } from 'src/common/dto/update-user.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RoleEnum } from 'src/common/enum/role.enum';
 
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { HelperService } from '../common/helper.service';
-import { UserDTO } from '../common/dto/user.dto';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { HelperService } from 'src/common/helper.service';
+import { UserDTO } from 'src/common/dto/user.dto';
 
 import * as classValidator from 'class-validator';
 

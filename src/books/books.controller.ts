@@ -19,18 +19,18 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BooksService } from './books.service';
-import { CreateBookDTO } from '../common/dto/create-book.dto';
-import { UpdateBookDTO } from '../common/dto/update-book.dto';
+import { CreateBookDTO } from 'src/common/dto/create-book.dto';
+import { UpdateBookDTO } from 'src/common/dto/update-book.dto';
 import { Request } from 'express';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/enum/role.enum';
-import { UserService } from '../user/user.service';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { BookDTO } from '../common/dto/book.dto';
-import { BookReviewDTO } from '../common/dto/book-review.dto';
-import { ReviewsService } from '../reviews/reviews.service';
-import { ReviewDTO } from '../common/dto/review.dto';
-import { CreateReviewDTO } from '../common/dto/create-review.dto';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { UserService } from 'src/user/user.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { BookReviewDTO } from 'src/common/dto/book-review.dto';
+import { ReviewsService } from 'src/reviews/reviews.service';
+import { ReviewDTO } from 'src/common/dto/review.dto';
+import { CreateReviewDTO } from 'src/common/dto/create-review.dto';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -44,9 +44,9 @@ import {
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { BookFilterDTO } from '../common/dto/book-filter.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { BookFilterDTO } from 'src/common/dto/book-filter.dto';
 
 @ApiTags('Books')
 @Controller('books')

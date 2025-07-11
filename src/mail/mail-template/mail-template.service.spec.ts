@@ -4,8 +4,8 @@ import { MailTemplateService } from './mail-template.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigService } from '@nestjs/config';
-import { MailTemplateError } from '../../common/errors/mail-template.error';
-import { MailConfigError } from '../../common/errors/mail-config.error';
+import { MailTemplateError } from 'src/common/errors/mail-template.error';
+import { MailConfigError } from 'src/common/errors/mail-config.error';
 
 jest.mock('fs', () => ({
   readFileSync: jest.fn().mockImplementation((filePath) => {

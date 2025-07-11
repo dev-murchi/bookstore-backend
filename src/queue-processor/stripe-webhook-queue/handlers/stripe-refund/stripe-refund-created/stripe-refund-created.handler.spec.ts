@@ -1,10 +1,10 @@
 import { TestingModule, Test } from '@nestjs/testing';
 import { StripeRefundCreatedHandler } from './stripe-refund-created.handler';
-import { RefundService } from '../../../../../refund/refund.service';
-import { OrderDTO } from '../../../../../common/dto/order.dto';
-import { RefundData } from '../../../../../common/types/refund-data.types';
-import { StripeEvent } from '../../../../../common/enum/stripe-event.enum';
-import { RefundStatus } from '../../../../../common/enum/refund-status.enum';
+import { RefundService } from 'src/refund/refund.service';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { RefundData } from 'src/common/types/refund-data.types';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { RefundStatus } from 'src/common/enum/refund-status.enum';
 import Stripe from 'stripe';
 
 const mockRefundService = {

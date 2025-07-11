@@ -1,7 +1,7 @@
-import { OrderDTO } from '../../../../common/dto/order.dto';
-import { RefundStatus } from '../../../../common/enum/refund-status.enum';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
-import { RefundData } from '../../../../common/types/refund-data.types';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { RefundStatus } from 'src/common/enum/refund-status.enum';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { RefundData } from 'src/common/types/refund-data.types';
 import Stripe from 'stripe';
 import { StripeRefundUpdateHandlerBase } from './stripe-refund-update.handler.base';
 

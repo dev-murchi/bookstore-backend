@@ -16,16 +16,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
-import { AddToCartDTO } from '../common/dto/add-to-cart.dto';
+import { AddToCartDTO } from 'src/common/dto/add-to-cart.dto';
 import { Request } from 'express';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/enum/role.enum';
-import { CreateCheckoutDTO } from '../common/dto/create-checkout.dto';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { CreateCheckoutDTO } from 'src/common/dto/create-checkout.dto';
 import { CheckoutService } from './checkout/checkout.service';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { CartDTO } from '../common/dto/cart.dto';
-import { CartItemDTO } from '../common/dto/cart-item.dto';
-import { CheckoutDTO } from '../common/dto/checkout.dto';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { CartDTO } from 'src/common/dto/cart.dto';
+import { CartItemDTO } from 'src/common/dto/cart-item.dto';
+import { CheckoutDTO } from 'src/common/dto/checkout.dto';
 
 import {
   ApiBadRequestResponse,
@@ -42,11 +42,11 @@ import {
   ApiUnauthorizedResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
 import { CartGuard } from './guards/cart.guard';
 import { CartItemService } from './cart-item.service';
-import { CheckoutRequestDTO } from '../common/dto/checkout-request.dto';
-import { CartCheckoutAction } from '../common/enum/cart-checkout-action.enum';
+import { CheckoutRequestDTO } from 'src/common/dto/checkout-request.dto';
+import { CartCheckoutAction } from 'src/common/enum/cart-checkout-action.enum';
 
 @Controller('cart')
 @UseGuards(CartGuard, RoleGuard)

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from '../common/enum/order-status.enum';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { OrderItemDTO } from '../common/dto/order-item.dto';
-import { BookDTO } from '../common/dto/book.dto';
-import { CategoryDTO } from '../common/dto/category.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { OrderItemDTO } from 'src/common/dto/order-item.dto';
+import { BookDTO } from 'src/common/dto/book.dto';
+import { CategoryDTO } from 'src/common/dto/category.dto';
 
 const orderId1 = '461802bb-8792-42f6-b4b3-a620f91cedb6'; // just example
 const userId = '5610eb78-6602-4408-88f6-c2889cd136b7'; // just example

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from './payment.service';
 import { StripeService } from './stripe/stripe.service';
 import Stripe from 'stripe';
-import { QueueService } from '../queue/queue.service';
+import { QueueService } from 'src/queue/queue.service';
 
 const mockStripeService = {
   createCheckoutSession: jest.fn(),

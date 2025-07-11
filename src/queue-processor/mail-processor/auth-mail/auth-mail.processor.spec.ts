@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthMailProcessor } from './auth-mail.processor';
-import { MailService } from '../../../mail/mail.service';
+import { MailService } from 'src/mail/mail.service';
 import { Job } from 'bullmq';
 import { AuthEmailTemplateKey } from 'src/common/types/email-config.type';
 import { AuthMailJob } from 'src/common/types/email-job.type';

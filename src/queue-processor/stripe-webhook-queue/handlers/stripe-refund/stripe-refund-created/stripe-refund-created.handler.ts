@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { StripeEvent } from '../../../../../common/enum/stripe-event.enum';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
 import { StripeRefundHandlerBase } from '../stripe-refund.handler.base';
-import { OrderDTO } from '../../../../../common/dto/order.dto';
+import { OrderDTO } from 'src/common/dto/order.dto';
 import Stripe from 'stripe';
-import { RefundData } from '../../../../../common/types/refund-data.types';
-import { RefundService } from '../../../../../refund/refund.service';
+import { RefundData } from 'src/common/types/refund-data.types';
+import { RefundService } from 'src/refund/refund.service';
 
 @Injectable()
 export class StripeRefundCreatedHandler extends StripeRefundHandlerBase {

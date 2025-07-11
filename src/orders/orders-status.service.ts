@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { OrderStatus } from '../common/enum/order-status.enum';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { OrderDTO } from '../common/dto/order.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { OrderDTO } from 'src/common/dto/order.dto';
 
 interface StatusRule {
   from: OrderStatus;

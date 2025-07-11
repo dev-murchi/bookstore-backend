@@ -12,14 +12,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { SignupDTO } from '../common/dto/signup.dto';
-import { LoginDTO } from '../common/dto/login.dto';
-import { PasswordResetRequestDTO } from '../common/dto/password-reset-request.dto';
-import { PasswordResetDTO } from '../common/dto/password-reset.dto';
-import { RoleEnum } from '../common/enum/role.enum';
-import { Roles } from '../common/decorator/role/role.decorator';
-import { CustomAPIError } from '../common/errors/custom-api.error';
-import { UserDTO } from '../common/dto/user.dto';
+import { SignupDTO } from 'src/common/dto/signup.dto';
+import { LoginDTO } from 'src/common/dto/login.dto';
+import { PasswordResetRequestDTO } from 'src/common/dto/password-reset-request.dto';
+import { PasswordResetDTO } from 'src/common/dto/password-reset.dto';
+import { RoleEnum } from 'src/common/enum/role.enum';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
+import { UserDTO } from 'src/common/dto/user.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -35,7 +35,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshGuard } from './guards/refresh.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
 
 @ApiTags('Auth')
 @Controller('auth')

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { StripeService } from './stripe/stripe.service';
-import { QueueService } from '../queue/queue.service';
+import { QueueService } from 'src/queue/queue.service';
 import {
   StripeEventTypeCheckout,
   StripeEventTypePaymentIntent,
   StripeEventTypeRefund,
-} from '../common/types/stripe-event.type';
+} from 'src/common/types/stripe-event.type';
 
 const PaymentIntentEvents = new Set(['payment_intent.payment_failed']);
 const CheckoutEvents = new Set([

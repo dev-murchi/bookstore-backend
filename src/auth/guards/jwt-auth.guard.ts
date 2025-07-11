@@ -1,6 +1,6 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { RoleEnum } from '../../common/enum/role.enum';
+import { RoleEnum } from 'src/common/enum/role.enum';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('my-jwt') {

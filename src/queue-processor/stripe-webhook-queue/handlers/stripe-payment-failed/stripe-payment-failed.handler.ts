@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PaymentStatus } from '../../../../common/enum/payment-status.enum';
-import { StripeEvent } from '../../../../common/enum/stripe-event.enum';
-import { PaymentData } from '../../../../common/types/payment-data.interface';
-import { StripeHandler } from '../../../../common/types/stripe-handler.interface';
+import { PaymentStatus } from 'src/common/enum/payment-status.enum';
+import { StripeEvent } from 'src/common/enum/stripe-event.enum';
+import { PaymentData } from 'src/common/types/payment-data.interface';
+import { StripeHandler } from 'src/common/types/stripe-handler.interface';
 
-import { OrderPaymentService } from '../../../../order-payment/order-payment.service';
-import { OrderDTO } from '../../../../common/dto/order.dto';
+import { OrderPaymentService } from 'src/order-payment/order-payment.service';
+import { OrderDTO } from 'src/common/dto/order.dto';
 import Stripe from 'stripe';
 
 @Injectable()

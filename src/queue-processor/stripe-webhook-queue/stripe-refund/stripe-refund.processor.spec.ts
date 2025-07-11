@@ -1,32 +1,13 @@
-// import { Test, TestingModule } from '@nestjs/testing';
-// import { StripeRefund } from './stripe-refund.processor';
-
-// describe('StripeRefund', () => {
-//   let provider: StripeRefund;
-
-//   beforeEach(async () => {
-//     const module: TestingModule = await Test.createTestingModule({
-//       providers: [StripeRefund],
-//     }).compile();
-
-//     provider = module.get<StripeRefund>(StripeRefund);
-//   });
-
-//   it('should be defined', () => {
-//     expect(provider).toBeDefined();
-//   });
-// });
-
 import { Test } from '@nestjs/testing';
 import { Job } from 'bullmq';
 import {
   StripeRefundProcessor,
   STRIPE_REFUND_HANDLER,
 } from './stripe-refund.processor';
-import { QueueService } from '../../../queue/queue.service';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { OrdersService } from '../../../orders/orders.service';
-import { StripeEventTypeRefund } from '../../../common/types/stripe-event.type';
+import { QueueService } from 'src/queue/queue.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { OrdersService } from 'src/orders/orders.service';
+import { StripeEventTypeRefund } from 'src/common/types/stripe-event.type';
 import Stripe from 'stripe';
 
 const mockOrder = {

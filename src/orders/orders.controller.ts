@@ -15,15 +15,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { Roles } from '../common/decorator/role/role.decorator';
-import { RoleEnum } from '../common/enum/role.enum';
+import { Roles } from 'src/common/decorator/role/role.decorator';
+import { RoleEnum } from 'src/common/enum/role.enum';
 import { Request } from 'express';
-import { OrderStatusDTO } from '../common/dto/order-status.dto';
+import { OrderStatusDTO } from 'src/common/dto/order-status.dto';
 import { OrdersStatusService } from './orders-status.service';
 import { OrdersService } from './orders.service';
-import { OrderDTO } from '../common/dto/order.dto';
-import { OrderStatus } from '../common/enum/order-status.enum';
-import { StripeService } from '../payment/stripe/stripe.service';
+import { OrderDTO } from 'src/common/dto/order.dto';
+import { OrderStatus } from 'src/common/enum/order-status.enum';
+import { StripeService } from 'src/payment/stripe/stripe.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -35,10 +35,10 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { OrderEmailTemplateKey } from '../common/types/email-config.type';
-import { QueueService } from '../queue/queue.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { RoleGuard } from 'src/auth/guards/role.guard';
+import { OrderEmailTemplateKey } from 'src/common/types/email-config.type';
+import { QueueService } from 'src/queue/queue.service';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RoleGuard)
