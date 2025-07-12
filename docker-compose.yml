@@ -1,47 +1,140 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:15
     container_name: postgres_container
     restart: always
     ports:
-      - '5432:5432'
+      - '5432:5432' # Expose PostgreSQL port for local access
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      POSTGRES_DB: ${DB_NAME_DEFAULT}
+      # Pass usernames and passwords for specific users to the init.sql script
+      PGUSER_DEV: ${PGUSER_DEV}
+      PGPASSWORD_DEV: ${PGPASSWORD_DEV}
+      PGUSER_PROD: ${PGUSER_PROD}
+      PGPASSWORD_PROD: ${PGPASSWORD_PROD}
+      PGUSER_TEST: ${PGUSER_TEST}
+      PGPASSWORD_TEST: ${PGPASSWORD_TEST}
+
+      DB_NAME_DEV: ${DB_NAME_DEV}
+      DB_NAME_PROD: ${DB_NAME_PROD}
+      DB_NAME_TEST: ${DB_NAME_TEST}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+      # Mount the new shell script and the SQL template
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./init.sql.template:/docker-entrypoint-initdb.d/init.sql.template
+
     networks:
-      - app-network
+      - app_network
+    healthcheck: # Add health check for PostgreSQL
+      test: [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_ROOT_USER} -d ${DB_NAME_DEFAULT:-postgres}',
+        ] # Use root user for health check
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Command to ensure envsubst is installed and init-db.sh has execute permissions
+    # This runs as part of the container's startup process
+    command: >
+      bash -c "
+        # Install gettext-base if envsubst is not found (for Debian-based images)
+        if ! command -v envsubst &> /dev/null; then
+          apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*;
+        fi;
+        # Explicitly set execute permissions for the init-db.sh script inside the container
+        chmod +x /docker-entrypoint-initdb.d/init-db.sh;
+        # Then, run the original PostgreSQL entrypoint command
+        docker-entrypoint.sh postgres
+      "
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: redis_container
     restart: always
+    volumes:
+      - redisdata:/data
     ports:
-      - '${REDIS_PORT}:${REDIS_PORT}'
+      - '6379:6379' # Expose Redis port for local access
     networks:
-      - app-network
+      - app_network
+    healthcheck: # Add health check for Redis
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
-  app:
-    build: .
-    container_name: nestjs-app
-    restart: on-failure
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: # Load environment variables from these files
+      - .env.db # Load common DB variables (including root for init)
+      - .env.dev # Load dev-specific variables (including dev DB user)
     ports:
       - '${HOST_PORT}:${PORT}'
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-      - redis
+    profiles:
+      - dev
     networks:
-      - app-network
+      - app_network
+    command: ./start-api.sh
+
+  api-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: # Load environment variables from these files
+      - .env.db
+      - .env.prod
+    ports:
+      - '${HOST_PORT}:${PORT}'
+    profiles:
+      - prod
+    networks:
+      - app_network
+    command: ./start-api.sh
+
+  api-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: # Load environment variables from these files
+      - .env.db
+      - .env.test
+    ports:
+      - '${HOST_PORT}:${PORT}'
+    profiles:
+      - test
+    networks:
+      - app_network
+    command: ./start-api.sh
 
 volumes:
-  postgres_data:
+  pgdata:
+  redisdata:
 
 networks:
-  app-network:
+  app_network:
     driver: bridge
