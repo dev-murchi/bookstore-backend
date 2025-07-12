@@ -1,10 +1,14 @@
 services:
   postgres:
-    image: postgres:15
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     container_name: postgres_container
     restart: always
     ports:
       - '5432:5432' # Expose PostgreSQL port for local access
+    env_file:
+      - .env.db
     environment:
       POSTGRES_USER: ${POSTGRES_ROOT_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
@@ -22,9 +26,6 @@ services:
       DB_NAME_TEST: ${DB_NAME_TEST}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # Mount the new shell script and the SQL template
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-      - ./init.sql.template:/docker-entrypoint-initdb.d/init.sql.template
 
     networks:
       - app_network
@@ -37,19 +38,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    # Command to ensure envsubst is installed and init-db.sh has execute permissions
-    # This runs as part of the container's startup process
-    command: >
-      bash -c "
-        # Install gettext-base if envsubst is not found (for Debian-based images)
-        if ! command -v envsubst &> /dev/null; then
-          apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*;
-        fi;
-        # Explicitly set execute permissions for the init-db.sh script inside the container
-        chmod +x /docker-entrypoint-initdb.d/init-db.sh;
-        # Then, run the original PostgreSQL entrypoint command
-        docker-entrypoint.sh postgres
-      "
+    command: ['start-postgres.sh']
 
   redis:
     image: redis:7-alpine
