@@ -61,6 +61,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     restart: always
     depends_on:
       postgres:
@@ -76,12 +77,16 @@ services:
       - dev
     networks:
       - app_network
-    command: ./start-api.sh
+    volumes:
+      - .:/app
+      - /app/node_modules # avoid host-modules conflict
+    command: ['npm', 'run', 'start:dev']
 
   api-prod:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     restart: always
     depends_on:
       postgres:
@@ -97,12 +102,13 @@ services:
       - prod
     networks:
       - app_network
-    command: ./start-api.sh
+    command: ['npm', 'run', 'start:prod']
 
-  api-test:
+  app-e2e:
     build:
       context: .
       dockerfile: Dockerfile
+      target: test
     restart: always
     depends_on:
       postgres:
@@ -118,7 +124,7 @@ services:
       - test
     networks:
       - app_network
-    command: ./start-api.sh
+    command: ['npm', 'run', 'test:e2e']
 
 volumes:
   pgdata:
