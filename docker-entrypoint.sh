@@ -23,8 +23,8 @@ if [ "$NODE_ENV" = "development" ] || [ "$NODE_ENV" = "test" ]; then
   echo "Running Prisma db push and seed for $NODE_ENV environment..."
   # For development and test, db push is often used for quick schema sync.
   # --force-reset can be added if you want to ensure a clean state on every start (use with caution).
-  npx prisma db push
-  node dist/prisma/seed.js
+  npx prisma migrate dev --name init
+  npx ts-node prisma/seed.ts
 elif [ "$NODE_ENV" = "production" ]; then
   echo "Running Prisma migrations for production environment..."
   # In production, always use migrate deploy to apply version-controlled migrations.
