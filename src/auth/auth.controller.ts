@@ -40,7 +40,7 @@ import { RoleGuard } from 'src/auth/guards/role.guard';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -113,7 +113,6 @@ export class AuthController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: 'Bad request' })
   @ApiUnauthorizedResponse({ description: 'Invalid email or password' })
   @ApiInternalServerErrorResponse({ description: 'Login failed' })
   async login(
@@ -122,9 +121,6 @@ export class AuthController {
     try {
       return await this.authService.login(loginDto);
     } catch (error) {
-      if (error instanceof CustomAPIError) {
-        throw new BadRequestException(error.message);
-      }
 
       if (error instanceof UnauthorizedException) {
         throw error;
@@ -239,18 +235,23 @@ export class AuthController {
   @ApiInternalServerErrorResponse({
     description: 'Failed to refresh token due to internal error',
   })
-  async refreshToken(@Req() request: Request) {
-    const { user } = request;
-    const accessToken = await this.authService.accessToken({
-      id: user['id'],
-      role: user['role'],
-      sessionId: user['sessionId'],
-    });
+  async refreshToken(@Req() request: Request): Promise<{ accessToken: string; refreshToken: string }> {
+    try {
+      const { user } = request;
+      const accessToken = await this.authService.accessToken({
+        id: user['id'],
+        role: user['role'],
+        sessionId: user['sessionId'],
+      });
     const { token: refreshToken } = await this.authService.refreshToken(
-      user['id'],
-      user['sessionId'],
-    );
+        user['id'],
+        user['sessionId'],
+      );
 
-    return { accessToken, refreshToken };
+      return { accessToken, refreshToken };
+    } catch (error) {
+      console.error('Failed to refresh token. Error:', error)
+      throw new InternalServerErrorException('Failed to refresh token.')
+    }
   }
 }
