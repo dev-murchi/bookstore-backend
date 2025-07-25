@@ -12,9 +12,7 @@ import {
   Query,
   InternalServerErrorException,
   UnauthorizedException,
-  NotFoundException,
   ParseUUIDPipe,
-  DefaultValuePipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -134,7 +132,9 @@ export class BooksController {
         throw new BadRequestException(error.message);
       }
 
-      throw new InternalServerErrorException('User could not be fetched.');
+      throw new InternalServerErrorException(
+        'Failed to retrieve the books due to an unexpected error.',
+      );
     }
   }
 
@@ -285,7 +285,7 @@ export class BooksController {
   @ApiInternalServerErrorResponse({ description: 'Failed to update book' })
   async update(
     @Req() request: Request,
-    @Param('id', ParseIntPipe) bookId: string,
+    @Param('id', ParseUUIDPipe) bookId: string,
     @Body() updateBookDto: UpdateBookDTO,
   ): Promise<{ data: BookDTO }> {
     try {
@@ -310,7 +310,6 @@ export class BooksController {
     } catch (error) {
       console.error('Failed to update book. Error:', error);
       if (error instanceof BadRequestException) throw error;
-      if (error instanceof NotFoundException) throw error;
       if (error instanceof UnauthorizedException) throw error;
 
       if (error instanceof CustomAPIError) {
@@ -410,8 +409,8 @@ export class BooksController {
   })
   async findBookReviews(
     @Param('id', ParseUUIDPipe) bookId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
   ): Promise<{
     data: {
       data: {
@@ -442,6 +441,12 @@ export class BooksController {
     requestUser: { id: string; email: string; role: RoleEnum },
     authorEmail: string,
   ): Promise<{ authorId: string }> {
+    if (![RoleEnum.Admin, RoleEnum.Author].includes(requestUser.role)) {
+      throw new UnauthorizedException(
+        'You are not authorized to perform this action.',
+      );
+    }
+
     if (requestUser.role === RoleEnum.Author) {
       if (requestUser.email !== authorEmail) {
         throw new UnauthorizedException(
