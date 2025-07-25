@@ -4,6 +4,7 @@ import { MailTemplateService } from './mail-template/mail-template.service';
 import { NodemailerService } from './nodemailer/nodemailer.service';
 import { MailTemplateError } from 'src/common/errors/mail-template.error';
 import { ConfigService } from '@nestjs/config';
+import { MailConfigError } from 'src/common/errors/mail-config.error';
 
 const mockTemplate = {
   subject: 'Welcome {{name}}',
@@ -59,6 +60,23 @@ describe('MailService', () => {
 
     service = module.get<MailService>(MailService);
     jest.clearAllMocks();
+  });
+
+  describe('getConfig', () => {
+    it('should return config value if present', () => {
+      const serviceInstance: any = service;
+      mockConfigService.get.mockReturnValueOnce('some-value');
+      expect(serviceInstance.getConfig('email.companyName')).toBe('some-value');
+      expect(mockConfigService.get).toHaveBeenCalledWith('email.companyName');
+    });
+
+    it('should throw MailConfigError if config value is missing', () => {
+      const serviceInstance: any = service;
+      mockConfigService.get.mockReturnValueOnce(undefined);
+      expect(() => serviceInstance.getConfig('missing.key')).toThrow(
+        new MailConfigError('Missing config value: missing.key'),
+      );
+    });
   });
 
   it('should send email with valid filled template', async () => {
