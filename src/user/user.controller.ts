@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
@@ -118,15 +117,16 @@ export class UserController {
         throw new BadRequestException('No changes provided.');
       }
 
-      await this.userService.checkUserWithPassword(
-        request.user['email'],
-        password,
-      );
       if (password === newPassword) {
         throw new BadRequestException(
           'New password must be different from old password.',
         );
       }
+
+      await this.userService.checkUserWithPassword(
+        request.user['email'],
+        password,
+      );
 
       const updateData = new UpdateUserDTO();
 
@@ -167,9 +167,6 @@ export class UserController {
     try {
       return await this.userService.findAll();
     } catch (error) {
-      if (error instanceof CustomAPIError) {
-        throw new BadRequestException(error.message);
-      }
       throw new InternalServerErrorException('Users could not be retrieved.');
     }
   }
@@ -213,9 +210,6 @@ export class UserController {
     try {
       return await this.userService.remove(userId);
     } catch (error) {
-      if (error instanceof CustomAPIError) {
-        throw new BadRequestException(error.message);
-      }
       throw new InternalServerErrorException('User could not be deleted.');
     }
   }
@@ -276,8 +270,8 @@ export class UserController {
   })
   async getUserReviews(
     @Param('id', ParseUUIDPipe) userId: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Query('page', ParseIntPipe) page,
+    @Query('limit', ParseIntPipe) limit,
   ): Promise<{
     data: {
       data: {
