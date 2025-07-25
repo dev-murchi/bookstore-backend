@@ -1,6 +1,5 @@
 import {
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   InternalServerErrorException,
@@ -83,8 +82,8 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard, RoleGuard)
   @Roles([RoleEnum.User])
   async findUserReviews(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
     @Req() request: Request,
   ): Promise<{
     data: {
