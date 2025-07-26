@@ -13,7 +13,6 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  NotFoundException,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { AddToCartDTO } from 'src/common/dto/add-to-cart.dto';
@@ -106,21 +105,18 @@ export class CartController {
   }> {
     try {
       const user = request.user;
-      if (user['role'] === RoleEnum.User) {
-        if (user['cartId']) {
-          throw new BadRequestException('You already have a cart.');
-        }
-        return await this.cartService.createCart(user['id']);
-      }
 
       if (user['role'] === RoleEnum.GuestUser) {
         return await this.cartService.createCart(null);
       }
 
-      throw new UnauthorizedException('Invalid user role');
+      if (user['cartId']) {
+        throw new BadRequestException('You already have a cart.');
+      }
+
+      return await this.cartService.createCart(user['id']);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException(
         'Failed to create the cart due to an unexpected error.',
       );
@@ -237,10 +233,19 @@ export class CartController {
     @Req() request: Request,
     @Body() createCheckoutDto: CreateCheckoutDTO,
   ): Promise<{ data: CheckoutDTO }> {
-    console.log('');
     try {
       const user = request.user;
-      await this.authorizeCartAccess(user, createCheckoutDto.cartId);
+      const { access, message } = await this.canUserAccessCart(
+        user,
+        createCheckoutDto.cartId,
+      );
+
+      if (!access) {
+        throw new UnauthorizedException(
+          message || 'Unauthorized access to checkout.',
+        );
+      }
+
       return {
         data: await this.checkoutService.checkout(
           user['id'],
@@ -249,7 +254,6 @@ export class CartController {
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
-      if (error instanceof NotFoundException) throw error;
       if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
       }
@@ -291,17 +295,25 @@ export class CartController {
   @ApiNotFoundResponse({ description: 'Cart not found or unauthorized.' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   async viewCart(
-    @Param('id', ParseUUIDPipe) carId: string,
+    @Param('id', ParseUUIDPipe) cartId: string,
     @Req() request: Request,
   ): Promise<{ data: CartDTO }> {
     try {
       const user: any = request.user;
-      const cart = await this.authorizeCartAccess(user, carId);
+      const { access, message } = await this.canUserAccessCart(user, cartId);
+
+      if (!access) {
+        throw new UnauthorizedException(
+          message || 'Unauthorized access to checkout.',
+        );
+      }
+
+      const cart = await this.cartService.findCart(cartId);
+
       return { data: cart };
     } catch (error) {
       console.error({ error });
       if (error instanceof UnauthorizedException) throw error;
-      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
         'Failed to fetch the cart due to an unexpected error.',
       );
@@ -349,7 +361,8 @@ export class CartController {
     body: CheckoutRequestDTO,
   ): Promise<{ data: CartDTO }> {
     try {
-      const { id: userId, carId: userCartId } = request.user as any;
+      const { id: userId, cartId: userCartId } = request.user as any;
+
       const { guestCartId, guestCartToken, action } = body;
 
       if (guestCartToken.length !== guestCartToken.trim().length) {
@@ -396,9 +409,14 @@ export class CartController {
             userId,
             null,
           );
+        } else {
+          finalCart = await this.cartService.mergeCarts(
+            guestCartId,
+            userCartId,
+          );
         }
-        finalCart = await this.cartService.mergeCarts(guestCartId, userCartId);
       } else {
+        console.warn({ action });
         throw new BadRequestException(
           'Invalid cart synchronization action specified.',
         );
@@ -406,6 +424,12 @@ export class CartController {
 
       return { data: finalCart };
     } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException
+      )
+        throw error;
+
       if (error instanceof CustomAPIError) {
         throw new BadRequestException(error.message);
       }
@@ -452,12 +476,17 @@ export class CartController {
   ): Promise<{ data: CartItemDTO }> {
     try {
       const user = request.user;
-      await this.authorizeCartAccess(user, cartId);
+      const { access, message } = await this.canUserAccessCart(user, cartId);
+      if (!access) {
+        throw new UnauthorizedException(
+          message || 'Unauthorized access to checkout.',
+        );
+      }
+
       return {
         data: await this.cartItemService.createOrUpdateItem(cartId, data),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
       if (error instanceof UnauthorizedException) throw error;
       throw new InternalServerErrorException(
         'Failed to add the item to the cart due to an unexpected error.',
@@ -490,7 +519,6 @@ export class CartController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: 'Cart is empty or invalid request' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @ApiNotFoundResponse({ description: 'Cart not found or unauthorized.' })
   @ApiUnauthorizedResponse({ description: 'Unauthorized access to cart' })
@@ -501,12 +529,16 @@ export class CartController {
   ): Promise<{ message: string }> {
     try {
       const user = request.user;
-      await this.authorizeCartAccess(user, cartId);
+      const { access, message } = await this.canUserAccessCart(user, cartId);
+      if (!access) {
+        throw new UnauthorizedException(
+          message || 'Unauthorized access to checkout.',
+        );
+      }
+
       return await this.cartItemService.deleteItem(cartId, { bookId: itemId });
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
       if (error instanceof UnauthorizedException) throw error;
-      if (error instanceof NotFoundException) throw error;
       throw new InternalServerErrorException(
         'Failed to delete the cart due to an unexpected error.',
       );
@@ -529,9 +561,9 @@ export class CartController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized (Admin only)' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  removeInactiveGuestCarts(): Promise<{ removed: number }> {
+  async removeInactiveGuestCarts(): Promise<{ removed: number }> {
     try {
-      return this.cartService.removeInactiveGuestCarts();
+      return await this.cartService.removeInactiveGuestCarts();
     } catch (error) {
       throw new InternalServerErrorException(
         'Failed to remove inactive guest carts due to an unexpected error.',
@@ -539,39 +571,39 @@ export class CartController {
     }
   }
 
-  private async authorizeCartAccess(
+  private async canUserAccessCart(
     user: any,
     cartId: string,
-  ): Promise<CartDTO> {
-    let cart: CartDTO | null;
-
+  ): Promise<{ access: boolean; message: string | null }> {
     if (user['role'] === RoleEnum.Admin) {
-      cart = await this.cartService.findCart(cartId);
+      return { access: true, message: null };
     } else if (user['role'] === RoleEnum.User) {
       if (!user['cartId']) {
-        throw new UnauthorizedException('Please create a cart first.');
+        return {
+          access: false,
+          message: 'Please create a cart first.',
+        };
       }
       if (user['cartId'] !== cartId) {
-        throw new UnauthorizedException('Unable to access this cart.');
+        return {
+          access: false,
+          message: 'Unable to access this cart.',
+        };
       }
-      cart = await this.cartService.findCart(cartId, {
-        userId: user['id'],
-      });
+      return { access: true, message: null };
     } else if (user['role'] === RoleEnum.GuestUser) {
       if (!user['guestCartToken']) {
-        throw new UnauthorizedException('Guest token missing from request.');
+        return {
+          access: false,
+          message: 'Guest token missing from request.',
+        };
       }
-      cart = await this.cartService.findCart(cartId, {
-        guestToken: user['guestCartToken'],
-      });
+      return { access: true, message: null };
     } else {
-      throw new UnauthorizedException('Invalid user role.');
+      return {
+        access: false,
+        message: 'Invalid user role.',
+      };
     }
-
-    if (!cart) {
-      throw new NotFoundException('Cart not found or unauthorized.');
-    }
-
-    return cart;
   }
 }

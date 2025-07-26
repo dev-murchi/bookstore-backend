@@ -32,7 +32,7 @@ describe('PaymentController', () => {
       mockPaymentService.handleStripeWebhook.mockRejectedValue(
         new Error('Unknown Error'),
       );
-     
+
       try {
         await controller.stripeWebhook(request, signature);
       } catch (error) {
