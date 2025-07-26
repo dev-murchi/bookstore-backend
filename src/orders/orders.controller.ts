@@ -2,14 +2,15 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   InternalServerErrorException,
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -39,6 +40,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RoleGuard } from 'src/auth/guards/role.guard';
 import { OrderEmailTemplateKey } from 'src/common/types/email-config.type';
 import { QueueService } from 'src/queue/queue.service';
+import { CustomAPIError } from 'src/common/errors/custom-api.error';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RoleGuard)
@@ -61,7 +63,7 @@ export class OrdersController {
     private readonly stripeService: StripeService,
   ) {}
 
-  @Post(':id/status')
+  @Patch(':id/status')
   @Roles([RoleEnum.Admin])
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -95,7 +97,7 @@ export class OrdersController {
           order = await this.ordersStatusService.cancelOrder(orderId);
           break;
         default:
-          throw new Error('Invalid order status.');
+          throw new BadRequestException('Invalid order status.');
       }
 
       const emailTemplateKey = this.orderStatusToEmailTemplateMap.get(
@@ -116,7 +118,15 @@ export class OrdersController {
 
       return order;
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof BadRequestException) throw error;
+
+      if (error instanceof CustomAPIError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw new InternalServerErrorException(
+        `Failed to update order #${orderId} as ${orderStatusDTO.status} due to unexpected error.`,
+      );
     }
   }
 
@@ -133,7 +143,7 @@ export class OrdersController {
     type: [OrderDTO],
   })
   @ApiInternalServerErrorResponse({
-    description: 'Failed to retrieve orders',
+    description: 'Failed to retrieve the orders.',
   })
   async viewAllOrders(@Req() request: Request): Promise<OrderDTO[]> {
     try {
@@ -143,11 +153,7 @@ export class OrdersController {
       return await this.ordersService.getAll();
     } catch (error) {
       console.error('Orders could not be fetched', error);
-      throw new HttpException(
-        'Something went wrong!',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        { cause: error },
-      );
+      throw new InternalServerErrorException('Failed to retrieve the orders.');
     }
   }
 
@@ -275,17 +281,24 @@ export class OrdersController {
     try {
       const order = await this.ordersService.getOrder(orderId);
 
-      if (request.user['role'] === RoleEnum.Admin) return { data: order };
-
-      if (request.user['id'] !== order.owner) {
-        throw new Error('Unauthorized access');
+      if (request.user['role'] === RoleEnum.Admin) {
+        return { data: order };
       }
 
-      // admnin or the user who has the order can fetch it
+      if (!order || !order.owner || order.owner.id !== request.user['id']) {
+        throw new ForbiddenException(
+          `You do not have permission to access order ${orderId}`,
+        );
+      }
+
       return { data: order };
     } catch (error) {
-      console.error(`Order #${orderId} could not be fetched`, error);
-      throw new BadRequestException(`Order #${orderId} could not be fetched`);
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'An unexpected error occurred while fetching the order',
+      );
     }
   }
   @Post(':id/refund')
@@ -307,7 +320,7 @@ export class OrdersController {
         status: 'success',
         message: 'Refund processed successfully.',
         refund: {
-          refund_id: 're_1Hh1l2J9X5Z9yZ',
+          refundId: 're_1Hh1l2J9X5Z9yZ',
           orderId: 'a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6',
           amount: 49.99,
           currency: 'USD',
@@ -342,7 +355,7 @@ export class OrdersController {
         )
       ) {
         throw new BadRequestException(
-          'Order status must be complete or delivered to process a refund',
+          `Order status must be ${OrderStatus.Complete} or ${OrderStatus.Delivered} to process a refund`,
         );
       }
 
@@ -355,7 +368,7 @@ export class OrdersController {
         status: 'success',
         message: 'Refund processed successfully.',
         refund: {
-          refund_id: refund.id,
+          refundId: refund.id,
           orderId,
           amount: Number((refund.amount / 100).toFixed(2)),
           currency: refund.currency.toUpperCase(),
