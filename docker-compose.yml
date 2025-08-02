@@ -1,86 +1,196 @@
 services:
-  postgres:
+  postgres-dev:
     build:
       context: .
       dockerfile: Dockerfile.postgres
-    container_name: postgres_container
-    restart: always
-    ports:
-      - '5432:5432' # Expose PostgreSQL port for local access
-    env_file:
-      - .env.db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_ROOT_USER}
       POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
-      POSTGRES_DB: ${DB_NAME_DEFAULT}
-      # Pass usernames and passwords for specific users to the init.sql script
-      PGUSER_DEV: ${PGUSER_DEV}
-      PGPASSWORD_DEV: ${PGPASSWORD_DEV}
-      PGUSER_PROD: ${PGUSER_PROD}
-      PGPASSWORD_PROD: ${PGPASSWORD_PROD}
-      PGUSER_TEST: ${PGUSER_TEST}
-      PGPASSWORD_TEST: ${PGPASSWORD_TEST}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
 
-      DB_NAME_DEV: ${DB_NAME_DEV}
-      DB_NAME_PROD: ${DB_NAME_PROD}
-      DB_NAME_TEST: ${DB_NAME_TEST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_USER_CREATEDB: ${API_CAN_CREATEDB}
     volumes:
-      - pgdata:/var/lib/postgresql/data
-
+      - pgdata_dev:/var/lib/postgresql/data
     networks:
-      - app_network
-    healthcheck: # Add health check for PostgreSQL
-      test: [
-          'CMD-SHELL',
-          'pg_isready -U ${POSTGRES_ROOT_USER} -d ${DB_NAME_DEFAULT:-postgres}',
-        ] # Use root user for health check
+      - api_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_ROOT_USER} -d ${POSTGRES_DB_NAME}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
-    command: ['start-postgres.sh']
+    command: ["start-postgres.sh"]
+    profiles:
+      - dev
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis_container
-    restart: always
+  postgres-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_USER_CREATEDB: ${API_CAN_CREATEDB}
     volumes:
-      - redisdata:/data
-    ports:
-      - '6379:6379' # Expose Redis port for local access
+      - pgdata_test:/var/lib/postgresql/data
     networks:
-      - app_network
-    healthcheck: # Add health check for Redis
-      test: ['CMD', 'redis-cli', 'ping']
+      - api_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_ROOT_USER} -d ${POSTGRES_DB_NAME}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: ["start-postgres.sh"]
+    profiles:
+      - test
+
+  postgres-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_ROOT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_USER_CREATEDB: false
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - api_network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_ROOT_USER} -d ${POSTGRES_DB_NAME}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: ["start-postgres.sh"]
+    profiles:
+      - prod
+
+  redis-dev:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata_dev:/data
+    networks:
+      - api_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 5s
+    profiles:
+      - dev
+
+  redis-test:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata_test:/data
+    networks:
+      - api_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    profiles:
+      - test
+
+  redis-prod:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redisdata_prod:/data
+    networks:
+      - api_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    profiles:
+      - prod
 
   api-dev:
     build:
       context: .
       dockerfile: Dockerfile
       target: development
-    restart: always
+    restart: unless-stopped
     depends_on:
-      postgres:
+      postgres-dev:
         condition: service_healthy
-      redis:
+      redis-dev:
         condition: service_healthy
-    env_file: # Load environment variables from these files
-      - .env.db # Load common DB variables (including root for init)
-      - .env.dev # Load dev-specific variables (including dev DB user)
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      HOST_PORT: ${HOST_PORT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DATABASE_URL: ${DATABASE_URL}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_KEY: ${STRIPE_WEBHOOK_KEY}
+
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
     ports:
-      - '${HOST_PORT}:${PORT}'
+      - "${HOST_PORT}:${PORT}"
+    volumes:
+      - .:/app:delegated
+      - /app/node_modules
+    networks:
+      - api_network
+    command: ["npm", "run", "start:dev"]
     profiles:
       - dev
-    networks:
-      - app_network
-    volumes:
-      - .:/app
-      - /app/node_modules # avoid host-modules conflict
-    command: ['npm', 'run', 'start:dev']
 
   api-prod:
     build:
@@ -89,47 +199,97 @@ services:
       target: production
     restart: always
     depends_on:
-      postgres:
+      postgres-prod:
         condition: service_healthy
-      redis:
+      redis-prod:
         condition: service_healthy
-    env_file: # Load environment variables from these files
-      - .env.db
-      - .env.prod
     ports:
-      - '${HOST_PORT}:${PORT}'
+      - "${HOST_PORT}:${PORT}"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      HOST_PORT: ${HOST_PORT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DATABASE_URL: ${DATABASE_URL}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_KEY: ${STRIPE_WEBHOOK_KEY}
+
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    networks:
+      - api_network
+    command: ["npm", "run", "start:prod"]
     profiles:
       - prod
-    networks:
-      - app_network
-    command: ['npm', 'run', 'start:prod']
 
-  app-e2e:
+  api-e2e:
     build:
       context: .
       dockerfile: Dockerfile
       target: test
-    restart: no
+    restart: "no"
     depends_on:
-      postgres:
+      postgres-test:
         condition: service_healthy
-      redis:
+      redis-test:
         condition: service_healthy
-    env_file: # Load environment variables from these files
-      - .env.db
-      - .env.test
-    ports:
-      - '${HOST_PORT}:${PORT}'
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      HOST_PORT: ${HOST_PORT}
+
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DATABASE_URL: ${DATABASE_URL}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+
+      STRIPE_API_KEY: ${STRIPE_API_KEY}
+      STRIPE_WEBHOOK_KEY: ${STRIPE_WEBHOOK_KEY}
+
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    networks:
+      - api_network
+    command: ["npm", "run", "test:e2e"]
     profiles:
       - test
-    networks:
-      - app_network
-    command: ['npm', 'run', 'test:e2e']
 
 volumes:
-  pgdata:
-  redisdata:
+  pgdata_dev:
+  pgdata_test:
+  pgdata_prod:
+  redisdata_dev:
+  redisdata_test:
+  redisdata_prod:
 
 networks:
-  app_network:
+  api_network:
     driver: bridge

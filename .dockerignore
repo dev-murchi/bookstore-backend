@@ -39,7 +39,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv files
 .env*
-!.env.example
 
 # Prisma local db (optional if using SQLite locally)
 prisma/dev.db
