@@ -6,7 +6,12 @@ describe('PrismaService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PrismaService],
+      providers: [
+        {
+          provide: PrismaService,
+          useFactory: () => new PrismaService('postgresql://localhost/test_db'),
+        },
+      ],
     }).compile();
 
     service = module.get<PrismaService>(PrismaService);

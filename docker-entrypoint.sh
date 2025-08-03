@@ -24,9 +24,8 @@ if [ "$NODE_ENV" = "development" ]; then
   npx prisma migrate dev --name init
   npx ts-node prisma/seed.ts
 elif [ "$NODE_ENV" = "test" ]; then
-  echo "Running Prisma db push and seed for test environment..."
-  npx prisma db push
-  npx ts-node prisma/seed.ts
+  echo "Running Prisma db push for test environment..."
+  npx prisma db push --force-reset
 elif [ "$NODE_ENV" = "production" ]; then
   echo "Running Prisma migrations for production environment..."
   npx prisma migrate deploy

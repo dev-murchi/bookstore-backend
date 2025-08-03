@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { BooksModule } from './books/books.module';
 import { CartModule } from './cart/cart.module';
@@ -32,7 +32,17 @@ import { RefundModule } from './refund/refund.module';
     JwtGlobalModule,
     UserModule,
     AuthModule,
-    PrismaModule,
+    PrismaModule.forRootAsync({
+      imports: [ConfigModule], // import ConfigModule to access ConfigService
+      inject: [ConfigService], // inject ConfigService into factory
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('db.url');
+        if (!dbUrl) {
+          throw new Error('DATABASE_URL environment variable is not set');
+        }
+        return { dbUrl };
+      },
+    }),
     BooksModule,
     CartModule,
     PaymentModule,
@@ -48,4 +58,4 @@ import { RefundModule } from './refund/refund.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }
