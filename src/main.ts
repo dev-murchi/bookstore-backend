@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const PORT = process.env.PORT ?? 3001;
@@ -11,6 +12,9 @@ async function bootstrap() {
     rawBody: true,
     bodyParser: true,
   });
+
+  app.use(helmet())
+  
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

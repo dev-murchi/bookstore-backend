@@ -21,13 +21,36 @@ import {
 } from './common/config';
 import { OrderPaymentModule } from './order-payment/order-payment.module';
 import { RefundModule } from './refund/refund.module';
+import { databaseConfig } from './common/config/database.config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [jwtConfig, stripeConfig, emailConfig, redisConfig],
+      load: [jwtConfig, stripeConfig, emailConfig, redisConfig, databaseConfig],
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'short',
+          ttl: 1000,
+          limit: 3,
+        },
+        {
+          name: 'medium',
+          ttl: 10000,
+          limit: 20
+        },
+        {
+          name: 'long',
+          ttl: 60000,
+          limit: 50
+        }
+      ],
     }),
     JwtGlobalModule,
     UserModule,
@@ -56,6 +79,11 @@ import { RefundModule } from './refund/refund.module';
     RefundModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    }
+  ],
 })
 export class AppModule { }
