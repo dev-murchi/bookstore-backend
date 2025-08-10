@@ -14,7 +14,9 @@ interface PrismaModuleOptions {
 
 interface PrismaModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
   inject?: InjectionToken[];
-  useFactory: (...args: unknown[]) => Promise<PrismaModuleOptions> | PrismaModuleOptions;
+  useFactory: (
+    ...args: unknown[]
+  ) => Promise<PrismaModuleOptions> | PrismaModuleOptions;
 }
 
 @Global()

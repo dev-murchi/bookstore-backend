@@ -180,7 +180,7 @@ export class AuthController {
 
   @Delete('logout')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RoleGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out of the current session' })
   @ApiOkResponse({

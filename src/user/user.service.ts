@@ -259,7 +259,7 @@ export class UserService {
       // update user password
       await this.update(user.id, { password: newPassword });
 
-      return { message: 'Password reset successfully' };
+      return { message: 'Password has been reset successfully.' };
     } catch (error) {
       console.error('Password could not be reset. Error:', error);
 

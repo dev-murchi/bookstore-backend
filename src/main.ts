@@ -13,8 +13,8 @@ async function bootstrap() {
     bodyParser: true,
   });
 
-  app.use(helmet())
-  
+  app.use(helmet());
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

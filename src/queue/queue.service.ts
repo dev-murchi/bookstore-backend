@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import {
   AuthEmailTemplateKey,
@@ -16,7 +16,7 @@ import Stripe from 'stripe';
 type MailTemplateKeys = OrderEmailTemplateKey | RefundEmailTemplateKey;
 
 @Injectable()
-export class QueueService {
+export class QueueService implements OnModuleDestroy {
   constructor(
     @Inject('OrderMailQueue')
     private readonly orderMailQueue: Queue<OrderMailJob, any, MailTemplateKeys>,
@@ -44,6 +44,17 @@ export class QueueService {
     @Inject('StripeRefundQueue')
     private readonly stripeRefundQueue: Queue<Stripe.Refund, any, string>,
   ) {}
+  async onModuleDestroy() {
+    try {
+      await this.orderMailQueue.close();
+      await this.authMailQueue.close();
+      await this.stripePaymentQueue.close();
+      await this.stripeCheckoutQueue.close();
+      await this.stripeRefundQueue.close();
+    } catch (error) {
+      console.error('Failed to close the queue connections. Error', error);
+    }
+  }
 
   async addAuthMailJob(templateKey: AuthEmailTemplateKey, data: AuthMailJob) {
     try {

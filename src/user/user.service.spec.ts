@@ -717,7 +717,9 @@ describe('UserService', () => {
         where: { token: 'token' },
       });
 
-      expect(result).toEqual({ message: 'Password reset successfully' });
+      expect(result).toEqual({
+        message: 'Password has been reset successfully.',
+      });
       spyCampare.mockRestore();
       spyHash.mockRestore();
     });

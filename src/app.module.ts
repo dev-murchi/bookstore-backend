@@ -18,11 +18,12 @@ import {
   stripeConfig,
   emailConfig,
   redisConfig,
+  ratelimitConfig,
 } from './common/config';
 import { OrderPaymentModule } from './order-payment/order-payment.module';
 import { RefundModule } from './refund/refund.module';
 import { databaseConfig } from './common/config/database.config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { APP_GUARD } from '@nestjs/core';
 
@@ -31,25 +32,34 @@ import { APP_GUARD } from '@nestjs/core';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [jwtConfig, stripeConfig, emailConfig, redisConfig, databaseConfig],
+      load: [
+        jwtConfig,
+        stripeConfig,
+        emailConfig,
+        redisConfig,
+        databaseConfig,
+        ratelimitConfig,
+      ],
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
         {
           name: 'short',
-          ttl: 1000,
-          limit: 3,
+          ttl: config.get('ratelimit.short.ttl'),
+          limit: config.get('ratelimit.short.limit'),
         },
         {
           name: 'medium',
-          ttl: 10000,
-          limit: 20
+          ttl: config.get('ratelimit.medium.ttl'),
+          limit: config.get('ratelimit.medium.limit'),
         },
         {
           name: 'long',
-          ttl: 60000,
-          limit: 50
-        }
+          ttl: config.get('ratelimit.long.ttl'),
+          limit: config.get('ratelimit.long.limit'),
+        },
       ],
     }),
     JwtGlobalModule,
@@ -82,8 +92,8 @@ import { APP_GUARD } from '@nestjs/core';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard
-    }
+      useClass: ThrottlerGuard,
+    },
   ],
 })
-export class AppModule { }
+export class AppModule {}
