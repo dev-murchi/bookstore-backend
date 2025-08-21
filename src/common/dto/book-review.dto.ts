@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsInt, IsNotEmpty, IsString } from 'class-validator';
@@ -15,10 +15,7 @@ export class BookReviewDTO {
   @IsInt()
   @Transform(({ value }) => {
     if (value > 5 || value < 0)
-      throw new HttpException(
-        'Rating must be between [0 and 5].',
-        HttpStatus.NOT_ACCEPTABLE,
-      );
+      throw new BadRequestException('Rating must be between [0 and 5].');
 
     return value;
   })

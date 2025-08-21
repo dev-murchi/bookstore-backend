@@ -1,5 +1,4 @@
-// import { HttpException, HttpStatus } from '@nestjs/common';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
@@ -9,12 +8,15 @@ export class BookFilterDTO {
   @IsOptional()
   @Transform(({ value }) => {
     const num = Number(value);
+
     if (isNaN(num)) {
-      throw new HttpException(
-        'minPrice must be a number',
-        HttpStatus.NOT_ACCEPTABLE,
-      );
+      throw new BadRequestException('minPrice must be a number');
     }
+
+    if (num < 0) {
+      throw new BadRequestException('minPrice can not be less than zero');
+    }
+
     return num;
   })
   readonly minPrice?: number;
@@ -24,10 +26,10 @@ export class BookFilterDTO {
   @Transform(({ value }) => {
     const num = Number(value);
     if (isNaN(num)) {
-      throw new HttpException(
-        'maxPrice must be a number',
-        HttpStatus.NOT_ACCEPTABLE,
-      );
+      throw new BadRequestException('maxPrice must be a number');
+    }
+    if (num <= 0) {
+      throw new BadRequestException('maxPrice must be greater than zero');
     }
     return num;
   })
@@ -38,9 +40,8 @@ export class BookFilterDTO {
   @Transform(({ value }) => {
     const num = Number(value);
     if (isNaN(num) || num > 5 || num < 0) {
-      throw new HttpException(
+      throw new BadRequestException(
         'rating must be a number and between [0, 5]',
-        HttpStatus.NOT_ACCEPTABLE,
       );
     }
 

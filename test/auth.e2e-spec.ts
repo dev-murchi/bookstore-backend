@@ -39,7 +39,6 @@ import * as request from 'supertest';
 import { AppModule } from 'src/app.module';
 import { TestDBManager } from './test-db-manager';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { seedUsers } from './mocks';
 import { HelperService } from 'src/common/helper.service';
 import { JwtService } from '@nestjs/jwt';
 import { setTimeout } from 'node:timers/promises';
@@ -47,8 +46,45 @@ import { StripeService } from 'src/payment/stripe/stripe.service';
 import { MockStripeService } from './mocks/services/mock-stripe.service';
 import { NodemailerService } from 'src/mail/nodemailer/nodemailer.service';
 import { MockNodemailerService } from './mocks/services/mock-nodemailer.service';
+import { RoleEnum } from 'src/common/enum/role.enum';
 
 jest.setTimeout(5000);
+
+const adminUser = {
+  name: 'Test Admin',
+  email: 'testadmin@email.com',
+  password: 'TestPassword.123',
+  role: RoleEnum.Admin,
+  isActive: true,
+  lastPasswordResetAt: new Date(),
+};
+
+const registeredUser = {
+  name: 'Test User',
+  email: 'testuser@email.com',
+  password: 'TestPassword.123',
+  role: 'user',
+  isActive: true,
+  lastPasswordResetAt: new Date(),
+};
+
+const resetTargetUser = {
+  name: 'Reset User',
+  email: 'resetuser@email.com',
+  password: 'TestPassword.123',
+  role: 'user',
+  isActive: true,
+  lastPasswordResetAt: new Date(),
+};
+
+const authorUser = {
+  name: 'Test Author',
+  email: 'testauthor@email.com',
+  password: 'TestPassword.123',
+  role: RoleEnum.Author,
+  isActive: true,
+  lastPasswordResetAt: new Date(),
+};
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
@@ -81,7 +117,12 @@ describe('AuthController (e2e)', () => {
     await app.init();
 
     try {
-      await seedUsers(prismaService);
+      await dbManager.seedUsers([
+        adminUser,
+        authorUser,
+        resetTargetUser,
+        registeredUser,
+      ]);
     } catch (error) {
       process.exit(1);
     }
