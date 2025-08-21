@@ -69,7 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'my-jwt') {
         );
       }
 
-      if (userSession.user.lastPasswordResetAt > new Date(payload.iat * 1000)) {
+      if (userSession.user.lastPasswordResetAt > payload.logedInAt) {
         throw new UnauthorizedException(
           'Session expired due to password change. Please log in again.',
         );

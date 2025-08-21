@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsEnum, IsString } from 'class-validator';
+import { RoleEnum } from '../enum/role.enum';
 
 export class UserDTO {
   @ApiProperty({
@@ -24,10 +25,10 @@ export class UserDTO {
   email: string;
 
   @ApiProperty({ description: 'User role', example: 'user' })
-  @IsString()
-  role: string;
+  @IsEnum(RoleEnum)
+  role: RoleEnum;
 
-  constructor(id: string, name: string, email: string, role: string) {
+  constructor(id: string, name: string, email: string, role: RoleEnum) {
     this.id = id;
     this.name = name;
     this.email = email;

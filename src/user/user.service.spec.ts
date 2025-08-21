@@ -178,7 +178,12 @@ describe('UserService', () => {
         isActive: true,
       });
       expect(result).toEqual(
-        new UserDTO(mockUserId, 'test user', 'testuser@email.com', 'user'),
+        new UserDTO(
+          mockUserId,
+          'test user',
+          'testuser@email.com',
+          RoleEnum.User,
+        ),
       );
     });
     it('should throw error when validation fails', async () => {
@@ -800,7 +805,12 @@ describe('UserService', () => {
       );
 
       expect(result).toEqual(
-        new UserDTO(mockUserId, 'test user', 'testuser@email.com', 'user'),
+        new UserDTO(
+          mockUserId,
+          'test user',
+          'testuser@email.com',
+          RoleEnum.User,
+        ),
       );
     });
   });

@@ -58,8 +58,9 @@ export class AuthService {
 
       const payload = {
         id: user.id,
-        role: user.role as RoleEnum,
+        role: user.role,
         sessionId: userSession.id,
+        logedInAt: new Date(),
       };
       const accessToken = await this.accessToken(payload);
 

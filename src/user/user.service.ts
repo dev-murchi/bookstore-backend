@@ -61,12 +61,7 @@ export class UserService {
         select: this.userSelect,
       });
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-      };
+      return await this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User creation failed. Error:', error);
       if (error instanceof CustomAPIError) throw error;
@@ -166,12 +161,7 @@ export class UserService {
         select: this.userSelect,
       });
 
-      return {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role.name,
-      };
+      return await this.transformSelectedUserToUser(user);
     } catch (error) {
       console.error('User could not be deleted. Error:', error);
       if (error instanceof CustomAPIError) throw error;

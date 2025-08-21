@@ -44,6 +44,7 @@ const baseUserSession = {
 const payload = {
   id: 'user123',
   sessionId: 'session123',
+  logedInAt: new Date(Date.now() - 10 * 1000),
   iat: Math.floor(Date.now() / 1000) - 200,
 };
 
