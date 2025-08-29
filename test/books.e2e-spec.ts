@@ -354,11 +354,11 @@ describe('BooksController (e2e)', () => {
         .post('/books')
         .send(newBookByAdmin);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
       expect(res.body).toEqual({
-        message: 'Access denied. Insufficient permissions.',
-        error: 'Forbidden',
-        statusCode: 403,
+        message: 'User is not authenticated or authorized.',
+        error: 'Unauthorized',
+        statusCode: 401,
       });
     });
 
@@ -570,7 +570,7 @@ describe('BooksController (e2e)', () => {
           title: 'The Hobbit (Revised Edition)',
         });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
     });
 
     it('should return 404 for a non-existent book ID', async () => {

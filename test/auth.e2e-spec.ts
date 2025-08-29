@@ -321,10 +321,10 @@ describe('AuthController (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post('/auth/create-author')
         .send(newAuthor)
-        .expect(403);
+        .expect(401);
 
       expect(res.body.message).toContain(
-        'Access denied. Insufficient permissions.',
+        'User is not authenticated or authorized.',
       );
     });
   });

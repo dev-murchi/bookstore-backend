@@ -31,7 +31,15 @@ export class RoleGuard implements CanActivate {
     }
 
     if (!requiredRoles.includes(user['role'])) {
-      throw new ForbiddenException('Access denied. Insufficient permissions.');
+      if (user['id']) {
+        throw new ForbiddenException(
+          'Access denied. Insufficient permissions.',
+        );
+      }
+      // guest user
+      throw new UnauthorizedException(
+        'User is not authenticated or authorized.',
+      );
     }
 
     return true;

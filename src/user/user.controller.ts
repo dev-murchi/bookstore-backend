@@ -181,6 +181,9 @@ export class UserController {
     description: 'User updated successfully',
     type: UserDTO,
   })
+  @ApiBadRequestResponse({
+    description: 'Invalid request parameters or validation error',
+  })
   @ApiInternalServerErrorResponse({ description: 'Failed to update user' })
   async updateUser(
     @Param('id') userId: string,

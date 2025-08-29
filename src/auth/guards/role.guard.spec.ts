@@ -47,14 +47,25 @@ describe('RoleGuard', () => {
     await expect(guard.canActivate(mockContext)).resolves.toBe(true);
   });
 
-  it('should throw ForbiddenException if user does not have the required role', async () => {
-    mockRequestFn.mockReturnValueOnce({ user: { role: 'user' } });
+  it('should throw ForbiddenException if user does not have the required role and is authenticated', async () => {
+    mockRequestFn.mockReturnValueOnce({ user: { role: 'user', id: 1 } });
     jest.spyOn(reflector, 'getAllAndMerge').mockReturnValueOnce(['admin']);
     try {
       await guard.canActivate(mockContext);
     } catch (error) {
       expect(error).toBeInstanceOf(ForbiddenException);
       expect(error.message).toBe('Access denied. Insufficient permissions.');
+    }
+  });
+
+  it('should throw UnauthorizedException if user does not have the required role and is not authenticated', async () => {
+    mockRequestFn.mockReturnValueOnce({ user: { role: 'user' } });
+    jest.spyOn(reflector, 'getAllAndMerge').mockReturnValueOnce(['admin']);
+    try {
+      await guard.canActivate(mockContext);
+    } catch (error) {
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(error.message).toBe('User is not authenticated or authorized.');
     }
   });
 });
